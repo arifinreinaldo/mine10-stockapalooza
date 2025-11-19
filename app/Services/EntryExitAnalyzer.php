@@ -359,23 +359,23 @@ class EntryExitAnalyzer
         // Determine current position
         if ($distanceToSupport <= 2) {
             $position = 'NEAR_SUPPORT';
-            $action = 'GOOD_BUY_ZONE';
-            $description = "Price is near support (within 2%). Good buying opportunity with limited downside risk.";
+            $action = 'GOOD_BUY_ZONE 🟢';
+            $description = "💰 Like a SALE at the store! Stock price is low and near a strong support floor. This is a good time to buy because: (1) Price is cheap right now, (2) It's unlikely to go much lower (strong floor below), (3) Good chance it will go up from here! Think of it like buying your favorite toy when it's on discount.";
             $confidence = 'High';
         } elseif ($distanceToResistance <= 2) {
             $position = 'NEAR_RESISTANCE';
-            $action = 'WAIT_OR_SELL';
-            $description = "Price is near resistance. Consider taking profits or waiting for breakout confirmation.";
+            $action = 'WAIT_OR_SELL 🔴';
+            $description = "⚠️ Like when a toy costs TOO MUCH! Stock price is high and hitting a ceiling (resistance). This means: (1) Price is expensive right now, (2) It's hard for the price to go higher (ceiling blocking it), (3) Might come back down. If you own it, consider selling to take your profit. If you don't own it, wait for price to drop.";
             $confidence = 'High';
         } elseif ($distanceToSupport > $distanceToResistance) {
             $position = 'UPPER_RANGE';
-            $action = 'WAIT_FOR_PULLBACK';
-            $description = "Price is in upper range. Wait for pullback to support levels before entering.";
+            $action = 'WAIT_FOR_PULLBACK 🟡';
+            $description = "⏰ Like waiting for a DISCOUNT! Stock price is high right now (not a good deal). Best to WAIT until it goes on sale (price comes down). Imagine your mom saying 'Wait for the sale!' instead of buying when it's full price. Be patient!";
             $confidence = 'Medium';
         } else {
             $position = 'LOWER_RANGE';
-            $action = 'CONSIDER_BUY';
-            $description = "Price is in lower range. Consider accumulating positions gradually.";
+            $action = 'CONSIDER_BUY 🟢';
+            $description = "🛒 Like a GOOD DEAL starting! Stock price is getting lower (closer to sale price). You can start buying a little bit at a time. Think of it like: Instead of buying 10 toys at once, buy 2 now, 2 later, 2 more later. This way, if price goes down more, you can buy more at even better prices!";
             $confidence = 'Medium-High';
         }
 
