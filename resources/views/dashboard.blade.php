@@ -142,24 +142,48 @@
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
         .card {
             background: #1e293b;
-            border-radius: 12px;
-            padding: 25px;
+            border-radius: 10px;
+            padding: 18px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
 
         .card h3 {
             color: #667eea;
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
             border-bottom: 2px solid #334155;
+        }
+
+        .card h4 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .compact-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 1200px) {
+            .compact-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .compact-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .stock-header {
@@ -214,27 +238,33 @@
 
         .metric-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin: 15px 0;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
         }
 
         .metric {
             background: #0f172a;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 10px 12px;
+            border-radius: 6px;
         }
 
         .metric-label {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: #94a3b8;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .metric-value {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             color: #e2e8f0;
+        }
+
+        .metric-small {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-top: 2px;
         }
 
         .entry-exit-grid {
@@ -480,40 +510,40 @@
 
         .executive-summary {
             background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 30px;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
             border: 2px solid #475569;
         }
 
         .executive-title {
-            font-size: 1.8rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             text-align: center;
             color: #667eea;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
         }
 
         .executive-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
         }
 
         .executive-box {
             background: #0f172a;
-            padding: 20px;
-            border-radius: 12px;
+            padding: 12px 15px;
+            border-radius: 8px;
             border-left: 4px solid #667eea;
-            transition: transform 0.3s;
+            transition: transform 0.2s;
         }
 
         .executive-box:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
         }
 
         .executive-box.highlight {
@@ -531,23 +561,23 @@
         }
 
         .executive-label {
-            font-size: 0.85rem;
+            font-size: 0.7rem;
             color: #94a3b8;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-
-        .executive-value {
-            font-size: 1.8rem;
-            font-weight: bold;
+            letter-spacing: 0.5px;
             margin-bottom: 5px;
         }
 
+        .executive-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
         .executive-desc {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             color: #cbd5e1;
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         .quick-actions {
@@ -602,12 +632,7 @@
     </div>
 
     <div class="container">
-        <header>
-            <h1>📊 Stock Analysis Dashboard</h1>
-            <p>Comprehensive trading analysis with Entry/Exit recommendations, Accumulation detection & Swing analysis</p>
-        </header>
-
-        <div class="search-bar">
+        <div class="search-bar" style="margin-top: 50px;">
             <div class="search-section">
                 <select id="marketSelector" style="padding: 14px 20px; border-radius: 8px; border: 2px solid #4b5563; background: #1e293b; color: white; font-size: 1rem; margin-right: 10px; cursor: pointer;">
                     <option value="auto">🌐 Auto-detect</option>
@@ -624,53 +649,58 @@
                 <button class="btn-secondary" onclick="window.location.href='/'">Simple View</button>
             </div>
 
-            <!-- Search History (shown first) -->
-            <div id="searchHistorySection" class="quick-picks">
+            <!-- 1. Indonesia Suggestions -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <strong style="margin-right: 10px;">🕐 Recent Searches:</strong>
-                    <div>
-                        <button class="quick-pick-btn" style="background: #ef4444; font-size: 0.85rem;" onclick="clearSearchHistory()">Clear History</button>
-                        <button class="quick-pick-btn" style="background: #3b82f6; font-size: 0.85rem;" onclick="toggleSections()">Show Suggestions</button>
-                    </div>
+                    <strong style="margin-right: 10px;">🇮🇩 Indonesia - Suggestions:</strong>
                 </div>
-                <div id="searchHistory"></div>
+                <div style="overflow-x: auto; white-space: nowrap;">
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BBCA')">BBCA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BBRI')">BBRI</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BMRI')">BMRI</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('TLKM')">TLKM</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('ASII')">ASII</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('UNVR')">UNVR</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('HMSP')">HMSP</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('ICBP')">ICBP</button>
+                </div>
             </div>
 
-            <!-- Quick Picks Sections (shown second, collapsed by default) -->
-            <div id="quickPicksSection" style="display: none;">
-                <!-- Indonesia Stocks -->
-                <div class="quick-picks" style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <strong style="margin-right: 10px;">🇮🇩 Indonesia (IDX):</strong>
-                    </div>
-                    <div>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('BBCA')">BBCA</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('BBRI')">BBRI</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('BMRI')">BMRI</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('TLKM')">TLKM</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('ASII')">ASII</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('UNVR')">UNVR</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('HMSP')">HMSP</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('ICBP')">ICBP</button>
-                    </div>
+            <!-- 2. Indonesia History -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇮🇩 Indonesia - Recent Searches:</strong>
                 </div>
+                <div id="idxHistory" style="overflow-x: auto; white-space: nowrap;">
+                    <p style="color: #94a3b8; font-size: 0.9rem;">No Indonesia stocks searched yet</p>
+                </div>
+            </div>
 
-                <!-- US Stocks -->
-                <div class="quick-picks">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <strong style="margin-right: 10px;">🇺🇸 United States:</strong>
-                        <button class="quick-pick-btn" style="background: #3b82f6; font-size: 0.85rem;" onclick="toggleSections()">Show History</button>
-                    </div>
-                    <div>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('AAPL', 'us')">AAPL</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('MSFT', 'us')">MSFT</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('GOOGL', 'us')">GOOGL</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('TSLA', 'us')">TSLA</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('NVDA', 'us')">NVDA</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('META', 'us')">META</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('AMZN', 'us')">AMZN</button>
-                        <button class="quick-pick-btn" onclick="quickAnalyze('NFLX', 'us')">NFLX</button>
-                    </div>
+            <!-- 3. US Suggestions -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇺🇸 United States - Suggestions:</strong>
+                </div>
+                <div style="overflow-x: auto; white-space: nowrap;">
+                    <button class="quick-pick-btn" onclick="quickAnalyze('AAPL', 'us')">AAPL</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('MSFT', 'us')">MSFT</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('GOOGL', 'us')">GOOGL</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('TSLA', 'us')">TSLA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('NVDA', 'us')">NVDA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('META', 'us')">META</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('AMZN', 'us')">AMZN</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('NFLX', 'us')">NFLX</button>
+                </div>
+            </div>
+
+            <!-- 4. US History -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇺🇸 United States - Recent Searches:</strong>
+                    <button class="quick-pick-btn" style="background: #ef4444; font-size: 0.85rem;" onclick="clearSearchHistory()">Clear All History</button>
+                </div>
+                <div id="usHistory" style="overflow-x: auto; white-space: nowrap;">
+                    <p style="color: #94a3b8; font-size: 0.9rem;">No US stocks searched yet</p>
                 </div>
             </div>
         </div>
@@ -890,8 +920,8 @@
             const priceChangeSign = stock_info.change_percent >= 0 ? '+' : '';
 
             const favoriteBtn = isFavorite
-                ? `<button class="favorite-btn btn-danger" onclick="removeFavorite()">⭐ Remove from Favorites</button>`
-                : `<button class="favorite-btn btn-success" onclick="addFavorite()">☆ Add to Favorites</button>`;
+                ? `<button class="favorite-btn btn-danger" onclick="removeFavorite()">⭐ Remove</button>`
+                : `<button class="favorite-btn btn-success" onclick="addFavorite()">☆ Add</button>`;
 
             // Get key values for executive summary
             const bestEntry = entry_exit.entry_recommendation.conservative || entry_exit.entry_recommendation.moderate;
@@ -899,6 +929,7 @@
             const overallRec = overall_analysis.recommendation;
             const accPhase = accumulation.phase;
             const swingRating = swing_analysis.swing_rating;
+            const metrics = overall_analysis.metrics || {};
 
             // Determine executive box classes
             const getExecutiveBoxClass = (action) => {
@@ -907,493 +938,380 @@
                 return 'warning';
             };
 
+            // Calculate stop loss and risk-reward
+            const stopLoss = (bestEntry.price * 0.95).toFixed(0);
+            const riskAmount = bestEntry.price - stopLoss;
+            const rewardAmount = bestExit.price - bestEntry.price;
+            const riskRewardRatio = riskAmount > 0 ? (rewardAmount / riskAmount).toFixed(2) : 0;
+
             let html = `
                 <!-- EXECUTIVE SUMMARY -->
                 <div class="executive-summary">
-                    <div class="executive-title">⚡ Executive Summary</div>
+                    <div class="executive-title">⚡ Decision Dashboard</div>
 
                     <div class="executive-grid">
                         <!-- Overall Recommendation -->
                         <div class="executive-box ${getExecutiveBoxClass(overallRec.action)}">
-                            <div class="executive-label">Overall Recommendation</div>
-                            <div class="executive-value" style="color: ${overallRec.color === 'success' ? '#10b981' : overallRec.color === 'danger' ? '#ef4444' : '#f59e0b'}">
+                            <div class="executive-label">Action</div>
+                            <div class="executive-value" style="color: ${overallRec.color === 'success' ? '#10b981' : overallRec.color === 'danger' ? '#ef4444' : '#f59e0b'}; font-size: 1.5rem;">
                                 ${overallRec.action}
                             </div>
-                            <div class="executive-desc">${overallRec.description}</div>
+                            <div class="executive-desc">Score: ${overall_analysis.score.toFixed(0)}/100 • ${overallRec.confidence}</div>
                         </div>
 
-                        <!-- Score -->
+                        <!-- Entry Price -->
                         <div class="executive-box">
-                            <div class="executive-label">Overall Score</div>
-                            <div class="executive-value" style="color: #667eea">
-                                ${overall_analysis.score.toFixed(0)}/100
-                            </div>
-                            <div class="executive-desc">
-                                Confidence: ${overallRec.confidence}
-                                <br>
-                                ${overall_analysis.score >= 80 ? 'Excellent opportunity' : overall_analysis.score >= 65 ? 'Good opportunity' : overall_analysis.score >= 50 ? 'Mixed signals' : 'Concerning factors detected'}
-                            </div>
-                        </div>
-
-                        <!-- Accumulation Phase -->
-                        <div class="executive-box ${accPhase.current_phase === 'ACCUMULATION' ? 'highlight' : accPhase.current_phase === 'DISTRIBUTION' ? 'danger' : ''}">
-                            <div class="executive-label">Market Phase</div>
-                            <div class="executive-value" style="color: ${accPhase.current_phase === 'ACCUMULATION' ? '#10b981' : accPhase.current_phase === 'DISTRIBUTION' ? '#ef4444' : '#f59e0b'}">
-                                ${accPhase.current_phase}
-                            </div>
-                            <div class="executive-desc">${accPhase.description.substring(0, 80)}...</div>
-                        </div>
-
-                        <!-- Best Entry Price -->
-                        <div class="executive-box">
-                            <div class="executive-label">💰 Recommended Entry</div>
+                            <div class="executive-label">💰 Entry Price</div>
                             <div class="executive-value" style="color: #10b981">
                                 Rp ${bestEntry.price.toLocaleString()}
                             </div>
-                            <div class="executive-desc">
-                                ${bestEntry.description}
-                                <br>
-                                <strong>${bestEntry.distance_percent > 0 ? '↑' : '↓'} ${Math.abs(bestEntry.distance_percent).toFixed(2)}%</strong> from current
-                            </div>
+                            <div class="executive-desc">${bestEntry.distance_percent > 0 ? '↑' : '↓'} ${Math.abs(bestEntry.distance_percent).toFixed(1)}% from current</div>
                         </div>
 
-                        <!-- Best Exit Target -->
+                        <!-- Exit Target -->
                         <div class="executive-box">
-                            <div class="executive-label">🎯 Primary Target</div>
+                            <div class="executive-label">🎯 Exit Target</div>
                             <div class="executive-value" style="color: #3b82f6">
                                 Rp ${bestExit.price.toLocaleString()}
                             </div>
-                            <div class="executive-desc">
-                                ${bestExit.description}
-                                <br>
-                                <strong style="color: #10b981">+${bestExit.potential_gain_percent.toFixed(2)}%</strong> potential gain
-                            </div>
+                            <div class="executive-desc" style="color: #10b981;">+${bestExit.potential_gain_percent.toFixed(1)}% gain</div>
                         </div>
 
-                        <!-- Swing Trading Rating -->
+                        <!-- Stop Loss -->
                         <div class="executive-box">
-                            <div class="executive-label">📈 Swing Rating</div>
+                            <div class="executive-label">🛑 Stop Loss</div>
+                            <div class="executive-value" style="color: #ef4444">
+                                Rp ${stopLoss}
+                            </div>
+                            <div class="executive-desc">5% below entry (ATR-based)</div>
+                        </div>
+
+                        <!-- Risk-Reward -->
+                        <div class="executive-box ${riskRewardRatio >= 2 ? 'highlight' : ''}">
+                            <div class="executive-label">⚖️ Risk:Reward</div>
+                            <div class="executive-value" style="color: ${riskRewardRatio >= 2 ? '#10b981' : riskRewardRatio >= 1.5 ? '#f59e0b' : '#ef4444'}">
+                                1:${riskRewardRatio}
+                            </div>
+                            <div class="executive-desc">${riskRewardRatio >= 2 ? 'Excellent' : riskRewardRatio >= 1.5 ? 'Good' : 'Fair'}</div>
+                        </div>
+
+                        <!-- Phase -->
+                        <div class="executive-box ${accPhase.current_phase === 'ACCUMULATION' ? 'highlight' : accPhase.current_phase === 'DISTRIBUTION' ? 'danger' : ''}">
+                            <div class="executive-label">📊 Phase</div>
+                            <div class="executive-value" style="color: ${accPhase.current_phase === 'ACCUMULATION' ? '#10b981' : accPhase.current_phase === 'DISTRIBUTION' ? '#ef4444' : '#f59e0b'}; font-size: 1rem;">
+                                ${accPhase.current_phase}
+                            </div>
+                            <div class="executive-desc">Strength: ${accumulation.strength.score}/100</div>
+                        </div>
+
+                        <!-- Swing Rating -->
+                        <div class="executive-box">
+                            <div class="executive-label">📈 Swing</div>
                             <div class="executive-value" style="color: #f59e0b">
                                 ${swingRating.score}/100
                             </div>
-                            <div class="executive-desc">
-                                ${swingRating.rating}
-                                <br>
-                                Avg Swing: ${swing_analysis.swing_size.average_swing_percent.toFixed(1)}%
+                            <div class="executive-desc">±${swing_analysis.swing_size.average_swing_percent.toFixed(1)}% avg</div>
+                        </div>
+
+                        <!-- Participant Type -->
+                        <div class="executive-box ${accumulation.participants.primary_type.includes('Institutional') ? 'highlight' : ''}">
+                            <div class="executive-label">👥 Money Type</div>
+                            <div class="executive-value" style="color: ${accumulation.participants.primary_type.includes('Institutional') ? '#10b981' : '#f59e0b'}; font-size: 0.9rem;">
+                                ${accumulation.participants.primary_type.replace('Dominant', '').replace('Leaning', '')}
                             </div>
+                            <div class="executive-desc">${accumulation.participants.institutional_percent.toFixed(0)}% inst</div>
                         </div>
                     </div>
 
-                    <!-- Quick Action Summary -->
-                    <div class="quick-actions">
-                        <div style="flex: 1; min-width: 250px; text-align: center;">
-                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Overall Action</div>
-                            <div style="font-size: 1.3rem; font-weight: bold; color: ${overallRec.color === 'success' ? '#10b981' : overallRec.color === 'danger' ? '#ef4444' : '#f59e0b'};">
-                                ${overallRec.action}
-                            </div>
-                        </div>
-                        <div style="flex: 1; min-width: 250px; text-align: center;">
-                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Accumulation Phase</div>
-                            <div style="font-size: 1.3rem; font-weight: bold; color: ${accPhase.current_phase === 'ACCUMULATION' ? '#10b981' : accPhase.current_phase === 'DISTRIBUTION' ? '#ef4444' : '#f59e0b'};">
-                                ${accPhase.current_phase}
-                            </div>
-                        </div>
-                        <div style="flex: 1; min-width: 250px; text-align: center;">
-                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Entry Position</div>
-                            <div style="font-size: 1.3rem; font-weight: bold; color: ${entry_exit.position_recommendation.recommended_action.includes('BUY') ? '#10b981' : entry_exit.position_recommendation.recommended_action.includes('WAIT') ? '#f59e0b' : '#6b7280'};">
-                                ${entry_exit.position_recommendation.recommended_action}
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Stock Header -->
-                <div class="card">
-                    <div class="stock-header">
-                        <div class="stock-name">
-                            <h2>${stock_info.name}</h2>
-                            <p class="stock-symbol">${stock_info.symbol}</p>
+                <!-- Stock Header (Compact) -->
+                <div class="card" style="padding: 15px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h2 style="font-size: 1.5rem; margin: 0;">${stock_info.name}</h2>
+                            <p class="stock-symbol" style="margin: 5px 0;">${stock_info.symbol}</p>
                         </div>
-                        <div class="price-box">
-                            <div class="current-price">Rp ${stock_info.current_price.toLocaleString()}</div>
-                            <div class="price-change ${priceChangeClass}">
+                        <div style="text-align: right;">
+                            <div style="font-size: 2rem; font-weight: bold;">Rp ${stock_info.current_price.toLocaleString()}</div>
+                            <div class="price-change ${priceChangeClass}" style="font-size: 1rem;">
                                 ${priceChangeSign}${stock_info.change_percent.toFixed(2)}%
                             </div>
                         </div>
-                    </div>
-                    <div style="text-align: center; margin: 20px 0;">
-                        ${favoriteBtn}
+                        <div>
+                            ${favoriteBtn}
+                        </div>
                     </div>
                 </div>
 
-                <!-- Accumulation Phase -->
-                <div class="card">
-                    <div class="phase-box" style="background: ${getPhaseColor(accumulation.phase.current_phase)}">
-                        <div class="phase-title">${accumulation.phase.current_phase}</div>
-                        <div class="phase-desc">${accumulation.phase.description}</div>
-                        <div style="margin-top: 15px;">
-                            <span class="badge secondary">Confidence: ${accumulation.phase.confidence}</span>
-                        </div>
-                    </div>
-                    <h3>📊 Accumulation Analysis</h3>
-                    <div class="metric-row">
-                        <div class="metric">
-                            <div class="metric-label">Accumulation Strength</div>
-                            <div class="metric-value">${accumulation.strength.score}/100</div>
-                            <div style="margin-top: 5px; font-size: 0.9rem;">${accumulation.strength.strength}</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-label">OBV Trend</div>
-                            <div class="metric-value">${accumulation.obv_analysis.trend}</div>
-                            <div style="margin-top: 5px; font-size: 0.85rem;">${accumulation.obv_analysis.interpretation}</div>
-                        </div>
-                        <div class="metric">
-                            <div class="metric-label">Volume Status</div>
-                            <div class="metric-value">${accumulation.current_volume_vs_average.ratio}x</div>
-                            <div style="margin-top: 5px; font-size: 0.85rem;">${accumulation.current_volume_vs_average.status}</div>
-                        </div>
-                    </div>
-
-                    <!-- NEW: Accumulation Duration -->
-                    <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; border-left: 4px solid #3b82f6;">
-                        <h4 style="margin-bottom: 15px; display: flex; align-items: center;">
-                            <span style="font-size: 1.5rem; margin-right: 10px;">⏳</span>
-                            Accumulation Duration
-                        </h4>
-                        <div class="metric-row">
+                <!-- KEY DECISION METRICS (COMPACT) -->
+                <div class="compact-grid">
+                    <!-- Technical Indicators -->
+                    <div class="card">
+                        <h3>📈 Technical Indicators</h3>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
                             <div class="metric">
-                                <div class="metric-label">Duration</div>
-                                <div class="metric-value" style="font-size: 1.8rem; color: #3b82f6;">
-                                    ${accumulation.duration.days} days
+                                <div class="metric-label">RSI (14)</div>
+                                <div class="metric-value" style="color: ${overall_analysis.metrics?.technical?.rsi < 30 ? '#10b981' : overall_analysis.metrics?.technical?.rsi > 70 ? '#ef4444' : '#f59e0b'}">
+                                    ${overall_analysis.metrics?.technical?.rsi?.toFixed(0) || 'N/A'}
                                 </div>
-                                <div style="margin-top: 5px; font-size: 0.9rem; color: #94a3b8;">${accumulation.duration.weeks} trading weeks</div>
+                                <div class="metric-small">${overall_analysis.metrics?.technical?.rsi < 30 ? 'Oversold' : overall_analysis.metrics?.technical?.rsi > 70 ? 'Overbought' : 'Neutral'}</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Status</div>
-                                <div class="metric-value" style="font-size: 1.3rem; color: ${accumulation.duration.is_currently_accumulating ? '#10b981' : '#f59e0b'};">
-                                    ${accumulation.duration.status}
+                                <div class="metric-label">MA Status</div>
+                                <div class="metric-value" style="font-size: 0.85rem; color: ${overall_analysis.metrics?.technical?.above_sma ? '#10b981' : '#ef4444'}">
+                                    ${overall_analysis.metrics?.technical?.above_sma ? '↑ Above' : '↓ Below'}
                                 </div>
-                                <div style="margin-top: 5px; font-size: 0.85rem; color: #94a3b8;">
-                                    ${accumulation.duration.is_currently_accumulating ? '🟢 Active' : '⚪ Not Active'}
-                                </div>
+                                <div class="metric-small">20-day SMA</div>
                             </div>
-                        </div>
-                        <div style="margin-top: 15px; padding: 15px; background: #0f172a; border-radius: 8px;">
-                            <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 10px;">
-                                <strong>Interpretation:</strong> ${accumulation.duration.interpretation}
-                            </p>
-                            <p style="font-size: 0.95rem; color: #10b981;">
-                                <strong>⏰ Wait Recommendation:</strong> ${accumulation.duration.wait_recommendation}
-                            </p>
-                            <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 8px;">
-                                <strong>Suggested Wait Time:</strong> ${accumulation.duration.suggested_wait_time}
-                            </p>
+                            <div class="metric">
+                                <div class="metric-label">Volatility</div>
+                                <div class="metric-value" style="font-size: 0.9rem;">
+                                    ${swing_analysis.volatility.volatility_rating}
+                                </div>
+                                <div class="metric-small">${swing_analysis.volatility.daily_volatility_percent.toFixed(1)}% daily</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Trend</div>
+                                <div class="metric-value" style="font-size: 0.85rem; color: ${swing_analysis.swing_pattern.pattern.includes('Higher') ? '#10b981' : '#ef4444'}">
+                                    ${swing_analysis.swing_pattern.pattern.includes('Higher') ? '📈 Up' : swing_analysis.swing_pattern.pattern.includes('Lower') ? '📉 Down' : '↔️ Side'}
+                                </div>
+                                <div class="metric-small">${swing_analysis.swing_pattern.pattern.substring(0, 15)}</div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- NEW: Accumulation Magnitude -->
-                    <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; border-left: 4px solid #8b5cf6;">
-                        <h4 style="margin-bottom: 15px; display: flex; align-items: center;">
-                            <span style="font-size: 1.5rem; margin-right: 10px;">📊</span>
-                            Accumulation Magnitude (Size)
-                        </h4>
-                        <div class="metric-row">
+                    <!-- Fundamental Ratios -->
+                    <div class="card">
+                        <h3>💰 Fundamentals</h3>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
                             <div class="metric">
-                                <div class="metric-label">Total Volume (20 days)</div>
-                                <div class="metric-value" style="font-size: 1.3rem; color: #8b5cf6;">
-                                    ${(accumulation.magnitude.total_volume / 1000000).toFixed(1)}M
+                                <div class="metric-label">P/E Ratio</div>
+                                <div class="metric-value" style="color: ${metrics.valuation?.pe_ratio < 15 ? '#10b981' : metrics.valuation?.pe_ratio < 25 ? '#f59e0b' : '#ef4444'}">
+                                    ${metrics.valuation?.pe_ratio?.toFixed(1) || 'N/A'}
                                 </div>
+                                <div class="metric-small">${metrics.valuation?.pe_ratio < 15 ? 'Cheap' : metrics.valuation?.pe_ratio < 25 ? 'Fair' : 'Expensive'}</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">vs Average</div>
-                                <div class="metric-value" style="font-size: 1.8rem; color: ${accumulation.magnitude.vs_average_percent > 25 ? '#10b981' : accumulation.magnitude.vs_average_percent > 0 ? '#f59e0b' : '#ef4444'};">
-                                    ${accumulation.magnitude.vs_average_percent > 0 ? '+' : ''}${accumulation.magnitude.vs_average_percent}%
+                                <div class="metric-label">P/B Ratio</div>
+                                <div class="metric-value" style="color: ${metrics.valuation?.pb_ratio < 1.5 ? '#10b981' : metrics.valuation?.pb_ratio < 3 ? '#f59e0b' : '#ef4444'}">
+                                    ${metrics.valuation?.pb_ratio?.toFixed(1) || 'N/A'}
                                 </div>
+                                <div class="metric-small">${metrics.valuation?.pb_ratio < 1.5 ? 'Underval' : metrics.valuation?.pb_ratio < 3 ? 'Fair' : 'Overval'}</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Size Category</div>
-                                <div class="metric-value" style="font-size: 1.3rem; color: #8b5cf6;">
+                                <div class="metric-label">ROE</div>
+                                <div class="metric-value" style="color: ${metrics.profitability?.roe > 15 ? '#10b981' : metrics.profitability?.roe > 10 ? '#f59e0b' : '#ef4444'}">
+                                    ${metrics.profitability?.roe?.toFixed(1) || 'N/A'}%
+                                </div>
+                                <div class="metric-small">${metrics.profitability?.roe > 15 ? 'Strong' : metrics.profitability?.roe > 10 ? 'Good' : 'Weak'}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">EPS</div>
+                                <div class="metric-value" style="font-size: 0.9rem; color: ${metrics.profitability?.eps > 0 ? '#10b981' : '#ef4444'}">
+                                    ${metrics.profitability?.eps?.toFixed(0) || 'N/A'}
+                                </div>
+                                <div class="metric-small">${metrics.profitability?.eps > 0 ? 'Profit' : 'Loss'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Volume & Liquidity -->
+                    <div class="card">
+                        <h3>📊 Volume & Liquidity</h3>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
+                            <div class="metric">
+                                <div class="metric-label">Volume Ratio</div>
+                                <div class="metric-value" style="color: ${accumulation.current_volume_vs_average.ratio > 1.2 ? '#10b981' : accumulation.current_volume_vs_average.ratio > 0.8 ? '#f59e0b' : '#ef4444'}">
+                                    ${accumulation.current_volume_vs_average.ratio}x
+                                </div>
+                                <div class="metric-small">${accumulation.current_volume_vs_average.status}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Market Cap</div>
+                                <div class="metric-value" style="font-size: 0.85rem;">
+                                    ${metrics.valuation?.market_cap ? (metrics.valuation.market_cap / 1000000000000).toFixed(1) + 'T' : 'N/A'}
+                                </div>
+                                <div class="metric-small">${metrics.valuation?.market_cap > 100000000000000 ? 'Large' : metrics.valuation?.market_cap > 10000000000000 ? 'Mid' : 'Small'}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Accum Duration</div>
+                                <div class="metric-value" style="color: ${accumulation.duration.days > 15 ? '#10b981' : '#f59e0b'}">
+                                    ${accumulation.duration.days}d
+                                </div>
+                                <div class="metric-small">${accumulation.duration.status}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Magnitude</div>
+                                <div class="metric-value" style="font-size: 0.9rem; color: ${accumulation.magnitude.vs_average_percent > 25 ? '#10b981' : '#f59e0b'}">
                                     ${accumulation.magnitude.size}
                                 </div>
+                                <div class="metric-small">${accumulation.magnitude.vs_average_percent > 0 ? '+' : ''}${accumulation.magnitude.vs_average_percent}%</div>
                             </div>
-                        </div>
-                        <div style="margin-top: 15px; padding: 15px; background: #0f172a; border-radius: 8px;">
-                            <p style="font-size: 0.95rem; color: #cbd5e1;">
-                                <strong>Analysis:</strong> ${accumulation.magnitude.interpretation}
-                            </p>
-                            <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem;">
-                                <div>
-                                    <span style="color: #94a3b8;">Expected Volume:</span>
-                                    <strong style="color: #cbd5e1;"> ${(accumulation.magnitude.expected_volume / 1000000).toFixed(1)}M</strong>
-                                </div>
-                                <div>
-                                    <span style="color: #94a3b8;">Excess Volume:</span>
-                                    <strong style="color: ${accumulation.magnitude.excess_volume > 0 ? '#10b981' : '#ef4444'};"> ${(accumulation.magnitude.excess_volume / 1000000).toFixed(1)}M</strong>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- NEW: Participant Type Analysis -->
-                    <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; border-left: 4px solid #f59e0b;">
-                        <h4 style="margin-bottom: 15px; display: flex; align-items: center;">
-                            <span style="font-size: 1.5rem; margin-right: 10px;">👥</span>
-                            Who is Accumulating? (Retail vs Institution)
-                        </h4>
-                        <div style="text-align: center; margin: 20px 0;">
-                            <div class="badge ${accumulation.participants.primary_type.includes('Institutional') ? 'success' : accumulation.participants.primary_type.includes('Mixed') ? 'warning' : 'danger'}"
-                                 style="font-size: 1.5rem; padding: 15px 30px;">
-                                ${accumulation.participants.primary_type}
-                            </div>
-                            <div style="margin-top: 10px; font-size: 0.9rem; color: #94a3b8;">
-                                Confidence: <strong>${accumulation.participants.confidence}</strong>
-                            </div>
-                        </div>
-
-                        <!-- Institutional vs Retail Split -->
-                        <div style="margin: 20px 0;">
-                            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                                <div style="flex: ${accumulation.participants.institutional_percent}; background: linear-gradient(90deg, #10b981, #059669); height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;">
-                                    ${accumulation.participants.institutional_percent >= 20 ? accumulation.participants.institutional_percent.toFixed(0) + '%' : ''}
-                                </div>
-                                <div style="flex: ${accumulation.participants.retail_percent}; background: linear-gradient(90deg, #ef4444, #dc2626); height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;">
-                                    ${accumulation.participants.retail_percent >= 20 ? accumulation.participants.retail_percent.toFixed(0) + '%' : ''}
-                                </div>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8;">
-                                <span>🏦 Institutional: ${accumulation.participants.institutional_percent.toFixed(1)}%</span>
-                                <span>👤 Retail: ${accumulation.participants.retail_percent.toFixed(1)}%</span>
-                            </div>
-                        </div>
-
-                        <div style="padding: 15px; background: #0f172a; border-radius: 8px; margin-top: 15px;">
-                            <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 15px;">
-                                <strong>Interpretation:</strong> ${accumulation.participants.interpretation}
-                            </p>
-                            <div style="font-size: 0.85rem; color: #94a3b8;">
-                                <strong style="color: #f59e0b;">Detection Indicators:</strong>
-                                <ul style="margin: 10px 0 0 20px; list-style: disc;">
-                                    ${accumulation.participants.indicators.map(indicator => `
-                                        <li style="margin: 5px 0;">${indicator}</li>
-                                    `).join('')}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 20px;">
-                        <h4 style="margin-bottom: 10px;">Recommendation</h4>
-                        <div class="badge ${getActionBadgeClass(accumulation.recommendation.action)}" style="font-size: 1.1rem; padding: 12px 20px;">
-                            ${accumulation.recommendation.action}
-                        </div>
-                        <div class="reason-list" style="margin-top: 15px;">
-                            ${accumulation.recommendation.reasoning.map(r => `
-                                <div class="reason-item">
-                                    <div class="reason-icon info">ℹ</div>
-                                    <div>${r}</div>
-                                </div>
-                            `).join('')}
                         </div>
                     </div>
                 </div>
 
-                <div class="dashboard-grid">
-                    <!-- Entry/Exit Analysis -->
-                    <div class="card">
-                        <h3>🎯 Entry Price Recommendations</h3>
-                        <div class="entry-exit-grid">
-                            ${Object.entries(entry_exit.entry_recommendation).map(([type, zone]) => `
-                                <div class="entry-exit-zone">
-                                    <div class="zone-label">${type}</div>
-                                    <div class="zone-price">Rp ${zone.price.toLocaleString()}</div>
-                                    <div class="zone-desc">${zone.description}</div>
-                                    <div class="zone-distance ${zone.distance_percent > 0 ? 'positive' : 'negative'}">
-                                        ${zone.distance_percent > 0 ? '↑' : '↓'} ${Math.abs(zone.distance_percent).toFixed(2)}% from current
-                                    </div>
-                                </div>
-                            `).join('')}
+                <!-- Accumulation Analysis (Compact) -->
+                <div class="compact-grid">
+                    <!-- Accumulation Phase Card -->
+                    <div class="card" style="grid-column: span 2;">
+                        <div style="background: ${getPhaseColor(accumulation.phase.current_phase)}; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">${accumulation.phase.current_phase}</div>
+                            <div style="font-size: 0.85rem; opacity: 0.95;">${accumulation.phase.description}</div>
                         </div>
-
-                        <h3 style="margin-top: 30px;">🚀 Exit Price Targets</h3>
-                        <div class="entry-exit-grid">
-                            ${Object.entries(entry_exit.exit_recommendation).map(([type, zone]) => `
-                                <div class="entry-exit-zone" style="border-left-color: #10b981;">
-                                    <div class="zone-label">${type}</div>
-                                    <div class="zone-price">Rp ${zone.price.toLocaleString()}</div>
-                                    <div class="zone-desc">${zone.description}</div>
-                                    <div class="zone-distance positive">
-                                        ↑ ${zone.potential_gain_percent.toFixed(2)}% potential gain
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-
-                        <div style="margin-top: 25px; padding: 15px; background: #0f172a; border-radius: 8px;">
-                            <h4 style="margin-bottom: 10px;">Current Position</h4>
-                            <div class="badge ${getActionBadgeClass(entry_exit.position_recommendation.recommended_action)}" style="font-size: 1rem;">
-                                ${entry_exit.position_recommendation.recommended_action}
+                        <h3 style="margin-top: 15px;">📊 Accumulation Metrics</h3>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr 1fr;">
+                            <div class="metric">
+                                <div class="metric-label">Strength</div>
+                                <div class="metric-value">${accumulation.strength.score}</div>
+                                <div class="metric-small">${accumulation.strength.strength}</div>
                             </div>
-                            <p style="margin-top: 10px; color: #cbd5e1; font-size: 0.95rem;">
-                                ${entry_exit.position_recommendation.description}
-                            </p>
+                            <div class="metric">
+                                <div class="metric-label">OBV</div>
+                                <div class="metric-value" style="font-size: 0.9rem;">${accumulation.obv_analysis.trend}</div>
+                                <div class="metric-small">${accumulation.obv_analysis.interpretation.substring(0, 12)}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Vol Ratio</div>
+                                <div class="metric-value">${accumulation.current_volume_vs_average.ratio}x</div>
+                                <div class="metric-small">${accumulation.current_volume_vs_average.status.substring(0, 10)}</div>
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- Participant Analysis -->
+                    <div class="card">
+                        <h3>👥 Participants</h3>
+                        <div style="text-align: center; margin: 15px 0;">
+                            <div style="font-size: 1.1rem; font-weight: bold; color: ${accumulation.participants.primary_type.includes('Institutional') ? '#10b981' : '#f59e0b'};">
+                                ${accumulation.participants.primary_type.replace('Dominant', '').replace('Leaning', '')}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin: 12px 0;">
+                            <div style="flex: ${accumulation.participants.institutional_percent}; background: #10b981; height: 25px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">
+                                ${accumulation.participants.institutional_percent >= 15 ? accumulation.participants.institutional_percent.toFixed(0) + '%' : ''}
+                            </div>
+                            <div style="flex: ${accumulation.participants.retail_percent}; background: #ef4444; height: 25px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">
+                                ${accumulation.participants.retail_percent >= 15 ? accumulation.participants.retail_percent.toFixed(0) + '%' : ''}
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                            🏦 ${accumulation.participants.institutional_percent.toFixed(0)}% | 👤 ${accumulation.participants.retail_percent.toFixed(0)}%
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Entry/Exit & Swing (Compact 3-column) -->
+                <div class="compact-grid">
+                    <!-- Entry Zones -->
+                    <div class="card">
+                        <h3>🎯 Entry Zones</h3>
+                        ${Object.entries(entry_exit.entry_recommendation).map(([type, zone]) => `
+                            <div style="background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #10b981;">
+                                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">${type}</div>
+                                <div style="font-size: 1.1rem; font-weight: bold; margin: 4px 0;">Rp ${zone.price.toLocaleString()}</div>
+                                <div style="font-size: 0.75rem; color: ${zone.distance_percent > 0 ? '#10b981' : '#ef4444'};">
+                                    ${zone.distance_percent > 0 ? '↑' : '↓'} ${Math.abs(zone.distance_percent).toFixed(1)}% from current
+                                </div>
+                            </div>
+                        `).join('')}
+                        <div style="margin-top: 10px; padding: 10px; background: #0f172a; border-radius: 6px; font-size: 0.8rem;">
+                            <strong>Action:</strong> ${entry_exit.position_recommendation.recommended_action}
+                        </div>
+                    </div>
+
+                    <!-- Exit Targets -->
+                    <div class="card">
+                        <h3>🚀 Exit Targets</h3>
+                        ${Object.entries(entry_exit.exit_recommendation).map(([type, zone]) => `
+                            <div style="background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #3b82f6;">
+                                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">${type}</div>
+                                <div style="font-size: 1.1rem; font-weight: bold; margin: 4px 0;">Rp ${zone.price.toLocaleString()}</div>
+                                <div style="font-size: 0.75rem; color: #10b981;">
+                                    ↑ +${zone.potential_gain_percent.toFixed(1)}% gain
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
 
                     <!-- Swing Analysis -->
                     <div class="card">
-                        <h3>📈 Swing Trading Analysis</h3>
-                        <div class="metric-row">
+                        <h3>📈 Swing Analysis</h3>
+                        <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; margin-bottom: 12px;">
+                            <div style="font-size: 1.8rem; font-weight: bold;">${swing_analysis.swing_rating.score}/100</div>
+                            <div style="font-size: 0.85rem; opacity: 0.95;">${swing_analysis.swing_rating.rating}</div>
+                        </div>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
                             <div class="metric">
-                                <div class="metric-label">Avg Swing Size</div>
-                                <div class="metric-value">${swing_analysis.swing_size.average_swing_percent.toFixed(2)}%</div>
-                                <div style="margin-top: 5px; font-size: 0.85rem;">${swing_analysis.swing_size.swing_size_category}</div>
+                                <div class="metric-label">Avg Swing</div>
+                                <div class="metric-value" style="font-size: 1rem;">${swing_analysis.swing_size.average_swing_percent.toFixed(1)}%</div>
                             </div>
                             <div class="metric">
-                                <div class="metric-label">Volatility</div>
-                                <div class="metric-value">${swing_analysis.volatility.daily_volatility_percent.toFixed(2)}%</div>
-                                <div style="margin-top: 5px; font-size: 0.85rem;">${swing_analysis.volatility.volatility_rating}</div>
+                                <div class="metric-label">Pattern</div>
+                                <div class="metric-value" style="font-size: 0.75rem;">${swing_analysis.swing_pattern.pattern.includes('Higher') ? '📈' : swing_analysis.swing_pattern.pattern.includes('Lower') ? '📉' : '↔️'}</div>
                             </div>
                         </div>
-
-                        <div style="margin: 20px 0;">
-                            <h4 style="margin-bottom: 10px;">Swing Pattern</h4>
-                            <div class="badge info" style="font-size: 1rem; padding: 12px 18px;">
-                                ${swing_analysis.swing_pattern.pattern}
-                            </div>
-                            <p style="margin-top: 10px; color: #cbd5e1; font-size: 0.9rem;">
-                                ${swing_analysis.swing_pattern.description}
-                            </p>
-                        </div>
-
-                        <div style="margin-top: 20px;">
-                            <h4 style="margin-bottom: 10px;">Bollinger Bands</h4>
-                            <div class="metric-row">
-                                <div class="metric">
-                                    <div class="metric-label">Upper Band</div>
-                                    <div class="metric-value" style="font-size: 1.2rem;">${swing_analysis.bollinger_bands.upper_band}</div>
-                                </div>
-                                <div class="metric">
-                                    <div class="metric-label">Middle (SMA)</div>
-                                    <div class="metric-value" style="font-size: 1.2rem;">${swing_analysis.bollinger_bands.middle_band}</div>
-                                </div>
-                                <div class="metric">
-                                    <div class="metric-label">Lower Band</div>
-                                    <div class="metric-value" style="font-size: 1.2rem;">${swing_analysis.bollinger_bands.lower_band}</div>
-                                </div>
-                            </div>
-                            <div style="margin-top: 10px; padding: 12px; background: #0f172a; border-radius: 6px;">
-                                <strong>Band Status:</strong> ${swing_analysis.bollinger_bands.squeeze_status}
-                                <br>
-                                <strong>Price Position:</strong> ${swing_analysis.bollinger_bands.price_position_percent.toFixed(1)}% within bands
-                            </div>
-                        </div>
-
-                        <div style="margin-top: 25px;">
-                            <h4 style="margin-bottom: 10px;">Swing Signals</h4>
-                            <div class="reason-list">
-                                ${swing_analysis.swing_signals.map(signal => `
-                                    <div class="reason-item">
-                                        <div class="reason-icon ${getSignalClass(signal.type)}">${getSignalIcon(signal.type)}</div>
-                                        <div>
-                                            <strong>${signal.signal}</strong> (${signal.strength})
-                                            <br>
-                                            <span style="font-size: 0.9rem; color: #94a3b8;">${signal.description}</span>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-
-                        <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; text-align: center;">
-                            <h4 style="margin-bottom: 10px;">Swing Trading Rating</h4>
-                            <div style="font-size: 2rem; font-weight: bold; margin: 10px 0;">
-                                ${swing_analysis.swing_rating.score}/100
-                            </div>
-                            <div style="font-size: 1.2rem; font-weight: 600;">
-                                ${swing_analysis.swing_rating.rating}
-                            </div>
+                        <div style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8;">
+                            <strong>Bollinger:</strong> ${swing_analysis.bollinger_bands.squeeze_status}<br>
+                            <strong>Position:</strong> ${swing_analysis.bollinger_bands.price_position_percent.toFixed(0)}% in bands
                         </div>
                     </div>
                 </div>
 
-                <!-- Support & Resistance Levels -->
-                <div class="card">
-                    <h3>📍 Support & Resistance Levels</h3>
-                    <div class="dashboard-grid" style="margin-top: 20px;">
-                        <div>
-                            <h4 style="margin-bottom: 15px; color: #10b981;">Support Levels (Buy Zones)</h4>
-                            <div class="level-list">
-                                ${entry_exit.support_levels.length > 0
-                                    ? entry_exit.support_levels.map((level, i) => `
-                                        <div class="level-item support">
-                                            <span>Support ${i + 1}</span>
-                                            <strong>Rp ${level.toLocaleString()}</strong>
-                                        </div>
-                                    `).join('')
-                                    : '<p style="color: #94a3b8;">No clear support levels detected</p>'
-                                }
-                            </div>
-                        </div>
-                        <div>
-                            <h4 style="margin-bottom: 15px; color: #ef4444;">Resistance Levels (Sell Zones)</h4>
-                            <div class="level-list">
-                                ${entry_exit.resistance_levels.length > 0
-                                    ? entry_exit.resistance_levels.map((level, i) => `
-                                        <div class="level-item resistance">
-                                            <span>Resistance ${i + 1}</span>
-                                            <strong>Rp ${level.toLocaleString()}</strong>
-                                        </div>
-                                    `).join('')
-                                    : '<p style="color: #94a3b8;">No clear resistance levels detected</p>'
-                                }
-                            </div>
-                        </div>
+                <!-- Support & Resistance (Compact) -->
+                <div class="compact-grid">
+                    <div class="card">
+                        <h3 style="color: #10b981;">📍 Support</h3>
+                        ${entry_exit.support_levels.length > 0
+                            ? entry_exit.support_levels.map((level, i) => `
+                                <div style="background: #0f172a; padding: 8px 10px; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #10b981; display: flex; justify-content: space-between;">
+                                    <span style="font-size: 0.75rem; color: #94a3b8;">S${i + 1}</span>
+                                    <strong style="font-size: 0.9rem;">Rp ${level.toLocaleString()}</strong>
+                                </div>
+                            `).join('')
+                            : '<p style="color: #94a3b8; font-size: 0.8rem;">No support detected</p>'
+                        }
                     </div>
 
-                    <h3 style="margin-top: 30px;">🔢 Fibonacci Retracement Levels</h3>
-                    <div class="metric-row">
-                        ${Object.entries(entry_exit.fibonacci_levels).map(([level, price]) => `
-                            <div class="metric">
-                                <div class="metric-label">${level.replace('level_', '').replace('_', '.')}%</div>
-                                <div class="metric-value" style="font-size: 1.2rem;">Rp ${price.toLocaleString()}</div>
-                            </div>
-                        `).join('')}
+                    <div class="card">
+                        <h3 style="color: #ef4444;">📍 Resistance</h3>
+                        ${entry_exit.resistance_levels.length > 0
+                            ? entry_exit.resistance_levels.map((level, i) => `
+                                <div style="background: #0f172a; padding: 8px 10px; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #ef4444; display: flex; justify-content: space-between;">
+                                    <span style="font-size: 0.75rem; color: #94a3b8;">R${i + 1}</span>
+                                    <strong style="font-size: 0.9rem;">Rp ${level.toLocaleString()}</strong>
+                                </div>
+                            `).join('')
+                            : '<p style="color: #94a3b8; font-size: 0.8rem;">No resistance detected</p>'
+                        }
+                    </div>
+
+                    <div class="card">
+                        <h3>🔢 Fibonacci</h3>
+                        <div style="font-size: 0.75rem;">
+                            ${Object.entries(entry_exit.fibonacci_levels).slice(0, 5).map(([level, price]) => `
+                                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #334155;">
+                                    <span style="color: #94a3b8;">${level.replace('level_', '').replace('_', '.')}%</span>
+                                    <strong>Rp ${price.toLocaleString()}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
 
-                <!-- Overall Analysis Summary -->
+                <!-- Analysis Categories (Compact) -->
                 <div class="card">
-                    <h3>📋 Overall Analysis Summary</h3>
-                    <div style="text-align: center; margin: 25px 0;">
-                        <div style="font-size: 3rem; font-weight: bold; color: #667eea; margin-bottom: 10px;">
-                            ${overall_analysis.score.toFixed(1)}/100
-                        </div>
-                        <div class="badge ${overall_analysis.recommendation.color}" style="font-size: 1.3rem; padding: 15px 30px;">
-                            ${overall_analysis.recommendation.action}
-                        </div>
-                        <p style="margin-top: 15px; font-size: 1.1rem; color: #cbd5e1;">
-                            ${overall_analysis.recommendation.description}
-                        </p>
-                    </div>
-
-                    <div class="metric-row">
+                    <h3>📋 Analysis Breakdown</h3>
+                    <div class="metric-row" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
                         ${Object.entries(overall_analysis.analysis).map(([category, data]) => `
                             <div class="metric">
-                                <div class="metric-label">${category}</div>
-                                <div class="metric-value" style="font-size: 1.3rem;">${data.score.toFixed(1)}%</div>
-                                <div style="margin-top: 8px; height: 8px; background: #0f172a; border-radius: 4px; overflow: hidden;">
-                                    <div style="width: ${data.score}%; height: 100%; background: linear-gradient(90deg, #667eea, #764ba2);"></div>
+                                <div class="metric-label">${category.substring(0, 12)}</div>
+                                <div class="metric-value" style="font-size: 1.1rem;">${data.score.toFixed(0)}%</div>
+                                <div style="margin-top: 5px; height: 5px; background: #0f172a; border-radius: 2px; overflow: hidden;">
+                                    <div style="width: ${data.score}%; height: 100%; background: ${data.score >= 70 ? '#10b981' : data.score >= 50 ? '#f59e0b' : '#ef4444'};"></div>
                                 </div>
-                            </div>
-                        `).join('')}
-                    </div>
-
-                    <h4 style="margin: 30px 0 15px 0;">Key Insights</h4>
-                    <div class="reason-list">
-                        ${overall_analysis.reasons.slice(0, 10).map(reason => `
-                            <div class="reason-item">
-                                <div class="reason-icon ${reason.type}">${getReasonIcon(reason.type)}</div>
-                                <div>${reason.message}</div>
                             </div>
                         `).join('')}
                     </div>
