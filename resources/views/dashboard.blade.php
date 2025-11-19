@@ -624,39 +624,53 @@
                 <button class="btn-secondary" onclick="window.location.href='/'">Simple View</button>
             </div>
 
-            <div id="searchHistorySection" class="quick-picks" style="display: none;">
+            <!-- Search History (shown first) -->
+            <div id="searchHistorySection" class="quick-picks">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <strong style="margin-right: 10px;">🕐 Recent Searches:</strong>
                     <div>
                         <button class="quick-pick-btn" style="background: #ef4444; font-size: 0.85rem;" onclick="clearSearchHistory()">Clear History</button>
-                        <button class="quick-pick-btn" style="background: #3b82f6; font-size: 0.85rem;" onclick="toggleQuickPicks()">Show Suggestions</button>
+                        <button class="quick-pick-btn" style="background: #3b82f6; font-size: 0.85rem;" onclick="toggleSections()">Show Suggestions</button>
                     </div>
                 </div>
                 <div id="searchHistory"></div>
             </div>
 
-            <div id="quickPicksSection" class="quick-picks">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <strong style="margin-right: 10px;">⚡ Popular Stocks:</strong>
-                    <button class="quick-pick-btn" style="background: #3b82f6; font-size: 0.85rem;" onclick="toggleQuickPicks()">Show History</button>
+            <!-- Quick Picks Sections (shown second, collapsed by default) -->
+            <div id="quickPicksSection" style="display: none;">
+                <!-- Indonesia Stocks -->
+                <div class="quick-picks" style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong style="margin-right: 10px;">🇮🇩 Indonesia (IDX):</strong>
+                    </div>
+                    <div>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('BBCA')">BBCA</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('BBRI')">BBRI</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('BMRI')">BMRI</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('TLKM')">TLKM</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('ASII')">ASII</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('UNVR')">UNVR</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('HMSP')">HMSP</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('ICBP')">ICBP</button>
+                    </div>
                 </div>
-                <div>
-                    <span style="color: #94a3b8; font-size: 0.9rem; margin-right: 10px;">🇮🇩 Indonesia:</span>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('BBCA')">BBCA</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('BBRI')">BBRI</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('BMRI')">BMRI</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('TLKM')">TLKM</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('ASII')">ASII</button>
-                </div>
-                <div style="margin-top: 10px;">
-                    <span style="color: #94a3b8; font-size: 0.9rem; margin-right: 10px;">🇺🇸 US Stocks:</span>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('AAPL', 'us')">AAPL</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('MSFT', 'us')">MSFT</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('GOOGL', 'us')">GOOGL</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('TSLA', 'us')">TSLA</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('NVDA', 'us')">NVDA</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('META', 'us')">META</button>
-                    <button class="quick-pick-btn" onclick="quickAnalyze('AMZN', 'us')">AMZN</button>
+
+                <!-- US Stocks -->
+                <div class="quick-picks">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong style="margin-right: 10px;">🇺🇸 United States:</strong>
+                        <button class="quick-pick-btn" style="background: #3b82f6; font-size: 0.85rem;" onclick="toggleSections()">Show History</button>
+                    </div>
+                    <div>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('AAPL', 'us')">AAPL</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('MSFT', 'us')">MSFT</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('GOOGL', 'us')">GOOGL</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('TSLA', 'us')">TSLA</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('NVDA', 'us')">NVDA</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('META', 'us')">META</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('AMZN', 'us')">AMZN</button>
+                        <button class="quick-pick-btn" onclick="quickAnalyze('NFLX', 'us')">NFLX</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -700,17 +714,19 @@
             }
         }
 
-        function toggleQuickPicks() {
+        function toggleSections() {
             const historySection = document.getElementById('searchHistorySection');
             const quickPicksSection = document.getElementById('quickPicksSection');
 
-            if (historySection.style.display === 'none') {
+            if (quickPicksSection.style.display === 'none') {
+                // Show suggestions, hide history
+                historySection.style.display = 'none';
+                quickPicksSection.style.display = 'block';
+            } else {
+                // Show history, hide suggestions
                 historySection.style.display = 'block';
                 quickPicksSection.style.display = 'none';
                 updateHistoryDisplay();
-            } else {
-                historySection.style.display = 'none';
-                quickPicksSection.style.display = 'block';
             }
         }
 
@@ -843,13 +859,9 @@
             loadDashboard();
         }
 
-        // Initialize on page load
+        // Initialize on page load - always show history first
         window.addEventListener('DOMContentLoaded', () => {
-            const history = getSearchHistory();
-            if (history.length > 0) {
-                // Auto-show history if there are items
-                toggleQuickPicks();
-            }
+            updateHistoryDisplay();
         });
 
         function showLoading() {
