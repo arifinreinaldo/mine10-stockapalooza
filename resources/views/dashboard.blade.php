@@ -749,11 +749,28 @@
             const idxHistoryDiv = document.getElementById('idxHistory');
             const usHistoryDiv = document.getElementById('usHistory');
 
-            // Group by market (detect based on symbol pattern)
+            // Group by market - prioritize explicit market value over pattern matching
             const grouped = {
-                us: history.filter(item => item.market === 'us' || (item.symbol.length <= 5 && !item.symbol.includes('.JK'))),
-                idx: history.filter(item => item.market === 'idx' || item.market === 'auto' || item.symbol.includes('.JK') || item.symbol.length === 4)
+                us: [],
+                idx: []
             };
+
+            history.forEach(item => {
+                if (item.market === 'idx') {
+                    // Explicitly marked as Indonesian stock
+                    grouped.idx.push(item);
+                } else if (item.market === 'us') {
+                    // Explicitly marked as US stock
+                    grouped.us.push(item);
+                } else {
+                    // Auto-detect for 'auto' market setting
+                    if (item.symbol.includes('.JK') || item.symbol.length === 4) {
+                        grouped.idx.push(item);
+                    } else {
+                        grouped.us.push(item);
+                    }
+                }
+            });
 
             // Update Indonesia history
             if (grouped.idx.length === 0) {
