@@ -37,16 +37,69 @@ class StockAnalysisController extends Controller
     }
 
     /**
+     * Normalize stock symbol for Yahoo Finance API
+     * Supports both Indonesian (.JK) and US stocks
+     *
+     * @param string $symbol Raw symbol (e.g., "BBCA", "AAPL", "BBCA.JK")
+     * @param string|null $market Optional market identifier ("IDX" or "US")
+     * @return string Normalized symbol (e.g., "BBCA.JK", "AAPL")
+     */
+    private function normalizeSymbol(string $symbol, ?string $market = null): string
+    {
+        $symbol = strtoupper(trim($symbol));
+
+        // If symbol already has a suffix (contains dot), return as-is
+        if (str_contains($symbol, '.')) {
+            return $symbol;
+        }
+
+        // If market is explicitly specified
+        if ($market !== null) {
+            $market = strtoupper($market);
+            if ($market === 'IDX' || $market === 'ID' || $market === 'INDONESIA') {
+                return $symbol . '.JK';
+            } elseif ($market === 'US' || $market === 'USA' || $market === 'NASDAQ' || $market === 'NYSE') {
+                return $symbol; // US stocks don't need suffix
+            }
+        }
+
+        // Auto-detect based on symbol pattern
+        // Indonesian stocks (IDX) are typically 4 characters
+        // US stocks are typically 1-5 characters
+        // If 4 characters and looks like Indonesian stock code, add .JK
+        // Common Indonesian patterns: BBCA, BBRI, TLKM, ASII, UNVR, etc.
+
+        // Known Indonesian blue chips (for better detection)
+        $indonesianBlueChips = [
+            'BBCA', 'BBRI', 'BMRI', 'BBNI', 'TLKM', 'ASII', 'UNVR', 'HMSP',
+            'INDF', 'ICBP', 'GGRM', 'KLBF', 'UNTR', 'SMGR', 'PGAS', 'PTBA',
+            'ADRO', 'INCO', 'ITMG', 'ANTM', 'WIKA', 'WSKT', 'PWON', 'JSMR',
+            'MEDC', 'EXCL', 'SIDO', 'MNCN', 'SCMA', 'CPIN', 'BRPT', 'BSDE'
+        ];
+
+        if (in_array($symbol, $indonesianBlueChips)) {
+            return $symbol . '.JK';
+        }
+
+        // If exactly 4 uppercase letters, likely Indonesian
+        if (strlen($symbol) === 4 && ctype_alpha($symbol)) {
+            return $symbol . '.JK';
+        }
+
+        // Otherwise assume US stock (1-5 characters, no suffix needed)
+        // Common US stocks: AAPL, GOOGL, MSFT, TSLA, AMZN, META, NVDA, etc.
+        return $symbol;
+    }
+
+    /**
      * Analyze a single stock
      *
-     * GET /api/analyze/{symbol}
+     * GET /api/analyze/{symbol}?market=US (optional market parameter)
      */
-    public function analyzeSingle(string $symbol)
+    public function analyzeSingle(string $symbol, Request $request)
     {
-        // Add .JK suffix if not present (for Indonesian stocks)
-        if (!str_ends_with($symbol, '.JK')) {
-            $symbol = strtoupper($symbol) . '.JK';
-        }
+        $market = $request->query('market', null);
+        $symbol = $this->normalizeSymbol($symbol, $market);
 
         $stockData = $this->fetcher->fetchStockData($symbol);
 
@@ -69,13 +122,14 @@ class StockAnalysisController extends Controller
      * Analyze multiple stocks and rank them
      *
      * POST /api/analyze/multiple
-     * Body: { "symbols": ["BBCA", "BBRI", "TLKM"] }
+     * Body: { "symbols": ["BBCA", "BBRI", "TLKM"], "market": "US" (optional) }
      */
     public function analyzeMultiple(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'symbols' => 'required|array|min:1|max:20',
             'symbols.*' => 'required|string',
+            'market' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -85,8 +139,9 @@ class StockAnalysisController extends Controller
             ], 400);
         }
 
-        $symbols = array_map(function ($symbol) {
-            return str_ends_with($symbol, '.JK') ? strtoupper($symbol) : strtoupper($symbol) . '.JK';
+        $market = $request->input('market', null);
+        $symbols = array_map(function ($symbol) use ($market) {
+            return $this->normalizeSymbol($symbol, $market);
         }, $request->symbols);
 
         $stocksData = $this->fetcher->fetchMultipleStocks($symbols);
@@ -259,13 +314,12 @@ class StockAnalysisController extends Controller
     /**
      * Get comprehensive dashboard data for a stock
      *
-     * GET /api/dashboard/{symbol}
+     * GET /api/dashboard/{symbol}?market=US (optional market parameter)
      */
-    public function getDashboard(string $symbol)
+    public function getDashboard(string $symbol, Request $request)
     {
-        if (!str_ends_with($symbol, '.JK')) {
-            $symbol = strtoupper($symbol) . '.JK';
-        }
+        $market = $request->query('market', null);
+        $symbol = $this->normalizeSymbol($symbol, $market);
 
         $stockData = $this->fetcher->fetchStockData($symbol);
 

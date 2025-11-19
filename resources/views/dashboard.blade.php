@@ -609,10 +609,15 @@
 
         <div class="search-bar">
             <div class="search-section">
+                <select id="marketSelector" style="padding: 14px 20px; border-radius: 8px; border: 2px solid #4b5563; background: #1e293b; color: white; font-size: 1rem; margin-right: 10px; cursor: pointer;">
+                    <option value="auto">🌐 Auto-detect</option>
+                    <option value="idx">🇮🇩 Indonesia (IDX)</option>
+                    <option value="us">🇺🇸 United States</option>
+                </select>
                 <input
                     type="text"
                     id="stockSymbol"
-                    placeholder="Enter stock symbol (e.g., BBCA, BBRI, TLKM)"
+                    placeholder="Enter stock symbol (e.g., BBCA, AAPL, TSLA)"
                     onkeypress="if(event.key==='Enter') loadDashboard()"
                 >
                 <button onclick="loadDashboard()">Analyze</button>
@@ -620,14 +625,23 @@
             </div>
 
             <div class="quick-picks">
-                <strong style="margin-right: 10px;">Quick picks:</strong>
+                <strong style="margin-right: 10px;">🇮🇩 Indonesia:</strong>
                 <button class="quick-pick-btn" onclick="quickAnalyze('BBCA')">BBCA</button>
                 <button class="quick-pick-btn" onclick="quickAnalyze('BBRI')">BBRI</button>
                 <button class="quick-pick-btn" onclick="quickAnalyze('BMRI')">BMRI</button>
                 <button class="quick-pick-btn" onclick="quickAnalyze('TLKM')">TLKM</button>
                 <button class="quick-pick-btn" onclick="quickAnalyze('ASII')">ASII</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('GOTO')">GOTO</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('UNVR')">UNVR</button>
+            </div>
+
+            <div class="quick-picks" style="margin-top: 10px;">
+                <strong style="margin-right: 10px;">🇺🇸 US Stocks:</strong>
+                <button class="quick-pick-btn" onclick="quickAnalyze('AAPL', 'us')">AAPL</button>
+                <button class="quick-pick-btn" onclick="quickAnalyze('MSFT', 'us')">MSFT</button>
+                <button class="quick-pick-btn" onclick="quickAnalyze('GOOGL', 'us')">GOOGL</button>
+                <button class="quick-pick-btn" onclick="quickAnalyze('TSLA', 'us')">TSLA</button>
+                <button class="quick-pick-btn" onclick="quickAnalyze('NVDA', 'us')">NVDA</button>
+                <button class="quick-pick-btn" onclick="quickAnalyze('META', 'us')">META</button>
+                <button class="quick-pick-btn" onclick="quickAnalyze('AMZN', 'us')">AMZN</button>
             </div>
         </div>
 
@@ -640,6 +654,7 @@
 
         async function loadDashboard() {
             const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+            const market = document.getElementById('marketSelector').value;
 
             if (!symbol) {
                 alert('Please enter a stock symbol');
@@ -650,7 +665,8 @@
             showLoading();
 
             try {
-                const response = await fetch(`/api/dashboard/${symbol}`);
+                const marketParam = market !== 'auto' ? `?market=${market}` : '';
+                const response = await fetch(`/api/dashboard/${symbol}${marketParam}`);
                 const data = await response.json();
 
                 if (data.success) {
@@ -663,8 +679,11 @@
             }
         }
 
-        function quickAnalyze(symbol) {
+        function quickAnalyze(symbol, market = null) {
             document.getElementById('stockSymbol').value = symbol;
+            if (market) {
+                document.getElementById('marketSelector').value = market;
+            }
             loadDashboard();
         }
 
