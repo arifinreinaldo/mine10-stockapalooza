@@ -477,6 +477,118 @@
             font-size: 1rem;
             opacity: 0.95;
         }
+
+        .executive-summary {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            border: 2px solid #475569;
+        }
+
+        .executive-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 25px;
+            text-align: center;
+            color: #667eea;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .executive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .executive-box {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s;
+        }
+
+        .executive-box:hover {
+            transform: translateY(-3px);
+        }
+
+        .executive-box.highlight {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
+        }
+
+        .executive-box.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .executive-box.danger {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #7f1d1d 0%, #0f172a 100%);
+        }
+
+        .executive-label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .executive-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .executive-desc {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 2px solid #334155;
+        }
+
+        .action-button {
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .action-button.primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .action-button.primary:hover {
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .action-button.secondary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .action-button.secondary:hover {
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -585,7 +697,121 @@
                 ? `<button class="favorite-btn btn-danger" onclick="removeFavorite()">⭐ Remove from Favorites</button>`
                 : `<button class="favorite-btn btn-success" onclick="addFavorite()">☆ Add to Favorites</button>`;
 
+            // Get key values for executive summary
+            const bestEntry = entry_exit.entry_recommendation.conservative || entry_exit.entry_recommendation.moderate;
+            const bestExit = entry_exit.exit_recommendation.target_2 || entry_exit.exit_recommendation.target_1;
+            const overallRec = overall_analysis.recommendation;
+            const accPhase = accumulation.phase;
+            const swingRating = swing_analysis.swing_rating;
+
+            // Determine executive box classes
+            const getExecutiveBoxClass = (action) => {
+                if (action.includes('STRONG BUY') || action.includes('BUY')) return 'highlight';
+                if (action.includes('SELL')) return 'danger';
+                return 'warning';
+            };
+
             let html = `
+                <!-- EXECUTIVE SUMMARY -->
+                <div class="executive-summary">
+                    <div class="executive-title">⚡ Executive Summary</div>
+
+                    <div class="executive-grid">
+                        <!-- Overall Recommendation -->
+                        <div class="executive-box ${getExecutiveBoxClass(overallRec.action)}">
+                            <div class="executive-label">Overall Recommendation</div>
+                            <div class="executive-value" style="color: ${overallRec.color === 'success' ? '#10b981' : overallRec.color === 'danger' ? '#ef4444' : '#f59e0b'}">
+                                ${overallRec.action}
+                            </div>
+                            <div class="executive-desc">${overallRec.description}</div>
+                        </div>
+
+                        <!-- Score -->
+                        <div class="executive-box">
+                            <div class="executive-label">Overall Score</div>
+                            <div class="executive-value" style="color: #667eea">
+                                ${overall_analysis.score.toFixed(0)}/100
+                            </div>
+                            <div class="executive-desc">
+                                Confidence: ${overallRec.confidence}
+                                <br>
+                                ${overall_analysis.score >= 80 ? 'Excellent opportunity' : overall_analysis.score >= 65 ? 'Good opportunity' : overall_analysis.score >= 50 ? 'Mixed signals' : 'Concerning factors detected'}
+                            </div>
+                        </div>
+
+                        <!-- Accumulation Phase -->
+                        <div class="executive-box ${accPhase.current_phase === 'ACCUMULATION' ? 'highlight' : accPhase.current_phase === 'DISTRIBUTION' ? 'danger' : ''}">
+                            <div class="executive-label">Market Phase</div>
+                            <div class="executive-value" style="color: ${accPhase.current_phase === 'ACCUMULATION' ? '#10b981' : accPhase.current_phase === 'DISTRIBUTION' ? '#ef4444' : '#f59e0b'}">
+                                ${accPhase.current_phase}
+                            </div>
+                            <div class="executive-desc">${accPhase.description.substring(0, 80)}...</div>
+                        </div>
+
+                        <!-- Best Entry Price -->
+                        <div class="executive-box">
+                            <div class="executive-label">💰 Recommended Entry</div>
+                            <div class="executive-value" style="color: #10b981">
+                                Rp ${bestEntry.price.toLocaleString()}
+                            </div>
+                            <div class="executive-desc">
+                                ${bestEntry.description}
+                                <br>
+                                <strong>${bestEntry.distance_percent > 0 ? '↑' : '↓'} ${Math.abs(bestEntry.distance_percent).toFixed(2)}%</strong> from current
+                            </div>
+                        </div>
+
+                        <!-- Best Exit Target -->
+                        <div class="executive-box">
+                            <div class="executive-label">🎯 Primary Target</div>
+                            <div class="executive-value" style="color: #3b82f6">
+                                Rp ${bestExit.price.toLocaleString()}
+                            </div>
+                            <div class="executive-desc">
+                                ${bestExit.description}
+                                <br>
+                                <strong style="color: #10b981">+${bestExit.potential_gain_percent.toFixed(2)}%</strong> potential gain
+                            </div>
+                        </div>
+
+                        <!-- Swing Trading Rating -->
+                        <div class="executive-box">
+                            <div class="executive-label">📈 Swing Rating</div>
+                            <div class="executive-value" style="color: #f59e0b">
+                                ${swingRating.score}/100
+                            </div>
+                            <div class="executive-desc">
+                                ${swingRating.rating}
+                                <br>
+                                Avg Swing: ${swing_analysis.swing_size.average_swing_percent.toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action Summary -->
+                    <div class="quick-actions">
+                        <div style="flex: 1; min-width: 250px; text-align: center;">
+                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Quick Action</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: #e2e8f0;">
+                                ${accumulation.recommendation.action}
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 250px; text-align: center;">
+                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Entry Action</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: #e2e8f0;">
+                                ${entry_exit.position_recommendation.recommended_action}
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 250px; text-align: center;">
+                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Swing Pattern</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: #e2e8f0;">
+                                ${swing_analysis.swing_pattern.pattern}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Header -->
                 <div class="card">
                     <div class="stock-header">
                         <div class="stock-name">
