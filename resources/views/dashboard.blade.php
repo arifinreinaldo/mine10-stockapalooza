@@ -624,24 +624,40 @@
                 <button class="btn-secondary" onclick="window.location.href='/'">Simple View</button>
             </div>
 
-            <div class="quick-picks">
-                <strong style="margin-right: 10px;">🇮🇩 Indonesia:</strong>
-                <button class="quick-pick-btn" onclick="quickAnalyze('BBCA')">BBCA</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('BBRI')">BBRI</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('BMRI')">BMRI</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('TLKM')">TLKM</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('ASII')">ASII</button>
+            <div id="searchHistorySection" class="quick-picks" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🕐 Recent Searches:</strong>
+                    <div>
+                        <button class="quick-pick-btn" style="background: #ef4444; font-size: 0.85rem;" onclick="clearSearchHistory()">Clear History</button>
+                        <button class="quick-pick-btn" style="background: #3b82f6; font-size: 0.85rem;" onclick="toggleQuickPicks()">Show Suggestions</button>
+                    </div>
+                </div>
+                <div id="searchHistory"></div>
             </div>
 
-            <div class="quick-picks" style="margin-top: 10px;">
-                <strong style="margin-right: 10px;">🇺🇸 US Stocks:</strong>
-                <button class="quick-pick-btn" onclick="quickAnalyze('AAPL', 'us')">AAPL</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('MSFT', 'us')">MSFT</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('GOOGL', 'us')">GOOGL</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('TSLA', 'us')">TSLA</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('NVDA', 'us')">NVDA</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('META', 'us')">META</button>
-                <button class="quick-pick-btn" onclick="quickAnalyze('AMZN', 'us')">AMZN</button>
+            <div id="quickPicksSection" class="quick-picks">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">⚡ Popular Stocks:</strong>
+                    <button class="quick-pick-btn" style="background: #3b82f6; font-size: 0.85rem;" onclick="toggleQuickPicks()">Show History</button>
+                </div>
+                <div>
+                    <span style="color: #94a3b8; font-size: 0.9rem; margin-right: 10px;">🇮🇩 Indonesia:</span>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BBCA')">BBCA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BBRI')">BBRI</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BMRI')">BMRI</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('TLKM')">TLKM</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('ASII')">ASII</button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <span style="color: #94a3b8; font-size: 0.9rem; margin-right: 10px;">🇺🇸 US Stocks:</span>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('AAPL', 'us')">AAPL</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('MSFT', 'us')">MSFT</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('GOOGL', 'us')">GOOGL</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('TSLA', 'us')">TSLA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('NVDA', 'us')">NVDA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('META', 'us')">META</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('AMZN', 'us')">AMZN</button>
+                </div>
             </div>
         </div>
 
@@ -651,6 +667,88 @@
     <script>
         let currentSymbol = '';
         let isFavorite = false;
+
+        // Search history management
+        function saveToHistory(symbol, market) {
+            let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+
+            // Remove if already exists (to move to front)
+            history = history.filter(item => item.symbol !== symbol);
+
+            // Add to front
+            history.unshift({
+                symbol: symbol,
+                market: market || 'auto',
+                timestamp: new Date().toISOString()
+            });
+
+            // Keep only last 10
+            history = history.slice(0, 10);
+
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+            updateHistoryDisplay();
+        }
+
+        function getSearchHistory() {
+            return JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        }
+
+        function clearSearchHistory() {
+            if (confirm('Clear all search history?')) {
+                localStorage.removeItem('searchHistory');
+                updateHistoryDisplay();
+            }
+        }
+
+        function toggleQuickPicks() {
+            const historySection = document.getElementById('searchHistorySection');
+            const quickPicksSection = document.getElementById('quickPicksSection');
+
+            if (historySection.style.display === 'none') {
+                historySection.style.display = 'block';
+                quickPicksSection.style.display = 'none';
+                updateHistoryDisplay();
+            } else {
+                historySection.style.display = 'none';
+                quickPicksSection.style.display = 'block';
+            }
+        }
+
+        function updateHistoryDisplay() {
+            const history = getSearchHistory();
+            const historyDiv = document.getElementById('searchHistory');
+
+            if (history.length === 0) {
+                historyDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No search history yet. Start analyzing stocks!</p>';
+                return;
+            }
+
+            historyDiv.innerHTML = history.map((item, index) => {
+                const timeAgo = getTimeAgo(new Date(item.timestamp));
+                const marketFlag = item.market === 'us' ? '🇺🇸' : item.market === 'idx' ? '🇮🇩' : '🌐';
+                return `
+                    <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', '${item.market}')"
+                            style="position: relative; padding-right: 45px;">
+                        ${marketFlag} ${item.symbol}
+                        <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8;">
+                            ${timeAgo}
+                        </span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+
+            if (seconds < 60) return 'just now';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+        }
 
         async function loadDashboard() {
             const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
@@ -662,6 +760,10 @@
             }
 
             currentSymbol = symbol;
+
+            // Save to history
+            saveToHistory(symbol, market);
+
             showLoading();
 
             try {
@@ -681,11 +783,20 @@
 
         function quickAnalyze(symbol, market = null) {
             document.getElementById('stockSymbol').value = symbol;
-            if (market) {
+            if (market && market !== 'auto') {
                 document.getElementById('marketSelector').value = market;
             }
             loadDashboard();
         }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const history = getSearchHistory();
+            if (history.length > 0) {
+                // Auto-show history if there are items
+                toggleQuickPicks();
+            }
+        });
 
         function showLoading() {
             document.getElementById('dashboard').innerHTML = `
