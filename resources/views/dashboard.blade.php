@@ -791,21 +791,21 @@
                     <!-- Quick Action Summary -->
                     <div class="quick-actions">
                         <div style="flex: 1; min-width: 250px; text-align: center;">
-                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Quick Action</div>
-                            <div style="font-size: 1.3rem; font-weight: bold; color: #e2e8f0;">
-                                ${accumulation.recommendation.action}
+                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Overall Action</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: ${overallRec.color === 'success' ? '#10b981' : overallRec.color === 'danger' ? '#ef4444' : '#f59e0b'};">
+                                ${overallRec.action}
                             </div>
                         </div>
                         <div style="flex: 1; min-width: 250px; text-align: center;">
-                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Entry Action</div>
-                            <div style="font-size: 1.3rem; font-weight: bold; color: #e2e8f0;">
+                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Accumulation Phase</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: ${accPhase.current_phase === 'ACCUMULATION' ? '#10b981' : accPhase.current_phase === 'DISTRIBUTION' ? '#ef4444' : '#f59e0b'};">
+                                ${accPhase.current_phase}
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 250px; text-align: center;">
+                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Entry Position</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: ${entry_exit.position_recommendation.recommended_action.includes('BUY') ? '#10b981' : entry_exit.position_recommendation.recommended_action.includes('WAIT') ? '#f59e0b' : '#6b7280'};">
                                 ${entry_exit.position_recommendation.recommended_action}
-                            </div>
-                        </div>
-                        <div style="flex: 1; min-width: 250px; text-align: center;">
-                            <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">Swing Pattern</div>
-                            <div style="font-size: 1.3rem; font-weight: bold; color: #e2e8f0;">
-                                ${swing_analysis.swing_pattern.pattern}
                             </div>
                         </div>
                     </div>
