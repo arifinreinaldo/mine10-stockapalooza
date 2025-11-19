@@ -904,6 +904,7 @@
                 <!-- EXECUTIVE SUMMARY -->
                 <div class="executive-summary">
                     <div class="executive-title">⚡ Decision Dashboard</div>
+                    <p style="font-size: 0.85rem; color: #94a3b8; text-align: center; margin: -10px 0 15px 0;">🎯 THE BIG PICTURE! Everything you need to know at a glance - like a report card for the stock!</p>
 
                     <div class="executive-grid">
                         <!-- Overall Recommendation -->
@@ -1005,6 +1006,7 @@
                     <!-- Technical Indicators -->
                     <div class="card">
                         <h3>📈 Technical Indicators</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">📊 Like a thermometer for stocks! Shows if the stock is "hot" (overbought), "cold" (oversold), or just right!</p>
                         <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
                             <div class="metric">
                                 <div class="metric-label">RSI (14)</div>
@@ -1040,6 +1042,7 @@
                     <!-- Fundamental Ratios -->
                     <div class="card">
                         <h3>💰 Fundamentals</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">💎 Is this stock a good VALUE? Like comparing toy prices - are we getting a good deal or paying too much?</p>
                         <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
                             <div class="metric">
                                 <div class="metric-label">P/E Ratio</div>
@@ -1075,6 +1078,7 @@
                     <!-- Volume & Liquidity -->
                     <div class="card">
                         <h3>📊 Volume & Liquidity</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🏪 How BUSY is the stock store? Lots of buyers = popular! Shows how many people are trading this stock.</p>
                         <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
                             <div class="metric">
                                 <div class="metric-label">Volume Ratio</div>
@@ -1117,6 +1121,7 @@
                             <div style="font-size: 0.85rem; opacity: 0.95;">${accumulation.phase.description}</div>
                         </div>
                         <h3 style="margin-top: 15px;">📊 Accumulation Metrics</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🐘 Are the BIG SMART elephants (rich people) buying? When elephants dance, we follow! Strong = good sign!</p>
                         <div class="metric-row" style="grid-template-columns: 1fr 1fr 1fr;">
                             <div class="metric">
                                 <div class="metric-label">Strength</div>
@@ -1139,6 +1144,7 @@
                     <!-- Participant Analysis -->
                     <div class="card">
                         <h3>👥 Participants</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🏦 WHO is buying? Big banks (green) = smart! Regular people (red) = be careful! Follow the smart money!</p>
                         <div style="text-align: center; margin: 15px 0;">
                             <div style="font-size: 1.1rem; font-weight: bold; color: ${accumulation.participants.primary_type.includes('Institutional') ? '#10b981' : '#f59e0b'};">
                                 ${accumulation.participants.primary_type.replace('Dominant', '').replace('Leaning', '')}
@@ -1164,6 +1170,7 @@
                     <!-- Entry Zones -->
                     <div class="card">
                         <h3>🎯 Entry Zones</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🛒 WHEN to BUY? Like waiting for your favorite toy to go on SALE! Green = good deal!</p>
                         ${Object.entries(entry_exit.entry_recommendation).map(([type, zone]) => `
                             <div style="background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #10b981;">
                                 <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">${type}</div>
@@ -1181,6 +1188,7 @@
                     <!-- Exit Targets -->
                     <div class="card">
                         <h3>🚀 Exit Targets</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">💰 WHEN to SELL for PROFIT? Like selling your toys for MORE money than you paid! Take your profits!</p>
                         ${Object.entries(entry_exit.exit_recommendation).map(([type, zone]) => `
                             <div style="background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #3b82f6;">
                                 <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">${type}</div>
@@ -1195,6 +1203,7 @@
                     <!-- Swing Analysis -->
                     <div class="card">
                         <h3>📈 Swing Analysis</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🎢 Is this a FUN ROLLER COASTER? Big swings = exciting but bumpy! Shows how much the price goes up & down.</p>
                         <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; margin-bottom: 12px;">
                             <div style="font-size: 1.8rem; font-weight: bold;">${swing_analysis.swing_rating.score}/100</div>
                             <div style="font-size: 0.85rem; opacity: 0.95;">${swing_analysis.swing_rating.rating}</div>
@@ -1220,6 +1229,7 @@
                 <div class="compact-grid">
                     <div class="card">
                         <h3 style="color: #10b981;">📍 Support</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🛡️ SAFETY NET! Like a trampoline - price bounces UP when it hits these levels!</p>
                         ${entry_exit.support_levels.length > 0
                             ? entry_exit.support_levels.map((level, i) => `
                                 <div style="background: #0f172a; padding: 8px 10px; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #10b981; display: flex; justify-content: space-between;">
@@ -1233,6 +1243,7 @@
 
                     <div class="card">
                         <h3 style="color: #ef4444;">📍 Resistance</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🚧 CEILING BLOCK! Like hitting your head on the ceiling - price has trouble going higher!</p>
                         ${entry_exit.resistance_levels.length > 0
                             ? entry_exit.resistance_levels.map((level, i) => `
                                 <div style="background: #0f172a; padding: 8px 10px; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #ef4444; display: flex; justify-content: space-between;">
@@ -1246,6 +1257,7 @@
 
                     <div class="card">
                         <h3>🔢 Fibonacci</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">📏 MAGIC RULER! Special levels where stock often takes a break or turns around - like steps on stairs!</p>
                         <div style="font-size: 0.75rem;">
                             ${Object.entries(entry_exit.fibonacci_levels).slice(0, 5).map(([level, price]) => `
                                 <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #334155;">
