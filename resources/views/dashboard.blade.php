@@ -760,17 +760,8 @@
                 idxHistoryDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No Indonesia stocks searched yet</p>';
             } else {
                 const idxHtml = grouped.idx.map(item => {
-                    const timeAgo = getTimeAgo(new Date(item.timestamp));
                     const cleanSymbol = item.symbol.replace('.JK', '');
-                    return `
-                        <button class="quick-pick-btn" onclick="quickAnalyze('${cleanSymbol}', 'idx')"
-                                style="position: relative; padding-right: 50px; margin-right: 8px;">
-                            ${cleanSymbol}
-                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: #94a3b8;">
-                                ${timeAgo}
-                            </span>
-                        </button>
-                    `;
+                    return `<button class="quick-pick-btn" onclick="quickAnalyze('${cleanSymbol}', 'idx')">${cleanSymbol}</button>`;
                 }).join('');
                 idxHistoryDiv.innerHTML = idxHtml;
             }
@@ -780,16 +771,7 @@
                 usHistoryDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No US stocks searched yet</p>';
             } else {
                 const usHtml = grouped.us.map(item => {
-                    const timeAgo = getTimeAgo(new Date(item.timestamp));
-                    return `
-                        <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', 'us')"
-                                style="position: relative; padding-right: 50px; margin-right: 8px;">
-                            ${item.symbol}
-                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: #94a3b8;">
-                                ${timeAgo}
-                            </span>
-                        </button>
-                    `;
+                    return `<button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', 'us')">${item.symbol}</button>`;
                 }).join('');
                 usHistoryDiv.innerHTML = usHtml;
             }
