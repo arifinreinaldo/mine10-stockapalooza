@@ -15,6 +15,9 @@ class StockDataFetcher
         $this->client = new Client([
             'timeout' => 10,
             'verify' => false,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            ]
         ]);
     }
 
@@ -30,19 +33,18 @@ class StockDataFetcher
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($symbol) {
             try {
-                // Yahoo Finance API endpoints
-                $quoteUrl = "https://query1.finance.yahoo.com/v8/finance/chart/{$symbol}";
-                $statsUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/{$symbol}?modules=defaultKeyStatistics,financialData,summaryDetail";
+                // Yahoo Finance API endpoints - using simpler approach without crumb
+                // Add time range to get historical data
+                $period1 = strtotime('-60 days');
+                $period2 = time();
+                $quoteUrl = "https://query1.finance.yahoo.com/v8/finance/chart/{$symbol}?period1={$period1}&period2={$period2}&interval=1d";
 
-                // Fetch quote data (price, volume, etc.)
+                // Fetch quote data (price, volume, etc.) - this usually works without auth
                 $quoteResponse = $this->client->get($quoteUrl);
                 $quoteData = json_decode($quoteResponse->getBody()->getContents(), true);
 
-                // Fetch statistics (P/E, P/B, etc.)
-                $statsResponse = $this->client->get($statsUrl);
-                $statsData = json_decode($statsResponse->getBody()->getContents(), true);
-
                 if (!isset($quoteData['chart']['result'][0])) {
+                    \Log::error("No chart data found for {$symbol}");
                     return null;
                 }
 
@@ -50,10 +52,24 @@ class StockDataFetcher
                 $meta = $result['meta'];
                 $indicators = $result['indicators']['quote'][0] ?? [];
 
-                $stats = $statsData['quoteSummary']['result'][0] ?? [];
-                $keyStats = $stats['defaultKeyStatistics'] ?? [];
-                $financialData = $stats['financialData'] ?? [];
-                $summaryDetail = $stats['summaryDetail'] ?? [];
+                // Try to fetch statistics, but don't fail if it doesn't work
+                $keyStats = [];
+                $financialData = [];
+                $summaryDetail = [];
+
+                try {
+                    $statsUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/{$symbol}?modules=defaultKeyStatistics,financialData,summaryDetail";
+                    $statsResponse = $this->client->get($statsUrl);
+                    $statsData = json_decode($statsResponse->getBody()->getContents(), true);
+
+                    $stats = $statsData['quoteSummary']['result'][0] ?? [];
+                    $keyStats = $stats['defaultKeyStatistics'] ?? [];
+                    $financialData = $stats['financialData'] ?? [];
+                    $summaryDetail = $stats['summaryDetail'] ?? [];
+                } catch (\Exception $e) {
+                    // Log but don't fail - we can still provide price data
+                    \Log::warning("Could not fetch detailed stats for {$symbol}, continuing with basic data: " . $e->getMessage());
+                }
 
                 // Calculate technical indicators
                 $closes = $indicators['close'] ?? [];
