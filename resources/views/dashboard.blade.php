@@ -723,19 +723,73 @@
                 return;
             }
 
-            historyDiv.innerHTML = history.map((item, index) => {
-                const timeAgo = getTimeAgo(new Date(item.timestamp));
-                const marketFlag = item.market === 'us' ? '🇺🇸' : item.market === 'idx' ? '🇮🇩' : '🌐';
-                return `
-                    <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', '${item.market}')"
-                            style="position: relative; padding-right: 45px;">
-                        ${marketFlag} ${item.symbol}
-                        <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8;">
-                            ${timeAgo}
-                        </span>
-                    </button>
-                `;
-            }).join('');
+            // Group by market
+            const grouped = {
+                us: history.filter(item => item.market === 'us'),
+                idx: history.filter(item => item.market === 'idx' || item.market === 'auto'),
+                other: history.filter(item => item.market !== 'us' && item.market !== 'idx' && item.market !== 'auto')
+            };
+
+            let html = '';
+
+            // US Stocks section
+            if (grouped.us.length > 0) {
+                html += '<div style="margin-bottom: 15px;">';
+                html += '<div style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 8px;">🇺🇸 United States:</div>';
+                html += grouped.us.map(item => {
+                    const timeAgo = getTimeAgo(new Date(item.timestamp));
+                    return `
+                        <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', '${item.market}')"
+                                style="position: relative; padding-right: 45px;">
+                            ${item.symbol}
+                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8;">
+                                ${timeAgo}
+                            </span>
+                        </button>
+                    `;
+                }).join('');
+                html += '</div>';
+            }
+
+            // Indonesian Stocks section
+            if (grouped.idx.length > 0) {
+                html += '<div style="margin-bottom: 15px;">';
+                html += '<div style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 8px;">🇮🇩 Indonesia (IDX):</div>';
+                html += grouped.idx.map(item => {
+                    const timeAgo = getTimeAgo(new Date(item.timestamp));
+                    return `
+                        <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', '${item.market}')"
+                                style="position: relative; padding-right: 45px;">
+                            ${item.symbol}
+                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8;">
+                                ${timeAgo}
+                            </span>
+                        </button>
+                    `;
+                }).join('');
+                html += '</div>';
+            }
+
+            // Other markets section (if any)
+            if (grouped.other.length > 0) {
+                html += '<div style="margin-bottom: 15px;">';
+                html += '<div style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 8px;">🌐 Other Markets:</div>';
+                html += grouped.other.map(item => {
+                    const timeAgo = getTimeAgo(new Date(item.timestamp));
+                    return `
+                        <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', '${item.market}')"
+                                style="position: relative; padding-right: 45px;">
+                            ${item.symbol}
+                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8;">
+                                ${timeAgo}
+                            </span>
+                        </button>
+                    `;
+                }).join('');
+                html += '</div>';
+            }
+
+            historyDiv.innerHTML = html;
         }
 
         function getTimeAgo(date) {
