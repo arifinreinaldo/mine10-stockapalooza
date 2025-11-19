@@ -491,6 +491,18 @@ class StockAnalyzer
      */
     private function getKeyMetrics(array $data): array
     {
+        $closes = $data['historical_closes'] ?? [];
+
+        // Calculate technical indicators
+        $rsi = null;
+        $aboveSma = false;
+
+        if (count($closes) >= 20) {
+            $rsi = $this->calculateRSI($closes, 14);
+            $sma20 = $this->calculateSMA($closes, 20);
+            $aboveSma = $data['current_price'] > $sma20;
+        }
+
         return [
             'price' => [
                 'current' => $data['current_price'],
@@ -511,6 +523,10 @@ class StockAnalyzer
             'dividend' => [
                 'yield' => $data['dividend_yield'] ? round($data['dividend_yield'] * 100, 2) : 0,
                 'rate' => $data['dividend_rate'],
+            ],
+            'technical' => [
+                'rsi' => $rsi,
+                'above_sma' => $aboveSma,
             ],
         ];
     }

@@ -60,11 +60,11 @@
         .search-section input {
             flex: 1;
             min-width: 200px;
-            padding: 14px 20px;
+            padding: 10px 15px;
             background: #0f172a;
             border: 2px solid #334155;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: #e2e8f0;
             transition: all 0.3s;
         }
@@ -76,12 +76,12 @@
         }
 
         button {
-            padding: 14px 28px;
+            padding: 10px 20px;
             background: #667eea;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
@@ -634,7 +634,7 @@
     <div class="container">
         <div class="search-bar" style="margin-top: 50px;">
             <div class="search-section">
-                <select id="marketSelector" style="padding: 14px 20px; border-radius: 8px; border: 2px solid #4b5563; background: #1e293b; color: white; font-size: 1rem; margin-right: 10px; cursor: pointer;">
+                <select id="marketSelector" style="padding: 10px 15px; border-radius: 8px; border: 2px solid #4b5563; background: #1e293b; color: white; font-size: 0.9rem; margin-right: 10px; cursor: pointer;">
                     <option value="auto">🌐 Auto-detect</option>
                     <option value="idx">🇮🇩 Indonesia (IDX)</option>
                     <option value="us">🇺🇸 United States</option>
@@ -647,6 +647,7 @@
                 >
                 <button onclick="loadDashboard()">Analyze</button>
                 <button class="btn-secondary" onclick="window.location.href='/'">Simple View</button>
+                <button class="btn-danger" onclick="clearSearchHistory()" style="margin-left: 10px;">Clear History</button>
             </div>
 
             <!-- 1. Indonesia Suggestions -->
@@ -697,7 +698,6 @@
             <div class="quick-picks" style="margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <strong style="margin-right: 10px;">🇺🇸 United States - Recent Searches:</strong>
-                    <button class="quick-pick-btn" style="background: #ef4444; font-size: 0.85rem;" onclick="clearSearchHistory()">Clear All History</button>
                 </div>
                 <div id="usHistory" style="overflow-x: auto; white-space: nowrap;">
                     <p style="color: #94a3b8; font-size: 0.9rem;">No US stocks searched yet</p>
@@ -744,98 +744,55 @@
             }
         }
 
-        function toggleSections() {
-            const historySection = document.getElementById('searchHistorySection');
-            const quickPicksSection = document.getElementById('quickPicksSection');
-
-            if (quickPicksSection.style.display === 'none') {
-                // Show suggestions, hide history
-                historySection.style.display = 'none';
-                quickPicksSection.style.display = 'block';
-            } else {
-                // Show history, hide suggestions
-                historySection.style.display = 'block';
-                quickPicksSection.style.display = 'none';
-                updateHistoryDisplay();
-            }
-        }
-
         function updateHistoryDisplay() {
             const history = getSearchHistory();
-            const historyDiv = document.getElementById('searchHistory');
+            const idxHistoryDiv = document.getElementById('idxHistory');
+            const usHistoryDiv = document.getElementById('usHistory');
 
-            if (history.length === 0) {
-                historyDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No search history yet. Start analyzing stocks!</p>';
-                return;
-            }
-
-            // Group by market
+            // Group by market (detect based on symbol pattern)
             const grouped = {
-                us: history.filter(item => item.market === 'us'),
-                idx: history.filter(item => item.market === 'idx' || item.market === 'auto'),
-                other: history.filter(item => item.market !== 'us' && item.market !== 'idx' && item.market !== 'auto')
+                us: history.filter(item => item.market === 'us' || (item.symbol.length <= 5 && !item.symbol.includes('.JK'))),
+                idx: history.filter(item => item.market === 'idx' || item.market === 'auto' || item.symbol.includes('.JK') || item.symbol.length === 4)
             };
 
-            let html = '';
-
-            // US Stocks section
-            if (grouped.us.length > 0) {
-                html += '<div style="margin-bottom: 15px;">';
-                html += '<div style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 8px;">🇺🇸 United States:</div>';
-                html += grouped.us.map(item => {
+            // Update Indonesia history
+            if (grouped.idx.length === 0) {
+                idxHistoryDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No Indonesia stocks searched yet</p>';
+            } else {
+                const idxHtml = grouped.idx.map(item => {
                     const timeAgo = getTimeAgo(new Date(item.timestamp));
+                    const cleanSymbol = item.symbol.replace('.JK', '');
                     return `
-                        <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', '${item.market}')"
-                                style="position: relative; padding-right: 45px;">
-                            ${item.symbol}
-                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8;">
+                        <button class="quick-pick-btn" onclick="quickAnalyze('${cleanSymbol}', 'idx')"
+                                style="position: relative; padding-right: 50px; margin-right: 8px;">
+                            ${cleanSymbol}
+                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: #94a3b8;">
                                 ${timeAgo}
                             </span>
                         </button>
                     `;
                 }).join('');
-                html += '</div>';
+                idxHistoryDiv.innerHTML = idxHtml;
             }
 
-            // Indonesian Stocks section
-            if (grouped.idx.length > 0) {
-                html += '<div style="margin-bottom: 15px;">';
-                html += '<div style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 8px;">🇮🇩 Indonesia (IDX):</div>';
-                html += grouped.idx.map(item => {
+            // Update US history
+            if (grouped.us.length === 0) {
+                usHistoryDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No US stocks searched yet</p>';
+            } else {
+                const usHtml = grouped.us.map(item => {
                     const timeAgo = getTimeAgo(new Date(item.timestamp));
                     return `
-                        <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', '${item.market}')"
-                                style="position: relative; padding-right: 45px;">
+                        <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', 'us')"
+                                style="position: relative; padding-right: 50px; margin-right: 8px;">
                             ${item.symbol}
-                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8;">
+                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.7rem; color: #94a3b8;">
                                 ${timeAgo}
                             </span>
                         </button>
                     `;
                 }).join('');
-                html += '</div>';
+                usHistoryDiv.innerHTML = usHtml;
             }
-
-            // Other markets section (if any)
-            if (grouped.other.length > 0) {
-                html += '<div style="margin-bottom: 15px;">';
-                html += '<div style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 8px;">🌐 Other Markets:</div>';
-                html += grouped.other.map(item => {
-                    const timeAgo = getTimeAgo(new Date(item.timestamp));
-                    return `
-                        <button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', '${item.market}')"
-                                style="position: relative; padding-right: 45px;">
-                            ${item.symbol}
-                            <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #94a3b8;">
-                                ${timeAgo}
-                            </span>
-                        </button>
-                    `;
-                }).join('');
-                html += '</div>';
-            }
-
-            historyDiv.innerHTML = html;
         }
 
         function getTimeAgo(date) {
