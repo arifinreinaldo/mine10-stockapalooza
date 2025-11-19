@@ -55,6 +55,59 @@ http://localhost:8000/dashboard
 - Money flow (inflow/outflow)
 - Accumulation strength score (0-100)
 
+**NEW Enhanced Analysis:**
+
+#### ⏳ Accumulation Duration
+Answers: **"How long should I wait?"** or **"How long has it been accumulating?"**
+
+- **Duration**: Shows exactly how many days/weeks accumulation has been ongoing
+- **Status Categories**:
+  - No Active Accumulation: Wait for signals
+  - Early Stage (< 5 days): Consider waiting 1-2 weeks for confirmation
+  - Active Accumulation (5-15 days): Good entry zone, can start building position
+  - Mature Accumulation (15-30 days): Excellent entry, may transition to markup soon
+  - Very Long Accumulation (> 30 days): Priority entry - explosive move may be imminent
+- **Suggested Wait Time**: Specific recommendation based on accumulation stage
+- **Activity Status**: Shows if accumulation is currently active or has ended
+
+#### 📊 Accumulation Magnitude
+Answers: **"How big is the accumulation?"**
+
+- **Total Volume**: 20-day accumulation volume in millions
+- **vs Average**: Percentage above/below normal volume levels
+- **Size Categories**:
+  - Very Large (≥50% above normal): Massive institutional activity
+  - Large (25-50% above): Significant accumulation
+  - Moderate (10-25% above): Steady accumulation
+  - Small (0-10% above): Minimal accumulation
+  - Very Small/None (below normal): No significant accumulation
+- **Excess Volume**: Amount of unexpected trading volume
+
+#### 👥 Participant Type Detection
+Answers: **"Who is accumulating - retail or institution?"**
+
+- **Primary Type**:
+  - Institutional Dominant (70%+): Strong smart money accumulation - VERY BULLISH
+  - Institutional Leaning (55-70%): Likely institutional with some retail
+  - Mixed (45-55%): Balanced participation
+  - Retail Leaning (30-45%): Mostly retail - watch for institutional confirmation
+  - Retail Dominant (<30%): Heavy retail - higher risk, wait for institutions
+
+- **Detection Indicators**:
+  - Volume consistency (steady = institutional, erratic = retail)
+  - Volume size (very high = institutional)
+  - Price behavior during volume spikes (stable = institutional, volatile = retail)
+  - Accumulation timing patterns
+  - Price-volume correlation
+
+- **Visual Split**: Bar chart showing institutional vs retail percentage
+- **Confidence Level**: High, Medium, or Low based on signal strength
+
+**Why This Matters:**
+- **Institutional accumulation** = Smart money with better research and longer time horizons (BULLISH!)
+- **Retail accumulation** = Late to trends, emotional trading (CAUTION - wait for confirmation)
+- **Follow the smart money** for better success rates
+
 ### 3. 🎯 Entry Price Recommendations
 
 Three entry strategies based on risk tolerance:

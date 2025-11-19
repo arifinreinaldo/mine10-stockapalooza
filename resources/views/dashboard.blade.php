@@ -857,6 +857,134 @@
                             <div style="margin-top: 5px; font-size: 0.85rem;">${accumulation.current_volume_vs_average.status}</div>
                         </div>
                     </div>
+
+                    <!-- NEW: Accumulation Duration -->
+                    <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; border-left: 4px solid #3b82f6;">
+                        <h4 style="margin-bottom: 15px; display: flex; align-items: center;">
+                            <span style="font-size: 1.5rem; margin-right: 10px;">⏳</span>
+                            Accumulation Duration
+                        </h4>
+                        <div class="metric-row">
+                            <div class="metric">
+                                <div class="metric-label">Duration</div>
+                                <div class="metric-value" style="font-size: 1.8rem; color: #3b82f6;">
+                                    ${accumulation.duration.days} days
+                                </div>
+                                <div style="margin-top: 5px; font-size: 0.9rem; color: #94a3b8;">${accumulation.duration.weeks} trading weeks</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Status</div>
+                                <div class="metric-value" style="font-size: 1.3rem; color: ${accumulation.duration.is_currently_accumulating ? '#10b981' : '#f59e0b'};">
+                                    ${accumulation.duration.status}
+                                </div>
+                                <div style="margin-top: 5px; font-size: 0.85rem; color: #94a3b8;">
+                                    ${accumulation.duration.is_currently_accumulating ? '🟢 Active' : '⚪ Not Active'}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; padding: 15px; background: #0f172a; border-radius: 8px;">
+                            <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 10px;">
+                                <strong>Interpretation:</strong> ${accumulation.duration.interpretation}
+                            </p>
+                            <p style="font-size: 0.95rem; color: #10b981;">
+                                <strong>⏰ Wait Recommendation:</strong> ${accumulation.duration.wait_recommendation}
+                            </p>
+                            <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 8px;">
+                                <strong>Suggested Wait Time:</strong> ${accumulation.duration.suggested_wait_time}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Accumulation Magnitude -->
+                    <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; border-left: 4px solid #8b5cf6;">
+                        <h4 style="margin-bottom: 15px; display: flex; align-items: center;">
+                            <span style="font-size: 1.5rem; margin-right: 10px;">📊</span>
+                            Accumulation Magnitude (Size)
+                        </h4>
+                        <div class="metric-row">
+                            <div class="metric">
+                                <div class="metric-label">Total Volume (20 days)</div>
+                                <div class="metric-value" style="font-size: 1.3rem; color: #8b5cf6;">
+                                    ${(accumulation.magnitude.total_volume / 1000000).toFixed(1)}M
+                                </div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">vs Average</div>
+                                <div class="metric-value" style="font-size: 1.8rem; color: ${accumulation.magnitude.vs_average_percent > 25 ? '#10b981' : accumulation.magnitude.vs_average_percent > 0 ? '#f59e0b' : '#ef4444'};">
+                                    ${accumulation.magnitude.vs_average_percent > 0 ? '+' : ''}${accumulation.magnitude.vs_average_percent}%
+                                </div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Size Category</div>
+                                <div class="metric-value" style="font-size: 1.3rem; color: #8b5cf6;">
+                                    ${accumulation.magnitude.size}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; padding: 15px; background: #0f172a; border-radius: 8px;">
+                            <p style="font-size: 0.95rem; color: #cbd5e1;">
+                                <strong>Analysis:</strong> ${accumulation.magnitude.interpretation}
+                            </p>
+                            <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem;">
+                                <div>
+                                    <span style="color: #94a3b8;">Expected Volume:</span>
+                                    <strong style="color: #cbd5e1;"> ${(accumulation.magnitude.expected_volume / 1000000).toFixed(1)}M</strong>
+                                </div>
+                                <div>
+                                    <span style="color: #94a3b8;">Excess Volume:</span>
+                                    <strong style="color: ${accumulation.magnitude.excess_volume > 0 ? '#10b981' : '#ef4444'};"> ${(accumulation.magnitude.excess_volume / 1000000).toFixed(1)}M</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NEW: Participant Type Analysis -->
+                    <div style="margin-top: 25px; padding: 20px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; border-left: 4px solid #f59e0b;">
+                        <h4 style="margin-bottom: 15px; display: flex; align-items: center;">
+                            <span style="font-size: 1.5rem; margin-right: 10px;">👥</span>
+                            Who is Accumulating? (Retail vs Institution)
+                        </h4>
+                        <div style="text-align: center; margin: 20px 0;">
+                            <div class="badge ${accumulation.participants.primary_type.includes('Institutional') ? 'success' : accumulation.participants.primary_type.includes('Mixed') ? 'warning' : 'danger'}"
+                                 style="font-size: 1.5rem; padding: 15px 30px;">
+                                ${accumulation.participants.primary_type}
+                            </div>
+                            <div style="margin-top: 10px; font-size: 0.9rem; color: #94a3b8;">
+                                Confidence: <strong>${accumulation.participants.confidence}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Institutional vs Retail Split -->
+                        <div style="margin: 20px 0;">
+                            <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                                <div style="flex: ${accumulation.participants.institutional_percent}; background: linear-gradient(90deg, #10b981, #059669); height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;">
+                                    ${accumulation.participants.institutional_percent >= 20 ? accumulation.participants.institutional_percent.toFixed(0) + '%' : ''}
+                                </div>
+                                <div style="flex: ${accumulation.participants.retail_percent}; background: linear-gradient(90deg, #ef4444, #dc2626); height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;">
+                                    ${accumulation.participants.retail_percent >= 20 ? accumulation.participants.retail_percent.toFixed(0) + '%' : ''}
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8;">
+                                <span>🏦 Institutional: ${accumulation.participants.institutional_percent.toFixed(1)}%</span>
+                                <span>👤 Retail: ${accumulation.participants.retail_percent.toFixed(1)}%</span>
+                            </div>
+                        </div>
+
+                        <div style="padding: 15px; background: #0f172a; border-radius: 8px; margin-top: 15px;">
+                            <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 15px;">
+                                <strong>Interpretation:</strong> ${accumulation.participants.interpretation}
+                            </p>
+                            <div style="font-size: 0.85rem; color: #94a3b8;">
+                                <strong style="color: #f59e0b;">Detection Indicators:</strong>
+                                <ul style="margin: 10px 0 0 20px; list-style: disc;">
+                                    ${accumulation.participants.indicators.map(indicator => `
+                                        <li style="margin: 5px 0;">${indicator}</li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                     <div style="margin-top: 20px;">
                         <h4 style="margin-bottom: 10px;">Recommendation</h4>
                         <div class="badge ${getActionBadgeClass(accumulation.recommendation.action)}" style="font-size: 1.1rem; padding: 12px 20px;">

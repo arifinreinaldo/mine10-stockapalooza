@@ -40,6 +40,15 @@ class AccumulationDetector
         // Money flow analysis
         $moneyFlow = $this->analyzeMoneyFlow($stockData);
 
+        // NEW: Accumulation duration
+        $duration = $this->detectAccumulationDuration($closes, $volumes, $obv);
+
+        // NEW: Accumulation magnitude
+        $magnitude = $this->calculateAccumulationMagnitude($volumes, $avgVolume, $stockData['market_cap']);
+
+        // NEW: Participant type detection
+        $participants = $this->detectParticipantType($volumes, $closes, $currentVolume, $avgVolume);
+
         return [
             'phase' => $phase,
             'strength' => $strength,
@@ -47,6 +56,9 @@ class AccumulationDetector
             'volume_trend' => $volumeTrend,
             'volume_price_analysis' => $vpa,
             'money_flow' => $moneyFlow,
+            'duration' => $duration,
+            'magnitude' => $magnitude,
+            'participants' => $participants,
             'current_volume_vs_average' => [
                 'current' => $currentVolume,
                 'average' => $avgVolume,
@@ -466,6 +478,344 @@ class AccumulationDetector
     }
 
     /**
+     * Detect how long accumulation has been happening
+     * Helps answer: "How long should I wait?" or "How long has it been accumulating?"
+     */
+    private function detectAccumulationDuration(array $closes, array $volumes, array $obv): array
+    {
+        // Only analyze if we have enough data
+        if (count($closes) < 20) {
+            return [
+                'days' => 0,
+                'weeks' => 0,
+                'status' => 'Insufficient data',
+                'interpretation' => 'Need more historical data',
+                'wait_recommendation' => 'Wait for at least 20 days of data',
+            ];
+        }
+
+        $accumulationDays = 0;
+        $consecutiveDays = 0;
+        $isCurrentlyAccumulating = false;
+
+        // Walk backwards to find continuous accumulation period
+        for ($i = count($closes) - 1; $i > 0; $i--) {
+            $priceChange = $closes[$i] - $closes[$i - 1];
+            $volumeRatio = $volumes[$i] / (array_sum(array_slice($volumes, max(0, $i - 10), 10)) / 10);
+
+            // Accumulation signs: high volume with stable/slight down price
+            $isAccumulating = (
+                $volumeRatio > 1.1 && // Volume above average
+                abs($priceChange) < ($closes[$i] * 0.02) // Price relatively stable (<2% change)
+            ) || (
+                $obv['trend'] === 'Rising' && $priceChange >= 0 // OBV rising with price stable/up
+            );
+
+            if ($isAccumulating) {
+                $consecutiveDays++;
+                if ($i === count($closes) - 1) {
+                    $isCurrentlyAccumulating = true;
+                }
+            } else {
+                // Stop counting if we hit non-accumulation period
+                if ($consecutiveDays > 0) {
+                    break;
+                }
+            }
+        }
+
+        $accumulationDays = $consecutiveDays;
+        $weeks = round($accumulationDays / 5, 1); // Trading weeks (5 days)
+
+        // Determine status and recommendation
+        $status = '';
+        $interpretation = '';
+        $waitRecommendation = '';
+
+        if ($accumulationDays === 0) {
+            $status = 'No Active Accumulation';
+            $interpretation = 'Stock is not currently in accumulation phase';
+            $waitRecommendation = 'Wait for accumulation signals to appear before entering';
+        } elseif ($accumulationDays < 5) {
+            $status = 'Early Stage Accumulation';
+            $interpretation = 'Accumulation just started - very early phase';
+            $waitRecommendation = $isCurrentlyAccumulating
+                ? 'Consider waiting 1-2 more weeks to confirm accumulation pattern'
+                : 'Accumulation may have ended prematurely';
+        } elseif ($accumulationDays < 15) {
+            $status = 'Active Accumulation';
+            $interpretation = 'Accumulation is ongoing - good time to build position';
+            $waitRecommendation = $isCurrentlyAccumulating
+                ? 'Good entry zone - can start building position gradually'
+                : 'Accumulation phase may be ending - monitor closely';
+        } elseif ($accumulationDays < 30) {
+            $status = 'Mature Accumulation';
+            $interpretation = 'Extended accumulation period - smart money loading up';
+            $waitRecommendation = $isCurrentlyAccumulating
+                ? 'Strong accumulation - excellent entry opportunity, but may transition to markup soon'
+                : 'Long accumulation complete - watch for markup phase breakout';
+        } else {
+            $status = 'Very Long Accumulation';
+            $interpretation = 'Prolonged accumulation - big move may be coming';
+            $waitRecommendation = $isCurrentlyAccumulating
+                ? 'Extended accumulation often precedes strong markup - priority entry zone'
+                : 'Very long accumulation ended - explosive move may be imminent';
+        }
+
+        return [
+            'days' => $accumulationDays,
+            'weeks' => $weeks,
+            'status' => $status,
+            'interpretation' => $interpretation,
+            'wait_recommendation' => $waitRecommendation,
+            'is_currently_accumulating' => $isCurrentlyAccumulating,
+            'suggested_wait_time' => $this->getSuggestedWaitTime($accumulationDays, $isCurrentlyAccumulating),
+        ];
+    }
+
+    /**
+     * Get suggested wait time based on accumulation stage
+     */
+    private function getSuggestedWaitTime(int $accumulationDays, bool $isCurrentlyAccumulating): string
+    {
+        if (!$isCurrentlyAccumulating) {
+            return 'N/A - Accumulation not active';
+        }
+
+        if ($accumulationDays < 5) {
+            return '1-2 weeks (wait for confirmation)';
+        } elseif ($accumulationDays < 15) {
+            return '0-1 week (can enter now or wait for better price)';
+        } elseif ($accumulationDays < 30) {
+            return '0 days (enter now - may transition to markup soon)';
+        } else {
+            return '0 days (enter immediately - breakout may be imminent)';
+        }
+    }
+
+    /**
+     * Calculate accumulation magnitude (size/strength)
+     * Helps answer: "How big is the accumulation?"
+     */
+    private function calculateAccumulationMagnitude(array $volumes, float $avgVolume, ?float $marketCap): array
+    {
+        if (count($volumes) < 20) {
+            return [
+                'total_volume' => 0,
+                'vs_average' => 0,
+                'value_estimate' => 0,
+                'size' => 'Unknown',
+                'interpretation' => 'Insufficient data',
+            ];
+        }
+
+        // Calculate recent accumulation volume (last 20 days)
+        $recentVolumes = array_slice($volumes, -20);
+        $totalAccumulationVolume = array_sum($recentVolumes);
+        $expectedVolume = $avgVolume * 20;
+        $excessVolume = $totalAccumulationVolume - $expectedVolume;
+        $magnitudeRatio = $avgVolume > 0 ? $totalAccumulationVolume / $expectedVolume : 0;
+
+        // Estimate value of accumulation (if we have market cap)
+        $valueEstimate = 0;
+        if ($marketCap && $marketCap > 0) {
+            // Rough estimate: excess volume as % of market cap
+            $shareEstimate = $excessVolume;
+            $priceEstimate = 1000; // Placeholder - we don't have shares outstanding
+            $valueEstimate = $shareEstimate * $priceEstimate;
+        }
+
+        // Categorize magnitude
+        $size = '';
+        $interpretation = '';
+
+        if ($magnitudeRatio >= 1.5) {
+            $size = 'Very Large';
+            $interpretation = 'Massive accumulation - volume ' . round(($magnitudeRatio - 1) * 100, 0) . '% above normal. Institutional activity likely.';
+        } elseif ($magnitudeRatio >= 1.25) {
+            $size = 'Large';
+            $interpretation = 'Significant accumulation - volume ' . round(($magnitudeRatio - 1) * 100, 0) . '% above normal. Strong buying interest.';
+        } elseif ($magnitudeRatio >= 1.1) {
+            $size = 'Moderate';
+            $interpretation = 'Moderate accumulation - volume ' . round(($magnitudeRatio - 1) * 100, 0) . '% above normal. Steady accumulation.';
+        } elseif ($magnitudeRatio >= 0.9) {
+            $size = 'Small';
+            $interpretation = 'Minimal accumulation - volume near normal levels. Limited buying pressure.';
+        } else {
+            $size = 'Very Small / None';
+            $interpretation = 'No significant accumulation - volume below normal. Low buying interest.';
+        }
+
+        return [
+            'total_volume' => round($totalAccumulationVolume, 0),
+            'expected_volume' => round($expectedVolume, 0),
+            'excess_volume' => round($excessVolume, 0),
+            'magnitude_ratio' => round($magnitudeRatio, 2),
+            'vs_average_percent' => round(($magnitudeRatio - 1) * 100, 1),
+            'size' => $size,
+            'interpretation' => $interpretation,
+            'value_estimate_idr' => round($valueEstimate, 0),
+        ];
+    }
+
+    /**
+     * Detect participant type (Retail vs Institution)
+     * Helps answer: "Who is accumulating - retail or institution?"
+     */
+    private function detectParticipantType(array $volumes, array $closes, float $currentVolume, float $avgVolume): array
+    {
+        if (count($volumes) < 20 || count($closes) < 20) {
+            return [
+                'primary_type' => 'Unknown',
+                'confidence' => 'Low',
+                'indicators' => [],
+                'interpretation' => 'Insufficient data for participant analysis',
+            ];
+        }
+
+        $indicators = [];
+        $institutionalScore = 0;
+        $retailScore = 0;
+
+        // 1. Volume Pattern Analysis
+        $recentVolumes = array_slice($volumes, -20);
+        $volumeStdDev = $this->calculateStdDev($recentVolumes);
+        $volumeMean = array_sum($recentVolumes) / count($recentVolumes);
+        $coefficientOfVariation = $volumeMean > 0 ? ($volumeStdDev / $volumeMean) : 0;
+
+        if ($coefficientOfVariation < 0.3) {
+            // Consistent volume = Institutional (steady accumulation)
+            $institutionalScore += 25;
+            $indicators[] = 'Consistent volume pattern (Institutional sign)';
+        } else {
+            // Erratic volume = Retail (emotional trading)
+            $retailScore += 25;
+            $indicators[] = 'Erratic volume pattern (Retail sign)';
+        }
+
+        // 2. Volume Size Analysis
+        $avgVolumeRatio = $avgVolume > 0 ? $volumeMean / $avgVolume : 0;
+        if ($avgVolumeRatio > 1.5) {
+            // Significantly high volume = Institutional
+            $institutionalScore += 20;
+            $indicators[] = 'Very high volume (' . round($avgVolumeRatio, 1) . 'x avg) - Institutional activity';
+        } elseif ($avgVolumeRatio > 1.2) {
+            $institutionalScore += 10;
+            $indicators[] = 'Above average volume - Possible institutional interest';
+        } else {
+            $retailScore += 15;
+            $indicators[] = 'Normal/low volume - Retail-dominated';
+        }
+
+        // 3. Price Behavior During Volume Spikes
+        $priceVolatilityDuringHighVolume = 0;
+        $highVolumeDays = 0;
+        for ($i = 1; $i < count($recentVolumes); $i++) {
+            if ($recentVolumes[$i] > $avgVolume * 1.3) {
+                $highVolumeDays++;
+                $priceChange = abs($closes[$i] - $closes[$i - 1]) / $closes[$i - 1];
+                $priceVolatilityDuringHighVolume += $priceChange;
+            }
+        }
+
+        if ($highVolumeDays > 0) {
+            $avgVolatility = $priceVolatilityDuringHighVolume / $highVolumeDays;
+            if ($avgVolatility < 0.015) {
+                // High volume + low price volatility = Institutional (absorbing supply without moving price)
+                $institutionalScore += 30;
+                $indicators[] = 'High volume with low price movement - Classic institutional accumulation';
+            } else {
+                // High volume + high volatility = Retail (panic/euphoria)
+                $retailScore += 20;
+                $indicators[] = 'High volume with price volatility - Retail emotional trading';
+            }
+        }
+
+        // 4. Trading Time Pattern (if we had intraday data, but we use daily)
+        // For daily data, we check volume distribution consistency
+        $firstHalf = array_slice($recentVolumes, 0, 10);
+        $secondHalf = array_slice($recentVolumes, 10, 10);
+        $firstHalfAvg = array_sum($firstHalf) / count($firstHalf);
+        $secondHalfAvg = array_sum($secondHalf) / count($secondHalf);
+        $distribution = abs($firstHalfAvg - $secondHalfAvg) / max($firstHalfAvg, $secondHalfAvg);
+
+        if ($distribution < 0.2) {
+            // Even distribution = Institutional (systematic accumulation)
+            $institutionalScore += 15;
+            $indicators[] = 'Consistent accumulation over time - Institutional strategy';
+        } else {
+            // Uneven distribution = Retail (opportunistic)
+            $retailScore += 10;
+            $indicators[] = 'Uneven accumulation pattern - Retail behavior';
+        }
+
+        // 5. Price Trend vs Volume
+        $recentCloses = array_slice($closes, -20);
+        $priceChange = ($recentCloses[count($recentCloses) - 1] - $recentCloses[0]) / $recentCloses[0];
+
+        if ($priceChange > -0.05 && $priceChange < 0.05 && $avgVolumeRatio > 1.2) {
+            // Flat price + high volume = Institutional accumulation (absorbing without markup)
+            $institutionalScore += 10;
+            $indicators[] = 'Price stable despite high volume - Stealth institutional accumulation';
+        }
+
+        // Determine primary participant type
+        $totalScore = $institutionalScore + $retailScore;
+        $institutionalPercent = $totalScore > 0 ? ($institutionalScore / $totalScore) * 100 : 50;
+
+        $primaryType = '';
+        $confidence = '';
+
+        if ($institutionalPercent >= 70) {
+            $primaryType = 'Institutional Dominant';
+            $confidence = 'High';
+        } elseif ($institutionalPercent >= 55) {
+            $primaryType = 'Institutional Leaning';
+            $confidence = 'Medium';
+        } elseif ($institutionalPercent >= 45) {
+            $primaryType = 'Mixed (Retail + Institutional)';
+            $confidence = 'Medium';
+        } elseif ($institutionalPercent >= 30) {
+            $primaryType = 'Retail Leaning';
+            $confidence = 'Medium';
+        } else {
+            $primaryType = 'Retail Dominant';
+            $confidence = 'High';
+        }
+
+        $interpretation = $this->interpretParticipantType($primaryType, $institutionalPercent);
+
+        return [
+            'primary_type' => $primaryType,
+            'institutional_score' => $institutionalScore,
+            'retail_score' => $retailScore,
+            'institutional_percent' => round($institutionalPercent, 1),
+            'retail_percent' => round(100 - $institutionalPercent, 1),
+            'confidence' => $confidence,
+            'indicators' => $indicators,
+            'interpretation' => $interpretation,
+        ];
+    }
+
+    /**
+     * Interpret participant type
+     */
+    private function interpretParticipantType(string $type, float $institutionalPercent): string
+    {
+        if (str_contains($type, 'Institutional Dominant')) {
+            return 'Strong institutional accumulation detected. Smart money is loading up. This is typically a very bullish sign as institutions have better research and longer time horizons. Follow the smart money!';
+        } elseif (str_contains($type, 'Institutional Leaning')) {
+            return 'Institutional buyers are likely active. Combined with some retail participation. Generally bullish as institutional involvement suggests confidence in the stock.';
+        } elseif (str_contains($type, 'Mixed')) {
+            return 'Both retail and institutional investors are participating. Healthy mix of participants. Watch for which side gains dominance.';
+        } elseif (str_contains($type, 'Retail Leaning')) {
+            return 'Mostly retail-driven activity. Institutions are less involved. Be cautious as retail can be more emotional and prone to reversals. Look for institutional confirmation.';
+        } else {
+            return 'Heavy retail participation with minimal institutional interest. Higher risk as retail tends to be late to trends. Wait for institutional involvement for confirmation.';
+        }
+    }
+
+    /**
      * Default accumulation analysis
      */
     private function defaultAccumulationAnalysis(): array
@@ -494,6 +844,19 @@ class AccumulationDetector
             'money_flow' => [
                 'status' => 'Unknown',
                 'interpretation' => 'Insufficient data',
+            ],
+            'duration' => [
+                'days' => 0,
+                'status' => 'Unknown',
+                'interpretation' => 'Need more data',
+            ],
+            'magnitude' => [
+                'size' => 'Unknown',
+                'interpretation' => 'Need more data',
+            ],
+            'participants' => [
+                'primary_type' => 'Unknown',
+                'interpretation' => 'Need more data',
             ],
             'recommendation' => [
                 'action' => 'WAIT - Insufficient Data',
