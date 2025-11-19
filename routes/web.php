@@ -10,3 +10,4 @@ use App\Http\Controllers\StockAnalysisController;
 */
 
 Route::get('/', [StockAnalysisController::class, 'index']);
+Route::get('/dashboard', [StockAnalysisController::class, 'dashboard']);

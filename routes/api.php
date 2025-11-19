@@ -26,3 +26,12 @@ Route::post('/compare', [StockAnalysisController::class, 'compareStocks']);
 
 // Clear cache
 Route::delete('/cache/{symbol}', [StockAnalysisController::class, 'clearCache']);
+
+// Comprehensive Dashboard
+Route::get('/dashboard/{symbol}', [StockAnalysisController::class, 'getDashboard']);
+
+// Favorites Management
+Route::get('/favorites', [StockAnalysisController::class, 'getFavorites']);
+Route::post('/favorites', [StockAnalysisController::class, 'addFavorite']);
+Route::delete('/favorites/{symbol}', [StockAnalysisController::class, 'removeFavorite']);
+Route::get('/favorites/dashboard', [StockAnalysisController::class, 'favoritesDashboard']);
