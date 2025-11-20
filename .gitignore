@@ -30,3 +30,8 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# ML generated files
+/ml_scripts/*.json
+/ml_scripts/__pycache__
+database/database.sqlite

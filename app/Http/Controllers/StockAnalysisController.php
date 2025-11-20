@@ -8,6 +8,7 @@ use App\Services\EntryExitAnalyzer;
 use App\Services\SwingAnalyzer;
 use App\Services\AccumulationDetector;
 use App\Services\FavoritesManager;
+use App\Models\StockAnalysis;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -337,6 +338,9 @@ class StockAnalysisController extends Controller
         $accumulation = $this->accumulationDetector->analyze($stockData);
         $isFavorite = $this->favoritesManager->isFavorite($symbol);
 
+        // Save analysis to database for ML training
+        $this->saveAnalysisForML($symbol, $market, $stockData, $analysis, $swing, $accumulation);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -487,5 +491,56 @@ class StockAnalysisController extends Controller
             'count' => count($dashboards),
             'data' => $dashboards,
         ]);
+    }
+
+    /**
+     * Save analysis data for ML training
+     */
+    private function saveAnalysisForML(
+        string $symbol,
+        ?string $market,
+        array $stockData,
+        array $analysis,
+        array $swing,
+        array $accumulation
+    ): void {
+        try {
+            StockAnalysis::create([
+                'symbol' => $symbol,
+                'market' => $market ?? 'idx',
+                'price' => $stockData['current_price'],
+
+                // Technical indicators
+                'rsi' => $analysis['metrics']['technical']['rsi'] ?? null,
+                'above_sma' => $analysis['metrics']['technical']['above_sma'] ?? null,
+                'volume_ratio' => $accumulation['current_volume_vs_average']['ratio'] ?? null,
+                'volatility_rating' => $swing['volatility']['volatility_rating'] ?? null,
+
+                // Fundamentals
+                'pe_ratio' => $analysis['metrics']['valuation']['pe_ratio'] ?? null,
+                'pb_ratio' => $analysis['metrics']['valuation']['pb_ratio'] ?? null,
+                'roe' => $analysis['metrics']['profitability']['roe'] ?? null,
+                'eps' => $analysis['metrics']['profitability']['eps'] ?? null,
+
+                // Accumulation
+                'accumulation_phase' => $accumulation['phase']['current_phase'] ?? null,
+                'accumulation_strength' => $accumulation['strength']['score'] ?? null,
+                'accumulation_days' => $accumulation['duration']['days'] ?? null,
+                'participant_type' => $accumulation['participants']['primary_type'] ?? null,
+                'institutional_percent' => $accumulation['participants']['institutional_percent'] ?? null,
+
+                // Swing
+                'swing_score' => $swing['swing_rating']['score'] ?? null,
+                'avg_swing_percent' => $swing['swing_size']['average_swing_percent'] ?? null,
+                'trend_pattern' => $swing['swing_pattern']['pattern'] ?? null,
+
+                // Overall
+                'overall_score' => $analysis['score'],
+                'recommendation' => $analysis['recommendation']['action'],
+            ]);
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+            \Log::error('Failed to save analysis for ML: ' . $e->getMessage());
+        }
     }
 }
