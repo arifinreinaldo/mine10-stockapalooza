@@ -543,4 +543,106 @@ class StockAnalysisController extends Controller
             \Log::error('Failed to save analysis for ML: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Scan popular stocks for buy opportunities
+     *
+     * GET /api/scan-opportunities?market=idx (optional)
+     */
+    public function scanOpportunities(Request $request)
+    {
+        $market = $request->query('market', 'auto');
+
+        // Curated list of popular stocks to scan
+        $stocksToScan = [];
+
+        if ($market === 'idx' || $market === 'auto') {
+            // Indonesian blue chips
+            $stocksToScan = array_merge($stocksToScan, [
+                'BBCA', 'BBRI', 'BMRI', 'BBNI', // Banks
+                'TLKM', 'EXCL', // Telco
+                'ASII', 'UNTR', // Automotive
+                'INDF', 'ICBP', 'UNVR', // Consumer
+                'GGRM', 'HMSP', // Tobacco
+                'KLBF', 'SIDO', // Pharma
+                'SMGR', 'WSBP', // Cement
+                'ADRO', 'PTBA', 'ITMG', // Coal/Mining
+            ]);
+        }
+
+        if ($market === 'us' || $market === 'auto') {
+            // Popular US stocks
+            $stocksToScan = array_merge($stocksToScan, [
+                'AAPL', 'MSFT', 'GOOGL', 'AMZN', // Tech giants
+                'NVDA', 'AMD', 'INTC', // Chips
+                'TSLA', 'F', 'GM', // Auto
+                'JPM', 'BAC', 'WFC', // Banks
+                'XOM', 'CVX', // Energy
+                'JNJ', 'PFE', // Pharma
+            ]);
+        }
+
+        $opportunities = [];
+        $scanned = 0;
+        $errors = 0;
+
+        foreach ($stocksToScan as $symbol) {
+            try {
+                $normalizedSymbol = $this->normalizeSymbol($symbol, $market === 'idx' ? 'idx' : ($market === 'us' ? 'us' : null));
+                $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
+
+                if (!$stockData) {
+                    $errors++;
+                    continue;
+                }
+
+                $analysis = $this->analyzer->analyze($stockData);
+                $accumulation = $this->accumulationDetector->analyze($stockData);
+                $swing = $this->swingAnalyzer->analyze($stockData);
+
+                $scanned++;
+
+                // Filter for BUY opportunities
+                $action = $analysis['recommendation']['action'];
+                if (strpos($action, 'BUY') !== false) {
+                    $opportunities[] = [
+                        'symbol' => $symbol,
+                        'normalized_symbol' => $normalizedSymbol,
+                        'name' => $stockData['name'],
+                        'price' => $stockData['current_price'],
+                        'change_percent' => $stockData['change_percent'],
+                        'action' => $action,
+                        'score' => $analysis['score'],
+                        'confidence' => $analysis['recommendation']['confidence'],
+                        'market' => strpos($normalizedSymbol, '.JK') !== false ? 'idx' : 'us',
+
+                        // Key signals
+                        'macd_signal' => $analysis['metrics']['technical']['macd']['signal'] ?? 'N/A',
+                        'divergence' => $analysis['metrics']['technical']['divergence']['divergence'] ?? 'NONE',
+                        'week52_position' => $analysis['metrics']['technical']['52_week']['position'] ?? 'N/A',
+                        'rsi' => $analysis['metrics']['technical']['rsi'] ?? null,
+                        'institutional_percent' => $accumulation['participants']['institutional_percent'] ?? 0,
+                        'accumulation_phase' => $accumulation['phase']['current_phase'] ?? 'N/A',
+                    ];
+                }
+            } catch (\Exception $e) {
+                $errors++;
+                \Log::warning("Failed to scan {$symbol}: " . $e->getMessage());
+                continue;
+            }
+        }
+
+        // Sort by score descending
+        usort($opportunities, function ($a, $b) {
+            return $b['score'] <=> $a['score'];
+        });
+
+        return response()->json([
+            'success' => true,
+            'scanned' => $scanned,
+            'errors' => $errors,
+            'opportunities_found' => count($opportunities),
+            'data' => array_slice($opportunities, 0, 10), // Top 10
+        ]);
+    }
 }

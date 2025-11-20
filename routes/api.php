@@ -35,3 +35,6 @@ Route::get('/favorites', [StockAnalysisController::class, 'getFavorites']);
 Route::post('/favorites', [StockAnalysisController::class, 'addFavorite']);
 Route::delete('/favorites/{symbol}', [StockAnalysisController::class, 'removeFavorite']);
 Route::get('/favorites/dashboard', [StockAnalysisController::class, 'favoritesDashboard']);
+
+// Scan for buy opportunities
+Route::get('/scan-opportunities', [StockAnalysisController::class, 'scanOpportunities']);

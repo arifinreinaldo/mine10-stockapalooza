@@ -650,6 +650,9 @@
                 <button class="btn-danger" onclick="clearSearchHistory()" style="margin-left: 10px;">Clear History</button>
             </div>
 
+            <!-- Buy Opportunities Scanner -->
+            <div id="buyOpportunities" style="margin-bottom: 30px;"></div>
+
             <!-- 1. Indonesia Suggestions -->
             <div class="quick-picks" style="margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -845,9 +848,111 @@
             loadDashboard();
         }
 
+        // Load buy opportunities
+        async function loadBuyOpportunities() {
+            const container = document.getElementById('buyOpportunities');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
+                    <div class="spinner" style="border-color: #fff transparent transparent transparent;"></div>
+                    <p style="color: #fff; margin-top: 10px;">🔍 Scanning popular stocks for buy opportunities...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/scan-opportunities?market=auto');
+                const data = await response.json();
+
+                if (data.success && data.opportunities_found > 0) {
+                    displayBuyOpportunities(data.data, data.scanned);
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
+                            <p style="color: #94a3b8;">😔 No strong buy opportunities found among ${data.scanned} stocks scanned. Most stocks showing SELL or HOLD signals currently.</p>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-top: 10px;">Check back later or try analyzing specific stocks manually.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error loading opportunities: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayBuyOpportunities(opportunities, scanned) {
+            const container = document.getElementById('buyOpportunities');
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div>
+                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities</h2>
+                            <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                Found ${opportunities.length} BUY signals out of ${scanned} stocks scanned
+                            </p>
+                        </div>
+                        <button onclick="loadBuyOpportunities()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+            `;
+
+            opportunities.forEach(opp => {
+                const bgColor = opp.action === 'STRONG BUY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(34, 197, 94, 0.1)';
+                const borderColor = opp.action === 'STRONG BUY' ? '#10b981' : '#22c55e';
+                const priceClass = opp.change_percent >= 0 ? '#10b981' : '#ef4444';
+
+                html += `
+                    <div onclick="quickAnalyze('${opp.symbol}', '${opp.market}')" style="background: ${bgColor}; border: 2px solid ${borderColor}; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.3)';"
+                         onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                            <div>
+                                <div style="font-size: 1.2rem; font-weight: bold; color: #fff;">${opp.symbol}</div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
+                            </div>
+                            <div style="background: ${borderColor}; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+                                ${opp.action}
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Price:</span>
+                            <span style="color: #fff; font-weight: bold;">
+                                ${opp.market === 'idx' ? 'Rp ' : '$'}${opp.price.toLocaleString()}
+                                <span style="color: ${priceClass}; font-size: 0.85rem; margin-left: 5px;">
+                                    ${opp.change_percent >= 0 ? '+' : ''}${opp.change_percent.toFixed(2)}%
+                                </span>
+                            </span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 5px;">
+                            📊 Score: <strong>${opp.score.toFixed(0)}/100</strong> • ${opp.confidence}
+                        </div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">
+                            ${opp.macd_signal !== 'N/A' ? '🚀 MACD: ' + opp.macd_signal.replace(/_/g, ' ') : ''}
+                            ${opp.divergence !== 'NONE' ? ' • ⚠️ ' + opp.divergence : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <p style="text-align: center; color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
+                        💡 Click any stock to see full analysis
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
         // Initialize on page load - always show history first
         window.addEventListener('DOMContentLoaded', () => {
             updateHistoryDisplay();
+            loadBuyOpportunities();
         });
 
         function showLoading() {
