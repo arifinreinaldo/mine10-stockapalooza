@@ -577,14 +577,97 @@ class StockAnalysisController extends Controller
     }
 
     /**
-     * Perform the actual stock scanning
+     * Scan ALL stocks comprehensively (slower but complete)
+     *
+     * GET /api/scan-opportunities?market=idx&mode=full
+     */
+    public function scanAllStocks(Request $request)
+    {
+        $market = $request->query('market', 'idx');
+
+        // Get all stocks based on market
+        $allStocks = [];
+        if ($market === 'idx') {
+            $allStocks = IndonesianStocks::getAll();
+        } elseif ($market === 'us') {
+            // Could add US comprehensive list here
+            $allStocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'AMD', 'META'];
+        }
+
+        $buyOpportunities = [];
+        $scalpingOpportunities = [];
+        $scanned = 0;
+        $errors = 0;
+
+        foreach ($allStocks as $symbol) {
+            try {
+                $normalizedSymbol = $this->normalizeSymbol($symbol, $market);
+                $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
+
+                if (!$stockData) {
+                    $errors++;
+                    continue;
+                }
+
+                $analysis = $this->analyzer->analyze($stockData);
+                $accumulation = $this->accumulationDetector->analyze($stockData);
+                $swing = $this->swingAnalyzer->analyze($stockData);
+
+                $scanned++;
+
+                $action = $analysis['recommendation']['action'];
+                $stockInfo = [
+                    'symbol' => $symbol,
+                    'name' => $stockData['name'],
+                    'price' => $stockData['current_price'],
+                    'score' => $analysis['score'],
+                    'action' => $action,
+                    'volatility' => $swing['volatility']['volatility_percent'] ?? 0,
+                    'swing_score' => $swing['swing_rating']['score'] ?? 0,
+                ];
+
+                // Categorize as BUY opportunity
+                if (strpos($action, 'BUY') !== false) {
+                    $buyOpportunities[] = $stockInfo;
+                }
+
+                // Categorize as SCALPING opportunity (high volatility)
+                if (($stockInfo['volatility'] > 15 || $stockInfo['swing_score'] > 60) &&
+                    $stockData['volume'] > 1000000) {
+                    $scalpingOpportunities[] = $stockInfo;
+                }
+            } catch (\Exception $e) {
+                $errors++;
+                \Log::warning("Failed to scan {$symbol}: " . $e->getMessage());
+                continue;
+            }
+        }
+
+        // Sort by score
+        usort($buyOpportunities, fn($a, $b) => $b['score'] <=> $a['score']);
+        usort($scalpingOpportunities, fn($a, $b) => $b['volatility'] <=> $a['volatility']);
+
+        return response()->json([
+            'success' => true,
+            'scanned' => $scanned,
+            'errors' => $errors,
+            'total_stocks' => count($allStocks),
+            'top_10_buy' => array_slice($buyOpportunities, 0, 10),
+            'top_5_scalping' => array_slice($scalpingOpportunities, 0, 5),
+            'all_buy_opportunities' => $buyOpportunities,
+            'all_scalping_opportunities' => $scalpingOpportunities,
+        ]);
+    }
+
+    /**
+     * Perform the actual stock scanning (uses preset curated lists)
      */
     private function performOpportunitiesScan(string $market): array
     {
         $stocksToScan = [];
 
         if ($market === 'idx' || $market === 'auto') {
-            // Get top 10 Indonesian stocks (5 big cap + 5 small cap for scalping)
+            // Use curated preset lists (top 10 buy + top 5 scalping)
             $stocksToScan = array_merge($stocksToScan, IndonesianStocks::getScannerList());
         }
 

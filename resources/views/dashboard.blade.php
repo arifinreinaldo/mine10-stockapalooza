@@ -960,17 +960,24 @@
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <div>
-                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities</h2>
+                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities (Preset Scan)</h2>
                             <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
-                                Found ${opportunities.length} BUY signals • Scanned ${scanned} top stocks (5 Big Cap + 5 Small Cap)
+                                Found ${opportunities.length} BUY signals • Scanned ${scanned} curated stocks (Top 10 Buy + Top 5 Scalping)
                             </p>
                             ${cachedAt ? `<p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : ''}
                         </div>
-                        <button onclick="loadBuyOpportunities(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-                                onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                            🔄 Force Refresh
-                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="scanAllStocks()" style="background: rgba(16, 185, 129, 0.3); border: 1px solid #10b981; color: #10b981; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: bold;"
+                                    onmouseover="this.style.background='rgba(16, 185, 129, 0.4)'"
+                                    onmouseout="this.style.background='rgba(16, 185, 129, 0.3)'">
+                                📊 Scan ALL Stocks
+                            </button>
+                            <button onclick="loadBuyOpportunities(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                🔄 Refresh Preset
+                            </button>
+                        </div>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
             `;
@@ -1017,6 +1024,114 @@
                     </div>
                     <p style="text-align: center; color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
                         💡 Click any stock to see full analysis
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Scan ALL stocks comprehensively (~200 Indonesian stocks)
+        async function scanAllStocks() {
+            const container = document.getElementById('buyOpportunities');
+
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                    <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                    <h3 style="color: #fff; margin: 20px 0 10px 0;">📊 Comprehensive Stock Scan</h3>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Scanning ALL ${200}+ Indonesian stocks...</p>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">This may take 1-2 minutes. Please wait...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/scan-all-stocks?market=idx');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayComprehensiveScanResults(data);
+                    showNotification(`✅ Scanned ${data.scanned} stocks! Found ${data.top_10_buy.length} buy opportunities and ${data.top_5_scalping.length} scalping stocks`, 'success');
+                } else {
+                    throw new Error('Scan failed');
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error scanning all stocks: ${error.message}</p>
+                        <button onclick="loadBuyOpportunities()" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            ← Back to Preset Scan
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Display results from comprehensive scan
+        function displayComprehensiveScanResults(data) {
+            const container = document.getElementById('buyOpportunities');
+            const top10Buy = data.top_10_buy || [];
+            const top5Scalping = data.top_5_scalping || [];
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h2 style="margin: 0; color: #fff;">📊 Comprehensive Scan Results</h2>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                    Scanned ${data.scanned} stocks • Found ${data.all_buy_opportunities.length} BUY opportunities
+                                </p>
+                            </div>
+                            <button onclick="loadBuyOpportunities()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                                ← Back to Preset
+                            </button>
+                        </div>
+                    </div>
+
+                    <h3 style="color: #fff; margin: 15px 0 10px 0; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
+                        🎯 Top 10 BUY/BULLISH Stocks
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
+            `;
+
+            top10Buy.forEach(stock => {
+                html += `
+                    <div onclick="quickAnalyze('${stock.symbol}', 'idx')" style="background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; border-radius: 8px; padding: 15px; cursor: pointer;"
+                         onmouseover="this.style.transform='translateY(-2px)'"
+                         onmouseout="this.style.transform=''">
+                        <div style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 5px;">${stock.symbol}</div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-bottom: 8px;">${stock.name}</div>
+                        <div style="color: #10b981; font-weight: bold; font-size: 0.85rem;">${stock.action}</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 5px;">Score: ${stock.score}/100</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <h3 style="color: #fff; margin: 15px 0 10px 0; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
+                        ⚡ Top 5 SCALPING Stocks (High Volatility)
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+            `;
+
+            top5Scalping.forEach(stock => {
+                html += `
+                    <div onclick="quickAnalyze('${stock.symbol}', 'idx')" style="background: rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24; border-radius: 8px; padding: 15px; cursor: pointer;"
+                         onmouseover="this.style.transform='translateY(-2px)'"
+                         onmouseout="this.style.transform=''">
+                        <div style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 5px;">${stock.symbol}</div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-bottom: 8px;">${stock.name}</div>
+                        <div style="color: #fbbf24; font-weight: bold; font-size: 0.85rem;">Volatility: ${stock.volatility.toFixed(1)}%</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 5px;">Swing Score: ${stock.swing_score}/100</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <p style="text-align: center; color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
+                        💡 Click any stock to see full analysis • Scanned ${data.total_stocks} total stocks
                     </p>
                 </div>
             `;

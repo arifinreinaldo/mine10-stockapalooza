@@ -199,7 +199,56 @@ class IndonesianStocks
     }
 
     /**
+     * Get top 10 preset stocks with BUY/BULLISH signals
+     * Curated list based on historical performance and technical analysis
+     */
+    public static function getTop10BuyPreset(): array
+    {
+        return [
+            // Banks with consistent buy signals
+            'BBCA', 'BBRI', 'BMRI',
+
+            // Consumer staples (defensive)
+            'UNVR', 'ICBP', 'INDF',
+
+            // Infrastructure & Telco
+            'TLKM', 'JSMR',
+
+            // Energy (commodity-based)
+            'ADRO', 'PTBA',
+        ];
+    }
+
+    /**
+     * Get top 5 preset stocks for scalping/day trading
+     * High volatility, good liquidity, frequent price movements
+     */
+    public static function getTop5ScalpingPreset(): array
+    {
+        return [
+            'GOTO', // Tech - High volatility, daily swings
+            'BUKA', // Tech - Active trading, news-driven
+            'ACES', // Retail - Good intraday movements
+            'EXCL', // Telco - Volatile, high volume
+            'BYAN', // Coal - Commodity volatility
+        ];
+    }
+
+    /**
+     * Get combined scanner list for quick opportunities
+     * Uses preset lists for faster, reliable scanning
+     */
+    public static function getScannerList(): array
+    {
+        return array_merge(
+            self::getTop10BuyPreset(),
+            self::getTop5ScalpingPreset()
+        );
+    }
+
+    /**
      * Get top 5 big cap stocks (safest, most liquid, for long-term)
+     * @deprecated Use getTop10BuyPreset() instead
      */
     public static function getTop5BigCap(): array
     {
@@ -214,6 +263,7 @@ class IndonesianStocks
 
     /**
      * Get top 5 small cap stocks (high volatility, good for scalping/day trading)
+     * @deprecated Use getTop5ScalpingPreset() instead
      */
     public static function getTop5SmallCapScalping(): array
     {
@@ -224,17 +274,6 @@ class IndonesianStocks
             'BIRD', // Blue Bird - Liquid, volatile
             'EXCL', // XL Axiata - High volume
         ];
-    }
-
-    /**
-     * Get combined scanner list (top 5 big cap + top 5 small cap)
-     */
-    public static function getScannerList(): array
-    {
-        return array_merge(
-            self::getTop5BigCap(),
-            self::getTop5SmallCapScalping()
-        );
     }
 
     /**
