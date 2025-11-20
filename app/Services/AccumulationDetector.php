@@ -135,14 +135,15 @@ class AccumulationDetector
         $recentCloses = array_slice($closes, -10);
         $olderCloses = array_slice($closes, -20, 10);
 
-        $recentAvgVol = array_sum($recentVolumes) / count($recentVolumes);
-        $olderAvgVol = array_sum($olderVolumes) / count($olderVolumes);
+        $recentAvgVol = count($recentVolumes) > 0 ? array_sum($recentVolumes) / count($recentVolumes) : 0;
+        $olderAvgVol = count($olderVolumes) > 0 ? array_sum($olderVolumes) / count($olderVolumes) : 0;
 
-        $recentAvgPrice = array_sum($recentCloses) / count($recentCloses);
-        $olderAvgPrice = array_sum($olderCloses) / count($olderCloses);
+        $recentAvgPrice = count($recentCloses) > 0 ? array_sum($recentCloses) / count($recentCloses) : 0;
+        $olderAvgPrice = count($olderCloses) > 0 ? array_sum($olderCloses) / count($olderCloses) : 0;
 
-        $volumeChange = (($recentAvgVol - $olderAvgVol) / $olderAvgVol) * 100;
-        $priceChange = (($recentAvgPrice - $olderAvgPrice) / $olderAvgPrice) * 100;
+        // Prevent division by zero
+        $volumeChange = $olderAvgVol > 0 ? (($recentAvgVol - $olderAvgVol) / $olderAvgVol) * 100 : 0;
+        $priceChange = $olderAvgPrice > 0 ? (($recentAvgPrice - $olderAvgPrice) / $olderAvgPrice) * 100 : 0;
 
         $pattern = '';
         $interpretation = '';
@@ -269,8 +270,8 @@ class AccumulationDetector
         // Price stability during volume increase (20 points)
         $recentCloses = array_slice($closes, -10);
         $volatility = $this->calculateStdDev($recentCloses);
-        $avgPrice = array_sum($recentCloses) / count($recentCloses);
-        $volatilityPercent = ($volatility / $avgPrice) * 100;
+        $avgPrice = count($recentCloses) > 0 ? array_sum($recentCloses) / count($recentCloses) : 0;
+        $volatilityPercent = $avgPrice > 0 ? ($volatility / $avgPrice) * 100 : 0;
 
         if ($volatilityPercent < 2 && $recentAvg > $olderAvg) {
             $score += 20;
@@ -329,11 +330,12 @@ class AccumulationDetector
         // Check last 5 days
         $recentCloses = array_slice($closes, -5);
         $recentVolumes = array_slice($volumes, -5);
-        $avgVolume = array_sum(array_slice($volumes, -20, 15)) / 15;
+        $volumeSlice = array_slice($volumes, -20, 15);
+        $avgVolume = count($volumeSlice) > 0 ? array_sum($volumeSlice) / count($volumeSlice) : 0;
 
         for ($i = 1; $i < count($recentCloses); $i++) {
-            $priceChange = (($recentCloses[$i] - $recentCloses[$i - 1]) / $recentCloses[$i - 1]) * 100;
-            $volumeRatio = $recentVolumes[$i] / $avgVolume;
+            $priceChange = $recentCloses[$i - 1] > 0 ? (($recentCloses[$i] - $recentCloses[$i - 1]) / $recentCloses[$i - 1]) * 100 : 0;
+            $volumeRatio = $avgVolume > 0 ? $recentVolumes[$i] / $avgVolume : 0;
 
             if ($priceChange > 2 && $volumeRatio > 1.5) {
                 $signals[] = [
@@ -713,7 +715,7 @@ class AccumulationDetector
         for ($i = 1; $i < count($recentVolumes); $i++) {
             if ($recentVolumes[$i] > $avgVolume * 1.3) {
                 $highVolumeDays++;
-                $priceChange = abs($closes[$i] - $closes[$i - 1]) / $closes[$i - 1];
+                $priceChange = $closes[$i - 1] > 0 ? abs($closes[$i] - $closes[$i - 1]) / $closes[$i - 1] : 0;
                 $priceVolatilityDuringHighVolume += $priceChange;
             }
         }
@@ -751,7 +753,9 @@ class AccumulationDetector
 
         // 5. Price Trend vs Volume
         $recentCloses = array_slice($closes, -20);
-        $priceChange = ($recentCloses[count($recentCloses) - 1] - $recentCloses[0]) / $recentCloses[0];
+        $priceChange = count($recentCloses) > 0 && $recentCloses[0] > 0
+            ? ($recentCloses[count($recentCloses) - 1] - $recentCloses[0]) / $recentCloses[0]
+            : 0;
 
         if ($priceChange > -0.05 && $priceChange < 0.05 && $avgVolumeRatio > 1.2) {
             // Flat price + high volume = Institutional accumulation (absorbing without markup)

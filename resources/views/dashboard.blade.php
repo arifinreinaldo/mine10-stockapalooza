@@ -904,9 +904,9 @@
                 } else {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
-                            <p style="color: #94a3b8;">😔 No strong buy opportunities found among ${data.scanned || 0} stocks scanned (${data.total_stocks || 0} total).</p>
+                            <p style="color: #94a3b8;">😔 No strong buy opportunities found among top ${data.scanned || 0} stocks (5 Big Cap + 5 Small Cap)</p>
                             <p style="color: #64748b; font-size: 0.85rem; margin-top: 10px;">Most stocks showing SELL or HOLD signals currently. Check back later or try analyzing specific stocks manually.</p>
-                            ${data.cached_at ? `<p style="color: #64748b; font-size: 0.75rem; margin-top: 10px;">📅 Cached: ${data.cached_at} (refreshes every 3 hours)</p>` : ''}
+                            ${data.cached_at ? `<p style="color: #64748b; font-size: 0.75rem; margin-top: 10px;">📅 Cached: ${data.cached_at} • Auto-refreshes every 3 hours</p>` : ''}
                             <button onclick="loadBuyOpportunities(true)" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
                                 🔄 Force Refresh
                             </button>
@@ -962,9 +962,9 @@
                         <div>
                             <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities</h2>
                             <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
-                                Found ${opportunities.length} BUY signals out of ${scanned} scanned (${totalStocks} total Indonesian stocks)
+                                Found ${opportunities.length} BUY signals • Scanned ${scanned} top stocks (5 Big Cap + 5 Small Cap)
                             </p>
-                            ${cachedAt ? `<p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Refreshes every 3 hours</p>` : ''}
+                            ${cachedAt ? `<p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : ''}
                         </div>
                         <button onclick="loadBuyOpportunities(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
                                 onmouseover="this.style.background='rgba(255,255,255,0.3)'"

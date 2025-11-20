@@ -584,21 +584,17 @@ class StockAnalysisController extends Controller
         $stocksToScan = [];
 
         if ($market === 'idx' || $market === 'auto') {
-            // Get comprehensive list of all Indonesian stocks (~200+)
-            $stocksToScan = array_merge($stocksToScan, IndonesianStocks::getAll());
+            // Get top 10 Indonesian stocks (5 big cap + 5 small cap for scalping)
+            $stocksToScan = array_merge($stocksToScan, IndonesianStocks::getScannerList());
         }
 
         if ($market === 'us' || $market === 'auto') {
-            // Popular US stocks (can expand this list later)
+            // Top 10 US stocks (5 big cap + 5 volatile for trading)
             $stocksToScan = array_merge($stocksToScan, [
-                'AAPL', 'MSFT', 'GOOGL', 'AMZN', // Tech giants
-                'NVDA', 'AMD', 'INTC', // Chips
-                'TSLA', 'F', 'GM', // Auto
-                'JPM', 'BAC', 'WFC', // Banks
-                'XOM', 'CVX', // Energy
-                'JNJ', 'PFE', 'UNH', // Healthcare
-                'WMT', 'TGT', 'COST', // Retail
-                'DIS', 'NFLX', 'META', // Entertainment/Social
+                // Top 5 Big Cap
+                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA',
+                // Top 5 Volatile for Trading
+                'TSLA', 'AMD', 'META', 'NFLX', 'COIN',
             ]);
         }
 

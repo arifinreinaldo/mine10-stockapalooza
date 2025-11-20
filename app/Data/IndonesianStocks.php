@@ -197,4 +197,82 @@ class IndonesianStocks
             'Mining'
         ];
     }
+
+    /**
+     * Get top 5 big cap stocks (safest, most liquid, for long-term)
+     */
+    public static function getTop5BigCap(): array
+    {
+        return [
+            'BBCA', // Bank Central Asia - Largest market cap
+            'BBRI', // Bank Rakyat Indonesia
+            'BMRI', // Bank Mandiri
+            'TLKM', // Telkom Indonesia
+            'ASII', // Astra International
+        ];
+    }
+
+    /**
+     * Get top 5 small cap stocks (high volatility, good for scalping/day trading)
+     */
+    public static function getTop5SmallCapScalping(): array
+    {
+        return [
+            'GOTO', // GoTo - High volume, volatile
+            'BUKA', // Bukalapak - Active trading
+            'ACES', // Ace Hardware - Good volatility
+            'BIRD', // Blue Bird - Liquid, volatile
+            'EXCL', // XL Axiata - High volume
+        ];
+    }
+
+    /**
+     * Get combined scanner list (top 5 big cap + top 5 small cap)
+     */
+    public static function getScannerList(): array
+    {
+        return array_merge(
+            self::getTop5BigCap(),
+            self::getTop5SmallCapScalping()
+        );
+    }
+
+    /**
+     * Get top 50 big cap Indonesian stocks
+     * Blue chips and most liquid stocks
+     */
+    public static function getTopBigCap(): array
+    {
+        return [
+            // Top 10 Banks (largest market cap)
+            'BBCA', 'BBRI', 'BMRI', 'BBNI', 'BRIS',
+            'MEGA', 'BDMN', 'NISP', 'PNBN', 'BNLI',
+
+            // Top Telco
+            'TLKM', 'EXCL', 'ISAT',
+
+            // Top Consumer/F&B
+            'UNVR', 'INDF', 'ICBP', 'GGRM', 'HMSP',
+            'MYOR', 'ULTJ', 'KLBF', 'SIDO', 'MLBI',
+
+            // Top Automotive/Manufacturing
+            'ASII', 'UNTR', 'AUTO', 'SMGR', 'INTP',
+
+            // Top Energy/Mining
+            'ADRO', 'PTBA', 'ITMG', 'PGAS', 'MEDC',
+            'ANTM', 'INCO', 'TINS',
+
+            // Top Infrastructure
+            'JSMR', 'WIKA', 'WSKT', 'PTPP', 'ADHI',
+
+            // Top Property
+            'BSDE', 'CTRA', 'PWON', 'SMRA', 'ASRI',
+
+            // Top Technology
+            'GOTO', 'BUKA', 'EXCL',
+
+            // Top Retail
+            'ACES', 'MAPI', 'LPPF', 'ERAA',
+        ];
+    }
 }
