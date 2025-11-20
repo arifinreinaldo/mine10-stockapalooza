@@ -74,7 +74,7 @@ class SwingAnalyzer
         // Calculate swing sizes
         for ($i = 0; $i < count($swings) - 1; $i++) {
             $size = abs($swings[$i + 1]['price'] - $swings[$i]['price']);
-            $sizePercent = ($size / $swings[$i]['price']) * 100;
+            $sizePercent = $swings[$i]['price'] > 0 ? ($size / $swings[$i]['price']) * 100 : 0;
             $swingSizes[] = $sizePercent;
         }
 
@@ -85,7 +85,7 @@ class SwingAnalyzer
         $currentPrice = end($closes);
         $recentHigh = max($recent);
         $recentLow = min($recent);
-        $currentSwingRange = (($recentHigh - $recentLow) / $recentLow) * 100;
+        $currentSwingRange = $recentLow > 0 ? (($recentHigh - $recentLow) / $recentLow) * 100 : 0;
 
         return [
             'average_swing_percent' => round($avgSwingSize, 2),
@@ -203,17 +203,17 @@ class SwingAnalyzer
         // Calculate daily returns
         $returns = [];
         for ($i = 1; $i < count($recent); $i++) {
-            $returns[] = (($recent[$i] - $recent[$i - 1]) / $recent[$i - 1]) * 100;
+            $returns[] = $recent[$i - 1] > 0 ? (($recent[$i] - $recent[$i - 1]) / $recent[$i - 1]) * 100 : 0;
         }
 
-        $mean = array_sum($returns) / count($returns);
+        $mean = count($returns) > 0 ? array_sum($returns) / count($returns) : 0;
 
         // Standard deviation
         $squareDiffs = array_map(function ($return) use ($mean) {
             return pow($return - $mean, 2);
         }, $returns);
 
-        $variance = array_sum($squareDiffs) / count($squareDiffs);
+        $variance = count($squareDiffs) > 0 ? array_sum($squareDiffs) / count($squareDiffs) : 0;
         $stdDev = sqrt($variance);
 
         // Annualized volatility (assuming 252 trading days)

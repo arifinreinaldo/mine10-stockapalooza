@@ -141,13 +141,17 @@ class EntryExitAnalyzer
             if (abs($levels[$i] - $levels[$i - 1]) <= $tolerance) {
                 $currentCluster[] = $levels[$i];
             } else {
-                $clusters[] = array_sum($currentCluster) / count($currentCluster);
+                if (count($currentCluster) > 0) {
+                    $clusters[] = array_sum($currentCluster) / count($currentCluster);
+                }
                 $currentCluster = [$levels[$i]];
             }
         }
 
         // Add last cluster
-        $clusters[] = array_sum($currentCluster) / count($currentCluster);
+        if (count($currentCluster) > 0) {
+            $clusters[] = array_sum($currentCluster) / count($currentCluster);
+        }
 
         return $clusters;
     }
@@ -208,7 +212,7 @@ class EntryExitAnalyzer
         }
 
         $recentTR = array_slice($trueRanges, -$period);
-        return array_sum($recentTR) / $period;
+        return $period > 0 ? array_sum($recentTR) / $period : 0;
     }
 
     /**
@@ -224,7 +228,7 @@ class EntryExitAnalyzer
                 'price' => $sr['support'][0],
                 'range' => [$sr['support'][0] * 0.98, $sr['support'][0] * 1.02],
                 'description' => 'Strong support level - safest entry',
-                'distance_percent' => round((($sr['support'][0] - $currentPrice) / $currentPrice) * 100, 2),
+                'distance_percent' => $currentPrice > 0 ? round((($sr['support'][0] - $currentPrice) / $currentPrice) * 100, 2) : 0,
             ];
         }
 

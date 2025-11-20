@@ -90,8 +90,8 @@ class AccumulationDetector
         $recentOBV = array_slice($obv, -10);
         $olderOBV = array_slice($obv, -20, 10);
 
-        $recentAvg = array_sum($recentOBV) / count($recentOBV);
-        $olderAvg = array_sum($olderOBV) / count($olderOBV);
+        $recentAvg = count($recentOBV) > 0 ? array_sum($recentOBV) / count($recentOBV) : 0;
+        $olderAvg = count($olderOBV) > 0 ? array_sum($olderOBV) / count($olderOBV) : 0;
 
         $trend = 'Neutral';
         $trendStrength = 'Weak';
@@ -184,8 +184,8 @@ class AccumulationDetector
         $recentVolumes = array_slice($volumes, -20);
 
         $priceVolatility = $this->calculateStdDev($recentCloses);
-        $avgPrice = array_sum($recentCloses) / count($recentCloses);
-        $avgVolume = array_sum($recentVolumes) / count($recentVolumes);
+        $avgPrice = count($recentCloses) > 0 ? array_sum($recentCloses) / count($recentCloses) : 0;
+        $avgVolume = count($recentVolumes) > 0 ? array_sum($recentVolumes) / count($recentVolumes) : 1;
 
         $currentPrice = end($closes);
         $currentVolume = end($volumes);
@@ -253,8 +253,8 @@ class AccumulationDetector
         // Volume analysis (30 points)
         $recentVolumes = array_slice($volumes, -10);
         $olderVolumes = array_slice($volumes, -20, 10);
-        $recentAvg = array_sum($recentVolumes) / count($recentVolumes);
-        $olderAvg = array_sum($olderVolumes) / count($olderVolumes);
+        $recentAvg = count($recentVolumes) > 0 ? array_sum($recentVolumes) / count($recentVolumes) : 0;
+        $olderAvg = count($olderVolumes) > 0 ? array_sum($olderVolumes) / count($olderVolumes) : 1;
 
         if ($recentAvg > $olderAvg * 1.2) {
             $score += 30;
@@ -503,7 +503,9 @@ class AccumulationDetector
         // Walk backwards to find continuous accumulation period
         for ($i = count($closes) - 1; $i > 0; $i--) {
             $priceChange = $closes[$i] - $closes[$i - 1];
-            $volumeRatio = $volumes[$i] / (array_sum(array_slice($volumes, max(0, $i - 10), 10)) / 10);
+            $volumeSlice = array_slice($volumes, max(0, $i - 10), 10);
+            $avgVolume = count($volumeSlice) > 0 ? array_sum($volumeSlice) / count($volumeSlice) : 1;
+            $volumeRatio = $avgVolume > 0 ? $volumes[$i] / $avgVolume : 0;
 
             // Accumulation signs: high volume with stable/slight down price
             $isAccumulating = (
@@ -682,7 +684,7 @@ class AccumulationDetector
         // 1. Volume Pattern Analysis
         $recentVolumes = array_slice($volumes, -20);
         $volumeStdDev = $this->calculateStdDev($recentVolumes);
-        $volumeMean = array_sum($recentVolumes) / count($recentVolumes);
+        $volumeMean = count($recentVolumes) > 0 ? array_sum($recentVolumes) / count($recentVolumes) : 1;
         $coefficientOfVariation = $volumeMean > 0 ? ($volumeStdDev / $volumeMean) : 0;
 
         if ($coefficientOfVariation < 0.3) {
@@ -737,9 +739,10 @@ class AccumulationDetector
         // For daily data, we check volume distribution consistency
         $firstHalf = array_slice($recentVolumes, 0, 10);
         $secondHalf = array_slice($recentVolumes, 10, 10);
-        $firstHalfAvg = array_sum($firstHalf) / count($firstHalf);
-        $secondHalfAvg = array_sum($secondHalf) / count($secondHalf);
-        $distribution = abs($firstHalfAvg - $secondHalfAvg) / max($firstHalfAvg, $secondHalfAvg);
+        $firstHalfAvg = count($firstHalf) > 0 ? array_sum($firstHalf) / count($firstHalf) : 0;
+        $secondHalfAvg = count($secondHalf) > 0 ? array_sum($secondHalf) / count($secondHalf) : 0;
+        $maxAvg = max($firstHalfAvg, $secondHalfAvg);
+        $distribution = $maxAvg > 0 ? abs($firstHalfAvg - $secondHalfAvg) / $maxAvg : 0;
 
         if ($distribution < 0.2) {
             // Even distribution = Institutional (systematic accumulation)
