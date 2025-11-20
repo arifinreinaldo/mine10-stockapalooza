@@ -330,6 +330,28 @@
             100% { transform: rotate(360deg); }
         }
 
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
         .error-box {
             background: #7f1d1d;
             border: 2px solid #dc2626;
@@ -848,27 +870,46 @@
             loadDashboard();
         }
 
-        // Load buy opportunities
-        async function loadBuyOpportunities() {
+        // Load buy opportunities with optional force refresh (async, non-blocking)
+        async function loadBuyOpportunities(forceRefresh = false) {
             const container = document.getElementById('buyOpportunities');
+
+            // Show compact loading indicator that doesn't block the page
             container.innerHTML = `
-                <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
-                    <div class="spinner" style="border-color: #fff transparent transparent transparent;"></div>
-                    <p style="color: #fff; margin-top: 10px;">🔍 Scanning popular stocks for buy opportunities...</p>
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 24px; height: 24px; border-width: 3px;"></div>
+                        <div>
+                            <div style="color: #fff; font-weight: bold;">🔍 ${forceRefresh ? 'Force scanning all Indonesian stocks...' : 'Loading buy opportunities...'}</div>
+                            <div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 3px;">
+                                ${forceRefresh ? 'This may take a moment. Feel free to use other features while waiting.' : 'Loading from cache...'}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
 
             try {
-                const response = await fetch('/api/scan-opportunities?market=auto');
+                const url = forceRefresh ? '/api/scan-opportunities?market=auto&refresh=true' : '/api/scan-opportunities?market=auto';
+                const response = await fetch(url);
                 const data = await response.json();
 
                 if (data.success && data.opportunities_found > 0) {
-                    displayBuyOpportunities(data.data, data.scanned);
+                    displayBuyOpportunities(data);
+
+                    // Show success notification if force refresh
+                    if (forceRefresh) {
+                        showNotification(`✅ Found ${data.opportunities_found} buy opportunities from ${data.scanned} stocks!`, 'success');
+                    }
                 } else {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
-                            <p style="color: #94a3b8;">😔 No strong buy opportunities found among ${data.scanned} stocks scanned. Most stocks showing SELL or HOLD signals currently.</p>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-top: 10px;">Check back later or try analyzing specific stocks manually.</p>
+                            <p style="color: #94a3b8;">😔 No strong buy opportunities found among ${data.scanned || 0} stocks scanned (${data.total_stocks || 0} total).</p>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-top: 10px;">Most stocks showing SELL or HOLD signals currently. Check back later or try analyzing specific stocks manually.</p>
+                            ${data.cached_at ? `<p style="color: #64748b; font-size: 0.75rem; margin-top: 10px;">📅 Cached: ${data.cached_at} (refreshes every 3 hours)</p>` : ''}
+                            <button onclick="loadBuyOpportunities(true)" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                                🔄 Force Refresh
+                            </button>
                         </div>
                     `;
                 }
@@ -876,13 +917,44 @@
                 container.innerHTML = `
                     <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
                         <p style="color: #ef4444;">⚠️ Error loading opportunities: ${error.message}</p>
+                        <button onclick="loadBuyOpportunities()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            🔄 Retry
+                        </button>
                     </div>
                 `;
             }
         }
 
-        function displayBuyOpportunities(opportunities, scanned) {
+        // Simple notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function displayBuyOpportunities(data) {
             const container = document.getElementById('buyOpportunities');
+            const opportunities = data.data || [];
+            const scanned = data.scanned || 0;
+            const totalStocks = data.total_stocks || 0;
+            const cachedAt = data.cached_at || null;
 
             let html = `
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
@@ -890,11 +962,14 @@
                         <div>
                             <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities</h2>
                             <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
-                                Found ${opportunities.length} BUY signals out of ${scanned} stocks scanned
+                                Found ${opportunities.length} BUY signals out of ${scanned} scanned (${totalStocks} total Indonesian stocks)
                             </p>
+                            ${cachedAt ? `<p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Refreshes every 3 hours</p>` : ''}
                         </div>
-                        <button onclick="loadBuyOpportunities()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
-                            🔄 Refresh
+                        <button onclick="loadBuyOpportunities(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            🔄 Force Refresh
                         </button>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">

@@ -9,8 +9,10 @@ use App\Services\SwingAnalyzer;
 use App\Services\AccumulationDetector;
 use App\Services\FavoritesManager;
 use App\Models\StockAnalysis;
+use App\Data\IndonesianStocks;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Cache;
 
 class StockAnalysisController extends Controller
 {
@@ -545,40 +547,58 @@ class StockAnalysisController extends Controller
     }
 
     /**
-     * Scan popular stocks for buy opportunities
+     * Scan stocks for buy opportunities with 3-hour caching
      *
-     * GET /api/scan-opportunities?market=idx (optional)
+     * GET /api/scan-opportunities?market=idx&refresh=true (optional)
      */
     public function scanOpportunities(Request $request)
     {
         $market = $request->query('market', 'auto');
+        $forceRefresh = $request->query('refresh', false);
 
-        // Curated list of popular stocks to scan
+        // Cache key based on market selection
+        $cacheKey = "buy_opportunities_{$market}";
+
+        // If force refresh requested, clear cache
+        if ($forceRefresh) {
+            Cache::forget($cacheKey);
+        }
+
+        // Cache results for 3 hours (180 minutes)
+        $result = Cache::remember($cacheKey, 180 * 60, function () use ($market) {
+            return $this->performOpportunitiesScan($market);
+        });
+
+        // Add cache metadata
+        $result['cached_at'] = Cache::get($cacheKey . '_timestamp', now()->toDateTimeString());
+        $result['cache_expires_in_minutes'] = 180;
+
+        return response()->json($result);
+    }
+
+    /**
+     * Perform the actual stock scanning
+     */
+    private function performOpportunitiesScan(string $market): array
+    {
         $stocksToScan = [];
 
         if ($market === 'idx' || $market === 'auto') {
-            // Indonesian blue chips
-            $stocksToScan = array_merge($stocksToScan, [
-                'BBCA', 'BBRI', 'BMRI', 'BBNI', // Banks
-                'TLKM', 'EXCL', // Telco
-                'ASII', 'UNTR', // Automotive
-                'INDF', 'ICBP', 'UNVR', // Consumer
-                'GGRM', 'HMSP', // Tobacco
-                'KLBF', 'SIDO', // Pharma
-                'SMGR', 'WSBP', // Cement
-                'ADRO', 'PTBA', 'ITMG', // Coal/Mining
-            ]);
+            // Get comprehensive list of all Indonesian stocks (~200+)
+            $stocksToScan = array_merge($stocksToScan, IndonesianStocks::getAll());
         }
 
         if ($market === 'us' || $market === 'auto') {
-            // Popular US stocks
+            // Popular US stocks (can expand this list later)
             $stocksToScan = array_merge($stocksToScan, [
                 'AAPL', 'MSFT', 'GOOGL', 'AMZN', // Tech giants
                 'NVDA', 'AMD', 'INTC', // Chips
                 'TSLA', 'F', 'GM', // Auto
                 'JPM', 'BAC', 'WFC', // Banks
                 'XOM', 'CVX', // Energy
-                'JNJ', 'PFE', // Pharma
+                'JNJ', 'PFE', 'UNH', // Healthcare
+                'WMT', 'TGT', 'COST', // Retail
+                'DIS', 'NFLX', 'META', // Entertainment/Social
             ]);
         }
 
@@ -602,7 +622,7 @@ class StockAnalysisController extends Controller
 
                 $scanned++;
 
-                // Filter for BUY opportunities
+                // Filter for BUY opportunities only
                 $action = $analysis['recommendation']['action'];
                 if (strpos($action, 'BUY') !== false) {
                     $opportunities[] = [
@@ -637,12 +657,16 @@ class StockAnalysisController extends Controller
             return $b['score'] <=> $a['score'];
         });
 
-        return response()->json([
+        // Store timestamp
+        Cache::put('buy_opportunities_' . $market . '_timestamp', now()->toDateTimeString(), 180 * 60);
+
+        return [
             'success' => true,
             'scanned' => $scanned,
             'errors' => $errors,
+            'total_stocks' => count($stocksToScan),
             'opportunities_found' => count($opportunities),
             'data' => array_slice($opportunities, 0, 10), // Top 10
-        ]);
+        ];
     }
 }
