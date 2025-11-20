@@ -900,11 +900,138 @@
             const rewardAmount = bestExit.price - bestEntry.price;
             const riskRewardRatio = riskAmount > 0 ? (rewardAmount / riskAmount).toFixed(2) : 0;
 
+            // Generate AI Analysis Summary
+            const generateAnalysisSummary = () => {
+                const macd = metrics.technical?.macd;
+                const divergence = metrics.technical?.divergence;
+                const week52 = metrics.technical?.['52_week'];
+                const mfi = metrics.technical?.mfi;
+                const stochastic = metrics.technical?.stochastic;
+
+                let summary = `${stock_info.symbol} `;
+
+                // Overall sentiment
+                if (overallRec.action.includes('STRONG BUY')) {
+                    summary += `shows <strong style="color: #10b981;">STRONG BUY signals</strong>. `;
+                } else if (overallRec.action.includes('BUY')) {
+                    summary += `shows <strong style="color: #10b981;">BUY signals</strong>. `;
+                } else if (overallRec.action.includes('HOLD')) {
+                    summary += `presents <strong style="color: #f59e0b;">MIXED signals</strong>. `;
+                } else {
+                    summary += `shows <strong style="color: #ef4444;">SELL signals</strong>. `;
+                }
+
+                // MACD + Divergence (most important combo)
+                if (macd && divergence) {
+                    if (macd.signal === 'BULLISH' && divergence.divergence === 'BEARISH') {
+                        summary += `⚠️ <strong style="color: #f97316;">Critical conflict:</strong> While momentum is currently positive (MACD bullish), a <strong style="color: #ef4444;">bearish divergence warns momentum is weakening</strong> - the rally may be running out of steam. `;
+                    } else if (macd.signal === 'BEARISH' && divergence.divergence === 'BULLISH') {
+                        summary += `💎 <strong style="color: #10b981;">Hidden opportunity:</strong> Despite downward pressure (MACD bearish), a <strong style="color: #10b981;">bullish divergence suggests selling is exhausting</strong> - reversal up may be near. `;
+                    } else if (macd.signal === 'BULLISH' && divergence.divergence === 'BULLISH') {
+                        summary += `🚀 <strong style="color: #10b981;">Strong confirmation:</strong> Both MACD and divergence align bullish - momentum is strong and healthy. `;
+                    } else if (macd.signal === 'BEARISH' && divergence.divergence === 'BEARISH') {
+                        summary += `📉 <strong style="color: #ef4444;">Double bearish:</strong> Both MACD and divergence signal weakness - downtrend is confirmed. `;
+                    } else if (macd.signal === 'TURNING_UP') {
+                        summary += `🔄 Momentum is <strong style="color: #22c55e;">turning positive</strong> (MACD). `;
+                    } else if (macd.signal === 'TURNING_DOWN') {
+                        summary += `🔄 Momentum is <strong style="color: #f97316;">turning negative</strong> (MACD). `;
+                    } else if (macd.signal === 'BULLISH') {
+                        summary += `Momentum is <strong style="color: #10b981;">positive</strong> (MACD bullish). `;
+                    } else if (macd.signal === 'BEARISH') {
+                        summary += `Momentum is <strong style="color: #ef4444;">negative</strong> (MACD bearish). `;
+                    }
+                }
+
+                // 52-week position context
+                if (week52) {
+                    if (week52.position === 'NEAR_HIGH') {
+                        summary += `Stock is near its <strong style="color: #f59e0b;">52-week high</strong> (${week52.percent_in_range.toFixed(0)}%) - limited upside or breakout potential? `;
+                    } else if (week52.position === 'NEAR_LOW') {
+                        summary += `Stock is near its <strong style="color: #10b981;">52-week low</strong> (${week52.percent_in_range.toFixed(0)}%) - potential value opportunity or falling knife? `;
+                    } else if (week52.position === 'UPPER_RANGE') {
+                        summary += `Trading in <strong>upper range</strong> (${week52.percent_in_range.toFixed(0)}% of 52-week range). `;
+                    } else if (week52.position === 'LOWER_RANGE') {
+                        summary += `Trading in <strong>lower range</strong> (${week52.percent_in_range.toFixed(0)}% of 52-week range). `;
+                    }
+                }
+
+                // Institutional activity
+                const instPercent = accumulation.participants.institutional_percent;
+                if (instPercent > 60) {
+                    summary += `<strong style="color: #10b981;">Institutions heavily involved</strong> (${instPercent.toFixed(0)}% institutional). `;
+                } else if (instPercent < 40) {
+                    summary += `Retail-dominated (${instPercent.toFixed(0)}% institutional). `;
+                }
+
+                // Money flow
+                if (mfi) {
+                    if (mfi.signal === 'BULLISH' || mfi.signal === 'OVERSOLD') {
+                        summary += `Money is <strong style="color: #10b981;">flowing IN</strong> (MFI ${mfi.mfi.toFixed(0)}). `;
+                    } else if (mfi.signal === 'BEARISH' || mfi.signal === 'OVERBOUGHT') {
+                        summary += `Money is <strong style="color: #ef4444;">flowing OUT</strong> (MFI ${mfi.mfi.toFixed(0)}). `;
+                    }
+                }
+
+                // Stochastic timing
+                if (stochastic) {
+                    if (stochastic.signal === 'OVERSOLD') {
+                        summary += `📍 <strong style="color: #10b981;">Oversold zone</strong> - potential bounce timing. `;
+                    } else if (stochastic.signal === 'OVERBOUGHT') {
+                        summary += `📍 <strong style="color: #ef4444;">Overbought zone</strong> - potential pullback. `;
+                    } else if (stochastic.signal === 'BULLISH_CROSS') {
+                        summary += `📍 <strong style="color: #10b981;">Bullish crossover</strong> detected - entry signal. `;
+                    } else if (stochastic.signal === 'BEARISH_CROSS') {
+                        summary += `📍 <strong style="color: #ef4444;">Bearish crossover</strong> detected - exit signal. `;
+                    }
+                }
+
+                // Risk-reward assessment
+                if (riskRewardRatio >= 2) {
+                    summary += `<strong style="color: #10b981;">Excellent</strong> risk:reward (1:${riskRewardRatio}). `;
+                } else if (riskRewardRatio >= 1.5) {
+                    summary += `Good risk:reward (1:${riskRewardRatio}). `;
+                } else if (riskRewardRatio < 1) {
+                    summary += `<strong style="color: #ef4444;">Poor</strong> risk:reward (1:${riskRewardRatio}). `;
+                }
+
+                // Final recommendation
+                summary += `<br><br><strong>💡 Action:</strong> `;
+                if (overallRec.action.includes('STRONG BUY')) {
+                    summary += `<strong style="color: #10b981; font-size: 1.1rem;">STRONG BUY</strong> - Multiple positive signals align.`;
+                } else if (overallRec.action.includes('BUY')) {
+                    summary += `<strong style="color: #10b981; font-size: 1.1rem;">BUY</strong> - Positive factors outweigh risks.`;
+                } else if (overallRec.action.includes('HOLD')) {
+                    if (divergence?.divergence === 'BEARISH' || macd?.signal === 'TURNING_DOWN') {
+                        summary += `<strong style="color: #f59e0b; font-size: 1.1rem;">HOLD/CAUTION</strong> - Wait for conflicting signals to clear.`;
+                    } else if (divergence?.divergence === 'BULLISH' || macd?.signal === 'TURNING_UP') {
+                        summary += `<strong style="color: #f59e0b; font-size: 1.1rem;">HOLD/WATCH</strong> - Potential opportunity developing, wait for confirmation.`;
+                    } else {
+                        summary += `<strong style="color: #f59e0b; font-size: 1.1rem;">HOLD</strong> - Mixed signals, neutral stance advised.`;
+                    }
+                } else {
+                    summary += `<strong style="color: #ef4444; font-size: 1.1rem;">SELL</strong> - Negative factors dominate.`;
+                }
+
+                return summary;
+            };
+
+            const analysisSummary = generateAnalysisSummary();
+
             let html = `
                 <!-- EXECUTIVE SUMMARY -->
                 <div class="executive-summary">
                     <div class="executive-title">⚡ Decision Dashboard</div>
                     <p style="font-size: 0.85rem; color: #94a3b8; text-align: center; margin: -10px 0 15px 0;">🎯 THE BIG PICTURE! Everything you need to know at a glance - like a report card for the stock!</p>
+
+                    <!-- AI Analysis Summary -->
+                    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                        <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                            📊 AI Analysis Summary
+                        </div>
+                        <div style="font-size: 0.95rem; line-height: 1.6; color: #e2e8f0;">
+                            ${analysisSummary}
+                        </div>
+                    </div>
 
                     <div class="executive-grid">
                         <!-- Overall Recommendation -->
