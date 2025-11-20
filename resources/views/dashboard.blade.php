@@ -978,6 +978,53 @@
                             </div>
                             <div class="executive-desc">${accumulation.participants.institutional_percent.toFixed(0)}% inst</div>
                         </div>
+
+                        <!-- MACD Momentum (PRO) -->
+                        <div class="executive-box ${
+                            overall_analysis.metrics?.technical?.macd?.signal === 'BULLISH' || overall_analysis.metrics?.technical?.macd?.signal === 'TURNING_UP' ? 'highlight' :
+                            overall_analysis.metrics?.technical?.macd?.signal === 'BEARISH' || overall_analysis.metrics?.technical?.macd?.signal === 'TURNING_DOWN' ? 'danger' : ''
+                        }">
+                            <div class="executive-label">🚀 MACD</div>
+                            <div class="executive-value" style="color: ${
+                                overall_analysis.metrics?.technical?.macd?.signal === 'BULLISH' ? '#10b981' :
+                                overall_analysis.metrics?.technical?.macd?.signal === 'TURNING_UP' ? '#22c55e' :
+                                overall_analysis.metrics?.technical?.macd?.signal === 'BEARISH' ? '#ef4444' :
+                                overall_analysis.metrics?.technical?.macd?.signal === 'TURNING_DOWN' ? '#f97316' : '#94a3b8'
+                            }; font-size: 0.85rem;">
+                                ${overall_analysis.metrics?.technical?.macd ? overall_analysis.metrics.technical.macd.signal.replace(/_/g, ' ') : 'N/A'}
+                            </div>
+                            <div class="executive-desc">Momentum trend</div>
+                        </div>
+
+                        <!-- Divergence Alert (PRO) -->
+                        <div class="executive-box ${
+                            overall_analysis.metrics?.technical?.divergence?.divergence === 'BULLISH' ? 'highlight' :
+                            overall_analysis.metrics?.technical?.divergence?.divergence === 'BEARISH' ? 'danger' : ''
+                        }">
+                            <div class="executive-label">⚠️ Divergence</div>
+                            <div class="executive-value" style="color: ${
+                                overall_analysis.metrics?.technical?.divergence?.divergence === 'BULLISH' ? '#10b981' :
+                                overall_analysis.metrics?.technical?.divergence?.divergence === 'BEARISH' ? '#ef4444' : '#94a3b8'
+                            }; font-size: 0.85rem;">
+                                ${overall_analysis.metrics?.technical?.divergence?.divergence || 'NONE'}
+                            </div>
+                            <div class="executive-desc">${overall_analysis.metrics?.technical?.divergence?.divergence === 'BULLISH' ? '🟢 Buy signal' : overall_analysis.metrics?.technical?.divergence?.divergence === 'BEARISH' ? '🔴 Sell signal' : 'No warning'}</div>
+                        </div>
+
+                        <!-- 52-Week Position (PRO) -->
+                        <div class="executive-box ${
+                            overall_analysis.metrics?.technical?.['52_week']?.position === 'NEAR_LOW' ? 'highlight' :
+                            overall_analysis.metrics?.technical?.['52_week']?.position === 'NEAR_HIGH' ? 'danger' : ''
+                        }">
+                            <div class="executive-label">📍 52-Week</div>
+                            <div class="executive-value" style="color: ${
+                                overall_analysis.metrics?.technical?.['52_week']?.percent_in_range < 25 ? '#10b981' :
+                                overall_analysis.metrics?.technical?.['52_week']?.percent_in_range > 75 ? '#f59e0b' : '#94a3b8'
+                            }; font-size: 1.2rem;">
+                                ${overall_analysis.metrics?.technical?.['52_week']?.percent_in_range?.toFixed(0) || 'N/A'}%
+                            </div>
+                            <div class="executive-desc">${overall_analysis.metrics?.technical?.['52_week']?.position?.replace(/_/g, ' ') || 'In range'}</div>
+                        </div>
                     </div>
 
                 </div>
