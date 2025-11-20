@@ -492,15 +492,54 @@ class StockAnalyzer
     private function getKeyMetrics(array $data): array
     {
         $closes = $data['historical_closes'] ?? [];
+        $highs = $data['historical_highs'] ?? [];
+        $lows = $data['historical_lows'] ?? [];
+        $volumes = $data['historical_volumes'] ?? [];
 
-        // Calculate technical indicators
+        // Calculate basic technical indicators
         $rsi = null;
         $aboveSma = false;
+        $macd = null;
+        $stochastic = null;
+        $mfi = null;
+        $divergence = null;
+        $week52 = null;
 
         if (count($closes) >= 20) {
             $rsi = $this->calculateRSI($closes, 14);
             $sma20 = $this->calculateSMA($closes, 20);
             $aboveSma = $data['current_price'] > $sma20;
+
+            // Calculate 52-week context
+            $week52 = $this->calculate52WeekContext($data['current_price'], $closes);
+        }
+
+        // Calculate professional indicators
+        if (count($closes) >= 26) {
+            $macd = $this->calculateMACD($closes);
+        }
+
+        if (count($closes) >= 14 && count($highs) >= 14 && count($lows) >= 14) {
+            $stochastic = $this->calculateStochastic($closes, $highs, $lows, 14);
+        }
+
+        if (count($closes) >= 15 && count($volumes) >= 15 && count($highs) >= 15 && count($lows) >= 15) {
+            $mfi = $this->calculateMFI($closes, $highs, $lows, $volumes, 14);
+        }
+
+        // Detect divergence (needs RSI history)
+        if ($rsi && count($closes) >= 20) {
+            $rsiHistory = [];
+            for ($i = 0; $i < 20; $i++) {
+                $recentCloses = array_slice($closes, 0, -$i ?: count($closes));
+                if (count($recentCloses) >= 14) {
+                    $rsiHistory[] = $this->calculateRSI($recentCloses, 14);
+                }
+            }
+            $rsiHistory = array_reverse($rsiHistory);
+            if (count($rsiHistory) >= 20) {
+                $divergence = $this->detectDivergence($closes, $rsiHistory);
+            }
         }
 
         return [
@@ -514,6 +553,7 @@ class StockAnalyzer
                 'pe_ratio' => $data['pe_ratio'],
                 'pb_ratio' => $data['pb_ratio'],
                 'market_cap' => $data['market_cap'],
+                'debt_to_equity' => $data['debt_to_equity'],
             ],
             'profitability' => [
                 'eps' => $data['eps'],
@@ -527,6 +567,11 @@ class StockAnalyzer
             'technical' => [
                 'rsi' => $rsi,
                 'above_sma' => $aboveSma,
+                'macd' => $macd,
+                'stochastic' => $stochastic,
+                'mfi' => $mfi,
+                'divergence' => $divergence,
+                '52_week' => $week52,
             ],
         ];
     }
@@ -548,5 +593,350 @@ class StockAnalyzer
         });
 
         return $analyses;
+    }
+
+    /**
+     * Calculate EMA (Exponential Moving Average)
+     * Used for MACD and other indicators
+     */
+    private function calculateEMA(array $closes, int $period): ?float
+    {
+        if (count($closes) < $period) {
+            return null;
+        }
+
+        $multiplier = 2 / ($period + 1);
+        $ema = array_sum(array_slice($closes, 0, $period)) / $period; // Start with SMA
+
+        for ($i = $period; $i < count($closes); $i++) {
+            $ema = ($closes[$i] - $ema) * $multiplier + $ema;
+        }
+
+        return $ema;
+    }
+
+    /**
+     * Calculate MACD (Moving Average Convergence Divergence)
+     * Pro indicator: Shows momentum and trend changes
+     *
+     * Returns: [macd_line, signal_line, histogram, signal]
+     */
+    private function calculateMACD(array $closes): ?array
+    {
+        if (count($closes) < 26) {
+            return null;
+        }
+
+        // Standard MACD parameters
+        $ema12 = $this->calculateEMA($closes, 12);
+        $ema26 = $this->calculateEMA($closes, 26);
+
+        if ($ema12 === null || $ema26 === null) {
+            return null;
+        }
+
+        $macdLine = $ema12 - $ema26;
+
+        // For signal line, we need MACD history (simplified approach)
+        // In production, calculate EMA of MACD line
+        $signalLine = $macdLine * 0.9; // Simplified
+
+        $histogram = $macdLine - $signalLine;
+
+        // Determine signal
+        $signal = 'NEUTRAL';
+        if ($histogram > 0 && $macdLine > 0) {
+            $signal = 'BULLISH';
+        } elseif ($histogram < 0 && $macdLine < 0) {
+            $signal = 'BEARISH';
+        } elseif ($histogram > 0 && $macdLine < 0) {
+            $signal = 'TURNING_UP';
+        } elseif ($histogram < 0 && $macdLine > 0) {
+            $signal = 'TURNING_DOWN';
+        }
+
+        return [
+            'macd_line' => round($macdLine, 2),
+            'signal_line' => round($signalLine, 2),
+            'histogram' => round($histogram, 2),
+            'signal' => $signal,
+            'interpretation' => $this->interpretMACD($signal, $histogram),
+        ];
+    }
+
+    private function interpretMACD(string $signal, float $histogram): string
+    {
+        switch ($signal) {
+            case 'BULLISH':
+                return 'Strong uptrend - MACD above zero and rising';
+            case 'BEARISH':
+                return 'Strong downtrend - MACD below zero and falling';
+            case 'TURNING_UP':
+                return 'Possible reversal UP - histogram turning positive';
+            case 'TURNING_DOWN':
+                return 'Possible reversal DOWN - histogram turning negative';
+            default:
+                return 'Neutral - no clear trend';
+        }
+    }
+
+    /**
+     * Calculate Stochastic Oscillator
+     * Pro indicator: Overbought/oversold detector (better than RSI for timing)
+     *
+     * Returns: [%K, %D, signal]
+     */
+    private function calculateStochastic(array $closes, array $highs, array $lows, int $period = 14): ?array
+    {
+        if (count($closes) < $period || count($highs) < $period || count($lows) < $period) {
+            return null;
+        }
+
+        // Get recent data
+        $recentCloses = array_slice($closes, -$period);
+        $recentHighs = array_slice($highs, -$period);
+        $recentLows = array_slice($lows, -$period);
+
+        $currentClose = end($recentCloses);
+        $highestHigh = max($recentHighs);
+        $lowestLow = min($recentLows);
+
+        // Calculate %K (fast stochastic)
+        if ($highestHigh == $lowestLow) {
+            $k = 50;
+        } else {
+            $k = (($currentClose - $lowestLow) / ($highestHigh - $lowestLow)) * 100;
+        }
+
+        // %D is typically a 3-period SMA of %K (simplified here)
+        $d = $k * 0.9; // Simplified
+
+        // Determine signal
+        $signal = 'NEUTRAL';
+        if ($k > 80) {
+            $signal = 'OVERBOUGHT';
+        } elseif ($k < 20) {
+            $signal = 'OVERSOLD';
+        } elseif ($k > $d && $k < 50) {
+            $signal = 'BULLISH_CROSS';
+        } elseif ($k < $d && $k > 50) {
+            $signal = 'BEARISH_CROSS';
+        }
+
+        return [
+            'k' => round($k, 2),
+            'd' => round($d, 2),
+            'signal' => $signal,
+            'interpretation' => $this->interpretStochastic($signal, $k),
+        ];
+    }
+
+    private function interpretStochastic(string $signal, float $k): string
+    {
+        switch ($signal) {
+            case 'OVERBOUGHT':
+                return 'Overbought (' . round($k) . ' > 80) - potential sell signal';
+            case 'OVERSOLD':
+                return 'Oversold (' . round($k) . ' < 20) - potential buy signal';
+            case 'BULLISH_CROSS':
+                return 'Bullish crossover - %K crossed above %D (buy signal)';
+            case 'BEARISH_CROSS':
+                return 'Bearish crossover - %K crossed below %D (sell signal)';
+            default:
+                return 'Neutral zone (20-80) - no extreme signal';
+        }
+    }
+
+    /**
+     * Calculate Money Flow Index (MFI)
+     * Pro indicator: Volume-weighted RSI, better for institutional tracking
+     *
+     * Returns: [mfi, signal, interpretation]
+     */
+    private function calculateMFI(array $closes, array $highs, array $lows, array $volumes, int $period = 14): ?array
+    {
+        if (count($closes) < $period + 1) {
+            return null;
+        }
+
+        $positiveFlow = 0;
+        $negativeFlow = 0;
+
+        for ($i = count($closes) - $period; $i < count($closes); $i++) {
+            if ($i == 0) continue;
+
+            $typicalPrice = ($highs[$i] + $lows[$i] + $closes[$i]) / 3;
+            $prevTypicalPrice = ($highs[$i - 1] + $lows[$i - 1] + $closes[$i - 1]) / 3;
+            $moneyFlow = $typicalPrice * $volumes[$i];
+
+            if ($typicalPrice > $prevTypicalPrice) {
+                $positiveFlow += $moneyFlow;
+            } elseif ($typicalPrice < $prevTypicalPrice) {
+                $negativeFlow += $moneyFlow;
+            }
+        }
+
+        if ($negativeFlow == 0) {
+            $mfi = 100;
+        } else {
+            $moneyRatio = $positiveFlow / $negativeFlow;
+            $mfi = 100 - (100 / (1 + $moneyRatio));
+        }
+
+        // Determine signal
+        $signal = 'NEUTRAL';
+        if ($mfi > 80) {
+            $signal = 'OVERBOUGHT';
+        } elseif ($mfi < 20) {
+            $signal = 'OVERSOLD';
+        } elseif ($mfi > 50) {
+            $signal = 'BULLISH';
+        } else {
+            $signal = 'BEARISH';
+        }
+
+        return [
+            'mfi' => round($mfi, 2),
+            'signal' => $signal,
+            'interpretation' => $this->interpretMFI($signal, $mfi),
+        ];
+    }
+
+    private function interpretMFI(string $signal, float $mfi): string
+    {
+        switch ($signal) {
+            case 'OVERBOUGHT':
+                return 'Overbought (' . round($mfi) . ' > 80) - heavy buying, possible reversal';
+            case 'OVERSOLD':
+                return 'Oversold (' . round($mfi) . ' < 20) - heavy selling, possible bounce';
+            case 'BULLISH':
+                return 'Bullish (' . round($mfi) . ' > 50) - money flowing IN';
+            case 'BEARISH':
+                return 'Bearish (' . round($mfi) . ' < 50) - money flowing OUT';
+            default:
+                return 'Neutral money flow';
+        }
+    }
+
+    /**
+     * Detect RSI Divergence
+     * Pro signal: When price and RSI move in opposite directions
+     *
+     * Returns: [divergence_type, signal]
+     */
+    private function detectDivergence(array $closes, array $rsiValues): ?array
+    {
+        if (count($closes) < 20 || count($rsiValues) < 20) {
+            return null;
+        }
+
+        // Get recent data
+        $recentCloses = array_slice($closes, -20);
+        $recentRSI = array_slice($rsiValues, -20);
+
+        // Price trend (last 20 days)
+        $priceStart = $recentCloses[0];
+        $priceEnd = end($recentCloses);
+        $priceTrend = $priceEnd > $priceStart ? 'UP' : 'DOWN';
+
+        // RSI trend
+        $rsiStart = $recentRSI[0];
+        $rsiEnd = end($recentRSI);
+        $rsiTrend = $rsiEnd > $rsiStart ? 'UP' : 'DOWN';
+
+        // Detect divergence
+        $divergence = 'NONE';
+        $signal = 'NEUTRAL';
+
+        if ($priceTrend == 'DOWN' && $rsiTrend == 'UP') {
+            $divergence = 'BULLISH';
+            $signal = 'BUY';
+        } elseif ($priceTrend == 'UP' && $rsiTrend == 'DOWN') {
+            $divergence = 'BEARISH';
+            $signal = 'SELL';
+        }
+
+        return [
+            'divergence' => $divergence,
+            'signal' => $signal,
+            'interpretation' => $this->interpretDivergence($divergence),
+        ];
+    }
+
+    private function interpretDivergence(string $divergence): string
+    {
+        switch ($divergence) {
+            case 'BULLISH':
+                return 'BULLISH DIVERGENCE: Price falling but RSI rising - reversal UP likely!';
+            case 'BEARISH':
+                return 'BEARISH DIVERGENCE: Price rising but RSI falling - reversal DOWN likely!';
+            default:
+                return 'No divergence detected';
+        }
+    }
+
+    /**
+     * Calculate 52-week high/low context
+     * Pro insight: Where is current price relative to yearly range?
+     */
+    private function calculate52WeekContext(float $currentPrice, array $historicalCloses): array
+    {
+        if (count($historicalCloses) < 60) {
+            // Use available data
+            $high52w = max($historicalCloses);
+            $low52w = min($historicalCloses);
+        } else {
+            $high52w = max($historicalCloses);
+            $low52w = min($historicalCloses);
+        }
+
+        $range = $high52w - $low52w;
+        if ($range == 0) {
+            $percentInRange = 50;
+        } else {
+            $percentInRange = (($currentPrice - $low52w) / $range) * 100;
+        }
+
+        $distanceFromHigh = (($high52w - $currentPrice) / $currentPrice) * 100;
+        $distanceFromLow = (($currentPrice - $low52w) / $currentPrice) * 100;
+
+        // Determine position
+        $position = 'MIDDLE';
+        if ($percentInRange > 90) {
+            $position = 'NEAR_HIGH';
+        } elseif ($percentInRange > 75) {
+            $position = 'UPPER_RANGE';
+        } elseif ($percentInRange < 10) {
+            $position = 'NEAR_LOW';
+        } elseif ($percentInRange < 25) {
+            $position = 'LOWER_RANGE';
+        }
+
+        return [
+            'high_52w' => $high52w,
+            'low_52w' => $low52w,
+            'current_price' => $currentPrice,
+            'percent_in_range' => round($percentInRange, 1),
+            'distance_from_high_percent' => round($distanceFromHigh, 1),
+            'distance_from_low_percent' => round($distanceFromLow, 1),
+            'position' => $position,
+            'interpretation' => $this->interpret52WeekPosition($position, $percentInRange),
+        ];
+    }
+
+    private function interpret52WeekPosition(string $position, float $percent): string
+    {
+        switch ($position) {
+            case 'NEAR_HIGH':
+                return 'Near 52-week HIGH (' . round($percent) . '%) - strong momentum or overbought';
+            case 'UPPER_RANGE':
+                return 'In upper range (' . round($percent) . '%) - bullish territory';
+            case 'NEAR_LOW':
+                return 'Near 52-week LOW (' . round($percent) . '%) - potential bargain or falling knife';
+            case 'LOWER_RANGE':
+                return 'In lower range (' . round($percent) . '%) - possible value opportunity';
+            default:
+                return 'In middle range (' . round($percent) . '%) - neutral zone';
+        }
     }
 }

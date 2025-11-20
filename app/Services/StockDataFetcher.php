@@ -74,6 +74,8 @@ class StockDataFetcher
                 // Calculate technical indicators
                 $closes = $indicators['close'] ?? [];
                 $volumes = $indicators['volume'] ?? [];
+                $highs = $indicators['high'] ?? [];
+                $lows = $indicators['low'] ?? [];
 
                 return [
                     'symbol' => $symbol,
@@ -119,8 +121,10 @@ class StockDataFetcher
                     'target_price' => $financialData['targetMeanPrice']['raw'] ?? null,
 
                     // Historical data for technical analysis
-                    'historical_closes' => array_slice($closes, -50), // Last 50 days
-                    'historical_volumes' => array_slice($volumes, -50),
+                    'historical_closes' => array_slice($closes, -60), // Last 60 days for better indicators
+                    'historical_volumes' => array_slice($volumes, -60),
+                    'historical_highs' => array_slice($highs, -60),
+                    'historical_lows' => array_slice($lows, -60),
 
                     'fetched_at' => now()->toDateTimeString(),
                 ];
