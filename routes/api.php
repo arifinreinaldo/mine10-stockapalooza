@@ -41,3 +41,6 @@ Route::get('/scan-opportunities', [StockAnalysisController::class, 'scanOpportun
 
 // Scan ALL stocks comprehensively (slower but complete)
 Route::get('/scan-all-stocks', [StockAnalysisController::class, 'scanAllStocks']);
+
+// Scan for institutional stocks (smart money)
+Route::get('/scan-institutional-stocks', [StockAnalysisController::class, 'scanInstitutionalStocks']);

@@ -675,6 +675,9 @@
             <!-- Buy Opportunities Scanner -->
             <div id="buyOpportunities" style="margin-bottom: 30px;"></div>
 
+            <!-- Institutional Stocks Scanner -->
+            <div id="institutionalStocks" style="margin-bottom: 30px;"></div>
+
             <!-- 1. Indonesia Suggestions -->
             <div class="quick-picks" style="margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -1139,10 +1142,146 @@
             container.innerHTML = html;
         }
 
+        // Load institutional stocks (smart money)
+        async function loadInstitutionalStocks() {
+            const container = document.getElementById('institutionalStocks');
+
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                    <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                    <h3 style="color: #fff; margin: 20px 0 10px 0;">🏦 Scanning for Institutional Stocks</h3>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Finding stocks with smart money accumulation...</p>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Scanning top 50 big cap stocks...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/scan-institutional-stocks?market=idx&min_institutional=60');
+                const data = await response.json();
+
+                if (data.success && data.institutional_stocks_found > 0) {
+                    displayInstitutionalStocks(data);
+                    showNotification(`✅ Found ${data.institutional_stocks_found} institutional stocks!`, 'success');
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
+                            <p style="color: #94a3b8;">No strong institutional stocks found at ${data.min_institutional_threshold}% threshold</p>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-top: 10px;">Try again later or check individual stocks</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error scanning institutional stocks: ${error.message}</p>
+                        <button onclick="loadInstitutionalStocks()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Display institutional stocks results
+        function displayInstitutionalStocks(data) {
+            const container = document.getElementById('institutionalStocks');
+            const stocks = data.top_10 || [];
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h2 style="margin: 0; color: #fff;">🏦 Institutional Stocks (Smart Money)</h2>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                    Found ${data.institutional_stocks_found} stocks with institutional accumulation ≥${data.min_institutional_threshold}%
+                                </p>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">
+                                    These stocks show signs of professional/institutional investor activity
+                                </p>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <button onclick="loadInstitutionalStocks()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px;">
+            `;
+
+            stocks.forEach(stock => {
+                const actionColor = stock.action.includes('BUY') ? '#10b981' : (stock.action.includes('HOLD') ? '#f59e0b' : '#ef4444');
+                const institutionalColor = stock.institutional_percent >= 80 ? '#10b981' : (stock.institutional_percent >= 70 ? '#3b82f6' : '#8b5cf6');
+
+                html += `
+                    <div onclick="quickAnalyze('${stock.symbol}', 'idx')" style="background: rgba(99, 102, 241, 0.15); border: 2px solid ${institutionalColor}; border-radius: 10px; padding: 18px; cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 12px rgba(0,0,0,0.4)'"
+                         onmouseout="this.style.transform=''; this.style.boxShadow=''">
+
+                        <!-- Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #fff; margin-bottom: 3px;">${stock.symbol}</div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">${stock.name.substring(0, 30)}${stock.name.length > 30 ? '...' : ''}</div>
+                            </div>
+                            <div style="background: ${institutionalColor}; color: #000; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold;">
+                                ${stock.institutional_percent.toFixed(0)}% Inst.
+                            </div>
+                        </div>
+
+                        <!-- Price & Action -->
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Price</div>
+                                <div style="font-size: 1.1rem; font-weight: bold; color: #fff;">
+                                    Rp ${stock.price.toLocaleString()}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Action</div>
+                                <div style="font-size: 0.9rem; font-weight: bold; color: ${actionColor};">
+                                    ${stock.action}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Institutional Indicators -->
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-bottom: 6px;">
+                            <strong>Pattern:</strong> ${stock.volume_pattern}
+                        </div>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-bottom: 6px;">
+                            <strong>Phase:</strong> ${stock.accumulation_phase}
+                        </div>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-bottom: 6px;">
+                            <strong>Strength:</strong> ${stock.accumulation_strength}/100 • ${stock.accumulation_days} days
+                        </div>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85);">
+                            <strong>Volatility:</strong> ${stock.price_stability}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <p style="text-align: center; color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
+                        💡 Click any stock to see full analysis • Higher % = More institutional involvement
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
         // Initialize on page load - always show history first
         window.addEventListener('DOMContentLoaded', () => {
             updateHistoryDisplay();
             loadBuyOpportunities();
+            loadInstitutionalStocks();  // Auto-load institutional stocks
         });
 
         function showLoading() {

@@ -577,6 +577,126 @@ class StockAnalysisController extends Controller
     }
 
     /**
+     * Scan for stocks with institutional accumulation
+     *
+     * GET /api/scan-institutional-stocks?market=idx
+     */
+    public function scanInstitutionalStocks(Request $request)
+    {
+        $market = $request->query('market', 'idx');
+        $minInstitutionalPercent = $request->query('min_institutional', 60); // Default 60%
+
+        // Get all stocks based on market
+        $allStocks = [];
+        if ($market === 'idx') {
+            // Use top 50 big cap (institutions prefer liquid, large cap stocks)
+            $allStocks = IndonesianStocks::getTopBigCap();
+        } elseif ($market === 'us') {
+            $allStocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'AMD', 'META'];
+        }
+
+        $institutionalStocks = [];
+        $scanned = 0;
+        $errors = 0;
+
+        foreach ($allStocks as $symbol) {
+            try {
+                $normalizedSymbol = $this->normalizeSymbol($symbol, $market);
+                $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
+
+                if (!$stockData) {
+                    $errors++;
+                    continue;
+                }
+
+                $analysis = $this->analyzer->analyze($stockData);
+                $accumulation = $this->accumulationDetector->analyze($stockData);
+                $swing = $this->swingAnalyzer->analyze($stockData);
+
+                $scanned++;
+
+                $institutionalPercent = $accumulation['participants']['institutional_percent'] ?? 0;
+                $participantType = $accumulation['participants']['primary_type'] ?? 'Unknown';
+
+                // Filter for institutional stocks
+                if ($institutionalPercent >= $minInstitutionalPercent || $participantType === 'Institutional') {
+                    $institutionalStocks[] = [
+                        'symbol' => $symbol,
+                        'name' => $stockData['name'],
+                        'price' => $stockData['current_price'],
+                        'change_percent' => $stockData['change_percent'],
+                        'score' => $analysis['score'],
+                        'action' => $analysis['recommendation']['action'],
+
+                        // Institutional indicators
+                        'institutional_percent' => $institutionalPercent,
+                        'participant_type' => $participantType,
+                        'accumulation_phase' => $accumulation['phase']['current_phase'] ?? 'N/A',
+                        'accumulation_strength' => $accumulation['strength']['score'] ?? 0,
+                        'accumulation_days' => $accumulation['duration']['days'] ?? 0,
+
+                        // Volume patterns (institutional signature)
+                        'volume_pattern' => $this->getVolumePattern($accumulation),
+                        'price_stability' => $swing['volatility']['volatility_rating'] ?? 'N/A',
+
+                        // Market data
+                        'market_cap' => $stockData['market_cap'],
+                        'volume' => $stockData['volume'],
+                        'avg_volume' => $stockData['avg_volume'],
+                    ];
+                }
+            } catch (\Exception $e) {
+                $errors++;
+                \Log::warning("Failed to scan {$symbol}: " . $e->getMessage());
+                continue;
+            }
+        }
+
+        // Sort by institutional percentage (highest first)
+        usort($institutionalStocks, fn($a, $b) => $b['institutional_percent'] <=> $a['institutional_percent']);
+
+        return response()->json([
+            'success' => true,
+            'scanned' => $scanned,
+            'errors' => $errors,
+            'total_stocks' => count($allStocks),
+            'institutional_stocks_found' => count($institutionalStocks),
+            'min_institutional_threshold' => $minInstitutionalPercent,
+            'data' => $institutionalStocks,
+            'top_10' => array_slice($institutionalStocks, 0, 10),
+        ]);
+    }
+
+    /**
+     * Get volume pattern description from accumulation data
+     */
+    private function getVolumePattern(array $accumulation): string
+    {
+        $indicators = $accumulation['participants']['indicators'] ?? [];
+
+        if (empty($indicators)) {
+            return 'Normal';
+        }
+
+        // Look for institutional patterns
+        foreach ($indicators as $indicator) {
+            if (stripos($indicator, 'institutional') !== false) {
+                if (stripos($indicator, 'Consistent volume') !== false) {
+                    return 'Consistent (Institutional)';
+                }
+                if (stripos($indicator, 'high volume') !== false) {
+                    return 'High Volume, Low Volatility';
+                }
+                if (stripos($indicator, 'systematic') !== false) {
+                    return 'Systematic Accumulation';
+                }
+            }
+        }
+
+        return 'Mixed';
+    }
+
+    /**
      * Scan ALL stocks comprehensively (slower but complete)
      *
      * GET /api/scan-opportunities?market=idx&mode=full
