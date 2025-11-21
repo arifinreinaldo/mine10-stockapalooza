@@ -897,8 +897,9 @@ class StockAnalyzer
             $percentInRange = (($currentPrice - $low52w) / $range) * 100;
         }
 
-        $distanceFromHigh = (($high52w - $currentPrice) / $currentPrice) * 100;
-        $distanceFromLow = (($currentPrice - $low52w) / $currentPrice) * 100;
+        // Prevent division by zero
+        $distanceFromHigh = $currentPrice > 0 ? (($high52w - $currentPrice) / $currentPrice) * 100 : 0;
+        $distanceFromLow = $currentPrice > 0 ? (($currentPrice - $low52w) / $currentPrice) * 100 : 0;
 
         // Determine position
         $position = 'MIDDLE';

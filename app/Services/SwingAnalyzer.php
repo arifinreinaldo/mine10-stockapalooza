@@ -245,6 +245,19 @@ class SwingAnalyzer
     private function calculateBollingerBands(array $closes, int $period = 20, float $stdDevMultiplier = 2): array
     {
         $recent = array_slice($closes, -$period);
+
+        // Safety check for empty array
+        if (count($recent) === 0) {
+            return [
+                'upper_band' => 0,
+                'middle_band' => 0,
+                'lower_band' => 0,
+                'band_width_percent' => 0,
+                'price_position_percent' => 50,
+                'squeeze_status' => 'Unknown',
+            ];
+        }
+
         $sma = array_sum($recent) / count($recent);
 
         // Standard deviation
@@ -252,15 +265,18 @@ class SwingAnalyzer
             return pow($price - $sma, 2);
         }, $recent);
 
-        $variance = array_sum($squareDiffs) / count($squareDiffs);
+        $variance = count($squareDiffs) > 0 ? array_sum($squareDiffs) / count($squareDiffs) : 0;
         $stdDev = sqrt($variance);
 
         $upperBand = $sma + ($stdDev * $stdDevMultiplier);
         $lowerBand = $sma - ($stdDev * $stdDevMultiplier);
 
         $currentPrice = end($closes);
-        $bandWidth = (($upperBand - $lowerBand) / $sma) * 100;
-        $pricePosition = (($currentPrice - $lowerBand) / ($upperBand - $lowerBand)) * 100;
+        $bandRange = $upperBand - $lowerBand;
+
+        // Prevent division by zero
+        $bandWidth = $sma > 0 ? (($upperBand - $lowerBand) / $sma) * 100 : 0;
+        $pricePosition = $bandRange > 0 ? (($currentPrice - $lowerBand) / $bandRange) * 100 : 50;
 
         return [
             'upper_band' => round($upperBand, 2),

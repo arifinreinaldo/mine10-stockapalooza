@@ -89,8 +89,10 @@ class StockDataFetcher
                     'open' => $meta['regularMarketOpen'] ?? 0,
                     'day_high' => $meta['regularMarketDayHigh'] ?? 0,
                     'day_low' => $meta['regularMarketDayLow'] ?? 0,
-                    'change' => ($meta['regularMarketPrice'] ?? 0) - ($meta['previousClose'] ?? 1),
-                    'change_percent' => ((($meta['regularMarketPrice'] ?? 0) - ($meta['previousClose'] ?? 1)) / ($meta['previousClose'] ?? 1)) * 100,
+                    'change' => ($meta['regularMarketPrice'] ?? 0) - ($meta['previousClose'] ?? 0),
+                    'change_percent' => ($meta['previousClose'] ?? 0) > 0
+                        ? ((($meta['regularMarketPrice'] ?? 0) - ($meta['previousClose'] ?? 0)) / $meta['previousClose']) * 100
+                        : 0,
 
                     // Volume
                     'volume' => $meta['regularMarketVolume'] ?? 0,
