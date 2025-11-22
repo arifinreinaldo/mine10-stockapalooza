@@ -10,6 +10,7 @@ use App\Services\AccumulationDetector;
 use App\Services\FavoritesManager;
 use App\Models\StockAnalysis;
 use App\Data\IndonesianStocks;
+use App\Data\SingaporeStocks;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Cache;
@@ -41,11 +42,11 @@ class StockAnalysisController extends Controller
 
     /**
      * Normalize stock symbol for Yahoo Finance API
-     * Supports both Indonesian (.JK) and US stocks
+     * Supports Indonesian (.JK), Singapore (.SI), and US stocks
      *
-     * @param string $symbol Raw symbol (e.g., "BBCA", "AAPL", "BBCA.JK")
-     * @param string|null $market Optional market identifier ("IDX" or "US")
-     * @return string Normalized symbol (e.g., "BBCA.JK", "AAPL")
+     * @param string $symbol Raw symbol (e.g., "BBCA", "D05", "AAPL", "BBCA.JK")
+     * @param string|null $market Optional market identifier ("IDX", "SGX", or "US")
+     * @return string Normalized symbol (e.g., "BBCA.JK", "D05.SI", "AAPL")
      */
     private function normalizeSymbol(string $symbol, ?string $market = null): string
     {
@@ -61,6 +62,8 @@ class StockAnalysisController extends Controller
             $market = strtoupper($market);
             if ($market === 'IDX' || $market === 'ID' || $market === 'INDONESIA') {
                 return $symbol . '.JK';
+            } elseif ($market === 'SGX' || $market === 'SG' || $market === 'SINGAPORE') {
+                return $symbol . '.SI';
             } elseif ($market === 'US' || $market === 'USA' || $market === 'NASDAQ' || $market === 'NYSE') {
                 return $symbol; // US stocks don't need suffix
             }
@@ -68,9 +71,21 @@ class StockAnalysisController extends Controller
 
         // Auto-detect based on symbol pattern
         // Indonesian stocks (IDX) are typically 4 characters
+        // Singapore stocks (SGX) are typically 3 characters or contain numbers
         // US stocks are typically 1-5 characters
-        // If 4 characters and looks like Indonesian stock code, add .JK
-        // Common Indonesian patterns: BBCA, BBRI, TLKM, ASII, UNVR, etc.
+
+        // Known Singapore blue chips (for better detection)
+        $singaporeBlueChips = [
+            'D05', 'O39', 'U11', 'Z74', 'C6L', 'BN4', 'U96', 'C52', 'G13', 'S68',
+            'J91U', 'M44U', 'ME8U', 'N2IU', 'J85', 'A17U', 'C38U', 'T82U', 'K71U',
+            'F34', 'S51', 'Q01', 'F17', 'U14', 'V03', 'AWX', 'U77', 'BSL', 'CC3',
+            'S63', 'C09', 'H78', 'L38', '5TG', 'Y92', 'VC2', 'BN2', '5WJ', '1D0',
+            'OU8', 'C07', 'M04', 'U10', 'M1'
+        ];
+
+        if (in_array($symbol, $singaporeBlueChips)) {
+            return $symbol . '.SI';
+        }
 
         // Known Indonesian blue chips (for better detection)
         $indonesianBlueChips = [
@@ -84,9 +99,19 @@ class StockAnalysisController extends Controller
             return $symbol . '.JK';
         }
 
+        // If symbol contains numbers, likely Singapore (e.g., D05, 5TG)
+        if (preg_match('/\d/', $symbol)) {
+            return $symbol . '.SI';
+        }
+
         // If exactly 4 uppercase letters, likely Indonesian
         if (strlen($symbol) === 4 && ctype_alpha($symbol)) {
             return $symbol . '.JK';
+        }
+
+        // If exactly 3 uppercase letters, could be Singapore
+        if (strlen($symbol) === 3 && ctype_alpha($symbol)) {
+            return $symbol . '.SI';
         }
 
         // Otherwise assume US stock (1-5 characters, no suffix needed)
@@ -591,6 +616,9 @@ class StockAnalysisController extends Controller
         if ($market === 'idx') {
             // Use top 50 big cap (institutions prefer liquid, large cap stocks)
             $allStocks = IndonesianStocks::getTopBigCap();
+        } elseif ($market === 'sgx') {
+            // Use Singapore big cap stocks
+            $allStocks = SingaporeStocks::getTopBigCap();
         } elseif ($market === 'us') {
             $allStocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'AMD', 'META'];
         }

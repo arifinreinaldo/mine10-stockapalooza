@@ -56,6 +56,51 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Singapore Stock Symbols
+    |--------------------------------------------------------------------------
+    |
+    | Popular stocks on the Singapore Exchange (SGX)
+    | All symbols should have .SI suffix for Yahoo Finance
+    |
+    */
+
+    'sgx_blue_chips' => [
+        'D05.SI' => 'DBS Group Holdings Ltd',
+        'O39.SI' => 'Oversea-Chinese Banking Corp',
+        'U11.SI' => 'United Overseas Bank Ltd',
+        'Z74.SI' => 'Singapore Telecommunications Ltd',
+        'C6L.SI' => 'Singapore Airlines Ltd',
+        'BN4.SI' => 'Keppel Corp Ltd',
+        'U96.SI' => 'Sembcorp Industries Ltd',
+        'C52.SI' => 'ComfortDelGro Corp Ltd',
+        'G13.SI' => 'Genting Singapore Ltd',
+        'S68.SI' => 'Singapore Exchange Ltd',
+    ],
+
+    'sgx_reits' => [
+        'J91U.SI' => 'ESR-LOGOS REIT',
+        'M44U.SI' => 'Mapletree Logistics Trust',
+        'ME8U.SI' => 'Mapletree Industrial Trust',
+        'N2IU.SI' => 'Mapletree Ind Trust',
+        'J85.SI' => 'CapitaLand Integrated Commercial Trust',
+    ],
+
+    'sgx_tech' => [
+        'S51.SI' => 'SATS Ltd',
+        'AWX.SI' => 'AEM Holdings Ltd',
+        'U14.SI' => 'UOL Group Ltd',
+        'V03.SI' => 'Venture Corp Ltd',
+    ],
+
+    'sgx_consumer' => [
+        'F34.SI' => 'Wilmar International Ltd',
+        'S58.SI' => 'SATS Ltd',
+        'U10.SI' => 'UOB-Kay Hian Holdings Ltd',
+        'BS6.SI' => 'YTL Corp',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Analysis Weights
     |--------------------------------------------------------------------------
     |

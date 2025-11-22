@@ -7,6 +7,8 @@ class StockAnalyzer
     private array $analysis = [];
     private array $reasons = [];
     private float $score = 0;
+    private string $currency = 'IDR';
+    private string $currencySymbol = 'Rp';
 
     /**
      * Analyze stock data and provide recommendations
@@ -19,6 +21,10 @@ class StockAnalyzer
         $this->analysis = [];
         $this->reasons = [];
         $this->score = 0;
+
+        // Set currency from stock data
+        $this->currency = $stockData['currency'] ?? 'IDR';
+        $this->currencySymbol = $this->getCurrencySymbol($this->currency);
 
         // Perform various analyses
         $this->analyzeFundamentals($stockData);
@@ -141,10 +147,10 @@ class StockAnalyzer
             if ($sma20 !== null) {
                 if ($currentPrice > $sma20) {
                     $points += 4;
-                    $this->addReason('positive', "Price (Rp " . number_format($currentPrice) . ") is above 20-day SMA (Rp " . number_format($sma20) . "), indicating uptrend.");
+                    $this->addReason('positive', "Price ({$this->currencySymbol} " . number_format($currentPrice) . ") is above 20-day SMA ({$this->currencySymbol} " . number_format($sma20) . "), indicating uptrend.");
                 } else {
                     $points += 1;
-                    $this->addReason('warning', "Price (Rp " . number_format($currentPrice) . ") is below 20-day SMA (Rp " . number_format($sma20) . "), indicating downtrend.");
+                    $this->addReason('warning', "Price ({$this->currencySymbol} " . number_format($currentPrice) . ") is below 20-day SMA ({$this->currencySymbol} " . number_format($sma20) . "), indicating downtrend.");
                 }
             }
 
@@ -193,7 +199,7 @@ class StockAnalyzer
 
             if ($upside > 20) {
                 $points += 8;
-                $this->addReason('positive', "Significant upside potential: {$upside}% to analyst target price of Rp " . number_format($data['target_price']) . ".");
+                $this->addReason('positive', "Significant upside potential: {$upside}% to analyst target price of {$this->currencySymbol} " . number_format($data['target_price']) . ".");
             } elseif ($upside > 10) {
                 $points += 6;
                 $this->addReason('positive', "Good upside potential: {$upside}% to target price.");
@@ -326,17 +332,18 @@ class StockAnalyzer
 
         // Market cap considerations (0-5 points)
         if ($data['market_cap'] > 0) {
-            $marketCapT = $data['market_cap'] / 1_000_000_000_000; // in trillion IDR
+            $capInfo = $this->getMarketCapDivisor($this->currency);
+            $marketCapValue = $data['market_cap'] / $capInfo['divisor'];
 
-            if ($marketCapT > 10) {
+            if ($marketCapValue > 10) {
                 $points += 5;
-                $this->addReason('positive', "Large-cap stock (Rp " . number_format($marketCapT, 2) . "T) - typically more stable and liquid.");
-            } elseif ($marketCapT > 1) {
+                $this->addReason('positive', "Large-cap stock ({$this->currencySymbol} " . number_format($marketCapValue, 2) . "{$capInfo['unit']}) - typically more stable and liquid.");
+            } elseif ($marketCapValue > 1) {
                 $points += 4;
-                $this->addReason('neutral', "Mid-cap stock (Rp " . number_format($marketCapT, 2) . "T) - balance of growth and stability.");
+                $this->addReason('neutral', "Mid-cap stock ({$this->currencySymbol} " . number_format($marketCapValue, 2) . "{$capInfo['unit']}) - balance of growth and stability.");
             } else {
                 $points += 3;
-                $this->addReason('warning', "Small-cap stock (Rp " . number_format($marketCapT, 2) . "T) - higher volatility and risk.");
+                $this->addReason('warning', "Small-cap stock ({$this->currencySymbol} " . number_format($marketCapValue, 2) . "{$capInfo['unit']}) - higher volatility and risk.");
             }
         }
 
@@ -939,5 +946,37 @@ class StockAnalyzer
             default:
                 return 'In middle range (' . round($percent) . '%) - neutral zone';
         }
+    }
+
+    /**
+     * Get currency symbol from currency code
+     */
+    private function getCurrencySymbol(string $currency): string
+    {
+        return match(strtoupper($currency)) {
+            'IDR' => 'Rp',
+            'SGD' => 'S$',
+            'USD' => '$',
+            'EUR' => '€',
+            'GBP' => '£',
+            'JPY' => '¥',
+            'CNY' => '¥',
+            'HKD' => 'HK$',
+            'MYR' => 'RM',
+            'THB' => '฿',
+            default => $currency . ' '
+        };
+    }
+
+    /**
+     * Get market cap divisor based on currency
+     * Indonesian Rupiah uses trillion, most others use billion
+     */
+    private function getMarketCapDivisor(string $currency): array
+    {
+        return match(strtoupper($currency)) {
+            'IDR' => ['divisor' => 1_000_000_000_000, 'unit' => 'T'],
+            default => ['divisor' => 1_000_000_000, 'unit' => 'B']
+        };
     }
 }
