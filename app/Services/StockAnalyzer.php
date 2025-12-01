@@ -9,6 +9,8 @@ class StockAnalyzer
     private float $score = 0;
     private string $currency = 'IDR';
     private string $currencySymbol = 'Rp';
+    private bool $hasFundamentals = false;
+    private array $weights = [];
 
     /**
      * Analyze stock data and provide recommendations
@@ -25,6 +27,17 @@ class StockAnalyzer
         // Set currency from stock data
         $this->currency = $stockData['currency'] ?? 'IDR';
         $this->currencySymbol = $this->getCurrencySymbol($this->currency);
+
+        // Detect if fundamental data is available
+        $this->hasFundamentals = $this->detectFundamentals($stockData);
+
+        // Calculate adaptive weights based on data availability
+        $this->weights = $this->calculateAdaptiveWeights();
+
+        // Add notice if using technical-only analysis
+        if (!$this->hasFundamentals) {
+            $this->addReason('info', 'Using technical analysis mode: Fundamental data unavailable. Scoring based on price action, momentum, and technical indicators.');
+        }
 
         // Perform various analyses
         $this->analyzeFundamentals($stockData);
@@ -47,7 +60,62 @@ class StockAnalyzer
             'analysis' => $this->analysis,
             'reasons' => $this->reasons,
             'metrics' => $this->getKeyMetrics($stockData),
+            'scoring_mode' => $this->hasFundamentals ? 'hybrid' : 'technical',
         ];
+    }
+
+    /**
+     * Detect if fundamental data is available
+     */
+    private function detectFundamentals(array $data): bool
+    {
+        // Check if we have at least 2 key fundamental metrics
+        $fundamentalFields = [
+            $data['pe_ratio'] ?? null,
+            $data['pb_ratio'] ?? null,
+            $data['eps'] ?? null,
+            $data['roe'] ?? null,
+            $data['market_cap'] ?? 0,
+        ];
+
+        $availableCount = 0;
+        foreach ($fundamentalFields as $field) {
+            if ($field !== null && $field != 0) {
+                $availableCount++;
+            }
+        }
+
+        // If we have at least 2 fundamental metrics, consider fundamentals available
+        return $availableCount >= 2;
+    }
+
+    /**
+     * Calculate adaptive scoring weights based on data availability
+     */
+    private function calculateAdaptiveWeights(): array
+    {
+        if ($this->hasFundamentals) {
+            // Standard weights when fundamentals are available
+            return [
+                'fundamentals' => 20,
+                'technicals' => 25,
+                'valuation' => 15,
+                'financial_health' => 20,
+                'momentum' => 10,
+                'dividend' => 10,
+            ];
+        } else {
+            // Adaptive weights when fundamentals are missing
+            // Emphasize technical analysis and momentum
+            return [
+                'fundamentals' => 0,     // Skip fundamentals
+                'technicals' => 50,      // Boost from 25% to 50%
+                'valuation' => 0,        // Skip valuation
+                'financial_health' => 0, // Skip financial health
+                'momentum' => 35,        // Boost from 10% to 35%
+                'dividend' => 15,        // Boost from 10% to 15%
+            ];
+        }
     }
 
     /**
@@ -106,7 +174,8 @@ class StockAnalyzer
             'max_points' => $maxPoints,
         ];
 
-        $this->score += ($points / $maxPoints) * 20; // 20% weight
+        $weight = $this->weights['fundamentals'] ?? 20;
+        $this->score += ($points / $maxPoints) * $weight;
     }
 
     /**
@@ -181,7 +250,8 @@ class StockAnalyzer
             'max_points' => $maxPoints,
         ];
 
-        $this->score += ($points / $maxPoints) * 25; // 25% weight
+        $weight = $this->weights['technicals'] ?? 25;
+        $this->score += ($points / $maxPoints) * $weight;
     }
 
     /**
@@ -231,7 +301,8 @@ class StockAnalyzer
             'max_points' => $maxPoints,
         ];
 
-        $this->score += ($points / $maxPoints) * 15; // 15% weight
+        $weight = $this->weights['valuation'] ?? 15;
+        $this->score += ($points / $maxPoints) * $weight;
     }
 
     /**
@@ -300,7 +371,8 @@ class StockAnalyzer
             'max_points' => $maxPoints,
         ];
 
-        $this->score += ($points / $maxPoints) * 20; // 20% weight
+        $weight = $this->weights['financial_health'] ?? 20;
+        $this->score += ($points / $maxPoints) * $weight;
     }
 
     /**
@@ -353,7 +425,8 @@ class StockAnalyzer
             'max_points' => $maxPoints,
         ];
 
-        $this->score += ($points / $maxPoints) * 10; // 10% weight
+        $weight = $this->weights['momentum'] ?? 10;
+        $this->score += ($points / $maxPoints) * $weight;
     }
 
     /**
@@ -392,7 +465,8 @@ class StockAnalyzer
             'max_points' => $maxPoints,
         ];
 
-        $this->score += ($points / $maxPoints) * 10; // 10% weight
+        $weight = $this->weights['dividend'] ?? 10;
+        $this->score += ($points / $maxPoints) * $weight;
     }
 
     /**
