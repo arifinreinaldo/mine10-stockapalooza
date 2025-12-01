@@ -850,34 +850,56 @@ class StockAnalysisController extends Controller
     }
 
     /**
-     * Perform the actual stock scanning (uses preset curated lists)
+     * Perform the actual stock scanning (uses expanded 50-stock lists)
      */
     private function performOpportunitiesScan(string $market): array
     {
         $stocksToScan = [];
 
         if ($market === 'idx' || $market === 'auto') {
-            // Use curated preset lists (top 10 buy + top 5 scalping)
-            $stocksToScan = array_merge($stocksToScan, IndonesianStocks::getScannerList());
+            // Use expanded list with 50 Indonesian stocks
+            $stocksToScan = array_merge($stocksToScan, IndonesianStocks::getExpandedScannerList());
+        }
+
+        if ($market === 'sgx' || $market === 'auto') {
+            // Use expanded list with 50 Singapore stocks
+            $stocksToScan = array_merge($stocksToScan, SingaporeStocks::getExpandedScannerList());
         }
 
         if ($market === 'us' || $market === 'auto') {
-            // Top 10 US stocks (5 big cap + 5 volatile for trading)
+            // Expanded US stocks list (50 stocks)
             $stocksToScan = array_merge($stocksToScan, [
-                // Top 5 Big Cap
-                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA',
-                // Top 5 Volatile for Trading
-                'TSLA', 'AMD', 'META', 'NFLX', 'COIN',
+                // Top 10 Big Tech
+                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'NFLX', 'AMD', 'INTC',
+                // Top 10 Finance & Healthcare
+                'JPM', 'BAC', 'WFC', 'GS', 'MS', 'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO',
+                // Top 10 Consumer & Retail
+                'WMT', 'HD', 'NKE', 'SBUX', 'MCD', 'DIS', 'COST', 'TGT', 'LOW', 'TJX',
+                // Top 10 Industrial & Energy
+                'BA', 'CAT', 'GE', 'MMM', 'HON', 'XOM', 'CVX', 'COP', 'SLB', 'EOG',
+                // Top 10 High-Growth Tech
+                'COIN', 'PLTR', 'SNOW', 'CRWD', 'ZS', 'NET', 'DDOG', 'MDB', 'U', 'RBLX',
             ]);
         }
 
         $opportunities = [];
+        $nearMisses = [];
         $scanned = 0;
         $errors = 0;
 
         foreach ($stocksToScan as $symbol) {
             try {
-                $normalizedSymbol = $this->normalizeSymbol($symbol, $market === 'idx' ? 'idx' : ($market === 'us' ? 'us' : null));
+                // Determine market for normalization
+                $marketHint = null;
+                if ($market === 'idx') {
+                    $marketHint = 'idx';
+                } elseif ($market === 'sgx') {
+                    $marketHint = 'sgx';
+                } elseif ($market === 'us') {
+                    $marketHint = 'us';
+                }
+
+                $normalizedSymbol = $this->normalizeSymbol($symbol, $marketHint);
                 $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
 
                 if (!$stockData) {
@@ -891,28 +913,50 @@ class StockAnalysisController extends Controller
 
                 $scanned++;
 
-                // Filter for BUY opportunities only
                 $action = $analysis['recommendation']['action'];
-                if (strpos($action, 'BUY') !== false) {
-                    $opportunities[] = [
-                        'symbol' => $symbol,
-                        'normalized_symbol' => $normalizedSymbol,
-                        'name' => $stockData['name'],
-                        'price' => $stockData['current_price'],
-                        'change_percent' => $stockData['change_percent'],
-                        'action' => $action,
-                        'score' => $analysis['score'],
-                        'confidence' => $analysis['recommendation']['confidence'],
-                        'market' => strpos($normalizedSymbol, '.JK') !== false ? 'idx' : 'us',
+                $score = $analysis['score'];
 
-                        // Key signals
-                        'macd_signal' => $analysis['metrics']['technical']['macd']['signal'] ?? 'N/A',
-                        'divergence' => $analysis['metrics']['technical']['divergence']['divergence'] ?? 'NONE',
-                        'week52_position' => $analysis['metrics']['technical']['52_week']['position'] ?? 'N/A',
-                        'rsi' => $analysis['metrics']['technical']['rsi'] ?? null,
-                        'institutional_percent' => $accumulation['participants']['institutional_percent'] ?? 0,
-                        'accumulation_phase' => $accumulation['phase']['current_phase'] ?? 'N/A',
-                    ];
+                // Determine market from symbol
+                $detectedMarket = 'us';
+                if (strpos($normalizedSymbol, '.JK') !== false) {
+                    $detectedMarket = 'idx';
+                } elseif (strpos($normalizedSymbol, '.SI') !== false) {
+                    $detectedMarket = 'sgx';
+                }
+
+                $stockInfo = [
+                    'symbol' => $symbol,
+                    'normalized_symbol' => $normalizedSymbol,
+                    'name' => $stockData['name'],
+                    'price' => $stockData['current_price'],
+                    'change_percent' => $stockData['change_percent'],
+                    'action' => $action,
+                    'score' => $score,
+                    'confidence' => $analysis['recommendation']['confidence'],
+                    'market' => $detectedMarket,
+
+                    // Key signals
+                    'macd_signal' => $analysis['metrics']['technical']['macd']['signal'] ?? 'N/A',
+                    'divergence' => $analysis['metrics']['technical']['divergence']['divergence'] ?? 'NONE',
+                    'week52_position' => $analysis['metrics']['technical']['52_week']['position'] ?? 'N/A',
+                    'rsi' => $analysis['metrics']['technical']['rsi'] ?? null,
+                    'institutional_percent' => $accumulation['participants']['institutional_percent'] ?? 0,
+                    'accumulation_phase' => $accumulation['phase']['current_phase'] ?? 'N/A',
+                ];
+
+                // Categorize: BUY opportunities
+                if (strpos($action, 'BUY') !== false) {
+                    $opportunities[] = $stockInfo;
+                }
+                // Near-miss: High scores but not quite BUY (60-74 score range, or HOLD with bullish signals)
+                elseif ($score >= 60 && $score < 75) {
+                    $stockInfo['reason'] = 'High score (' . $score . ') but ' . $action;
+                    $nearMisses[] = $stockInfo;
+                }
+                // Also track HOLD with strong technical signals
+                elseif (strpos($action, 'HOLD') !== false && $score >= 55) {
+                    $stockInfo['reason'] = 'Hold recommendation but decent score (' . $score . ')';
+                    $nearMisses[] = $stockInfo;
                 }
             } catch (\Exception $e) {
                 $errors++;
@@ -925,6 +969,9 @@ class StockAnalysisController extends Controller
         usort($opportunities, function ($a, $b) {
             return $b['score'] <=> $a['score'];
         });
+        usort($nearMisses, function ($a, $b) {
+            return $b['score'] <=> $a['score'];
+        });
 
         // Store timestamp
         Cache::put('buy_opportunities_' . $market . '_timestamp', now()->toDateTimeString(), 180 * 60);
@@ -935,7 +982,11 @@ class StockAnalysisController extends Controller
             'errors' => $errors,
             'total_stocks' => count($stocksToScan),
             'opportunities_found' => count($opportunities),
-            'data' => array_slice($opportunities, 0, 10), // Top 10
+            'near_misses_found' => count($nearMisses),
+            'data' => array_slice($opportunities, 0, 10), // Top 10 BUY opportunities
+            'all_opportunities' => $opportunities, // All BUY opportunities
+            'near_misses' => array_slice($nearMisses, 0, 10), // Top 10 near-misses
+            'all_near_misses' => $nearMisses, // All near-misses
         ];
     }
 }

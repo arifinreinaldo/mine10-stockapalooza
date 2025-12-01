@@ -251,6 +251,44 @@ class SingaporeStocks
     }
 
     /**
+     * Get expanded scanner list with 50 stocks for comprehensive scanning
+     * Includes top blue chips, REITs, and high-potential stocks
+     */
+    public static function getExpandedScannerList(): array
+    {
+        return [
+            // Top 3 Banks (Largest Market Cap)
+            'D05', 'O39', 'U11',
+
+            // Top Telco & Transportation
+            'Z74', 'CC3', 'C6L', 'C52', 'S58',
+
+            // Top Infrastructure
+            'BN4', 'U96', 'S63', 'C09', 'H78',
+
+            // Top 15 REITs (High Dividend, Stable Returns)
+            'J91U', 'M44U', 'ME8U', 'N2IU', 'J85',
+            'A17U', 'C38U', 'T82U', 'K71U', 'HMN',
+            'L38', 'BN2', 'Q5T', 'RW0U', 'AJBU',
+
+            // Top Consumer & F&B
+            'F34', 'S51', 'Q01', 'F17', 'U14', 'Y92',
+
+            // Top Manufacturing & Tech
+            'V03', 'AWX', 'U77', 'S68', '5WJ',
+
+            // Top Finance & Casino
+            'G13', 'U10', '5TG',
+
+            // Top Healthcare & Retail
+            'BSL', '1D0', 'VC2', 'OU8', 'C07', 'M04',
+
+            // Additional High-Potential Stocks
+            'M1', 'SGX', 'STEL', 'STE', 'KEP',
+        ];
+    }
+
+    /**
      * Get top 5 big cap stocks (safest, most liquid, for long-term)
      */
     public static function getTop5BigCap(): array

@@ -247,6 +247,29 @@ class IndonesianStocks
     }
 
     /**
+     * Get expanded scanner list with 50 stocks for comprehensive scanning
+     * Includes top 25 Big Cap + top 25 Mid/Small Cap for better opportunities
+     */
+    public static function getExpandedScannerList(): array
+    {
+        return [
+            // Top 25 Big Cap (Blue Chips & Most Liquid)
+            'BBCA', 'BBRI', 'BMRI', 'BBNI', 'TLKM',  // Banks & Telco
+            'ASII', 'UNVR', 'HMSP', 'INDF', 'ICBP',  // Consumer & Manufacturing
+            'GGRM', 'KLBF', 'UNTR', 'SMGR', 'PGAS',  // Consumer, Auto, Cement, Energy
+            'PTBA', 'ADRO', 'INCO', 'ITMG', 'ANTM',  // Mining & Metals
+            'JSMR', 'WIKA', 'WSKT', 'PWON', 'BSDE',  // Infrastructure & Property
+
+            // Top 25 Mid/Small Cap (Growth & High Potential)
+            'GOTO', 'BUKA', 'ACES', 'EXCL', 'ISAT',  // Tech & Telco
+            'MYOR', 'ULTJ', 'ROTI', 'MLBI', 'SIDO',  // F&B & Pharma
+            'MEDC', 'ELSA', 'BRIS', 'MEGA', 'BDMN',  // Energy & Banking
+            'CTRA', 'SMRA', 'ASRI', 'APLN', 'BKSL',  // Property
+            'MAPI', 'LPPF', 'ERAA', 'BIRD', 'TKIM',  // Retail & Services
+        ];
+    }
+
+    /**
      * Get top 5 big cap stocks (safest, most liquid, for long-term)
      * @deprecated Use getTop10BuyPreset() instead
      */
