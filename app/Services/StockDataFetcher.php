@@ -8,9 +8,10 @@ use Illuminate\Support\Facades\Cache;
 class StockDataFetcher
 {
     private Client $client;
+    private AlphaVantageService $alphaVantage;
     private const CACHE_TTL = 300; // 5 minutes
 
-    public function __construct()
+    public function __construct(AlphaVantageService $alphaVantage)
     {
         $this->client = new Client([
             'timeout' => 10,
@@ -19,6 +20,8 @@ class StockDataFetcher
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             ]
         ]);
+
+        $this->alphaVantage = $alphaVantage;
     }
 
     /**
@@ -129,7 +132,13 @@ class StockDataFetcher
                     'historical_lows' => array_slice($lows, -60),
 
                     'fetched_at' => now()->toDateTimeString(),
+                    'fundamental_source' => 'yahoo_finance',
                 ];
+
+                // Optionally enrich with Alpha Vantage if configured and data is missing
+                $stockData = $this->alphaVantage->enrichFundamentalData($symbol, $stockData);
+
+                return $stockData;
 
             } catch (\Exception $e) {
                 \Log::error("Error fetching stock data for {$symbol}: " . $e->getMessage());
