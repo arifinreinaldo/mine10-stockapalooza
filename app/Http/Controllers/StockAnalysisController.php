@@ -349,45 +349,53 @@ class StockAnalysisController extends Controller
         $market = $request->query('market', null);
         $symbol = $this->normalizeSymbol($symbol, $market);
 
-        $stockData = $this->fetcher->fetchStockData($symbol);
+        // Cache dashboard results for 10 minutes (600 seconds)
+        $cacheKey = "dashboard_{$symbol}";
 
-        if (!$stockData) {
+        return Cache::remember($cacheKey, 600, function () use ($symbol, $market) {
+            $stockData = $this->fetcher->fetchStockData($symbol);
+
+            if (!$stockData) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Unable to fetch data for symbol: {$symbol}",
+                ], 404);
+            }
+
+            // Get all analyses
+            $analysis = $this->analyzer->analyze($stockData);
+            $entryExit = $this->entryExitAnalyzer->analyze($stockData);
+            $swing = $this->swingAnalyzer->analyze($stockData);
+            $accumulation = $this->accumulationDetector->analyze($stockData);
+            $isFavorite = $this->favoritesManager->isFavorite($symbol);
+
+            // Save analysis to database for ML training (async - non-blocking)
+            dispatch(function () use ($symbol, $market, $stockData, $analysis, $swing, $accumulation) {
+                $this->saveAnalysisForML($symbol, $market, $stockData, $analysis, $swing, $accumulation);
+            })->afterResponse();
+
             return response()->json([
-                'success' => false,
-                'message' => "Unable to fetch data for symbol: {$symbol}",
-            ], 404);
-        }
-
-        // Get all analyses
-        $analysis = $this->analyzer->analyze($stockData);
-        $entryExit = $this->entryExitAnalyzer->analyze($stockData);
-        $swing = $this->swingAnalyzer->analyze($stockData);
-        $accumulation = $this->accumulationDetector->analyze($stockData);
-        $isFavorite = $this->favoritesManager->isFavorite($symbol);
-
-        // Save analysis to database for ML training
-        $this->saveAnalysisForML($symbol, $market, $stockData, $analysis, $swing, $accumulation);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'stock_info' => [
-                    'symbol' => $stockData['symbol'],
-                    'name' => $stockData['name'],
-                    'current_price' => $stockData['current_price'],
-                    'change' => $stockData['change'],
-                    'change_percent' => $stockData['change_percent'],
-                    'volume' => $stockData['volume'],
-                    'market_cap' => $stockData['market_cap'],
+                'success' => true,
+                'data' => [
+                    'stock_info' => [
+                        'symbol' => $stockData['symbol'],
+                        'name' => $stockData['name'],
+                        'current_price' => $stockData['current_price'],
+                        'change' => $stockData['change'],
+                        'change_percent' => $stockData['change_percent'],
+                        'volume' => $stockData['volume'],
+                        'market_cap' => $stockData['market_cap'],
+                    ],
+                    'overall_analysis' => $analysis,
+                    'entry_exit' => $entryExit,
+                    'swing_analysis' => $swing,
+                    'accumulation' => $accumulation,
+                    'is_favorite' => $isFavorite,
+                    'updated_at' => now()->toDateTimeString(),
+                    'cached' => false,
                 ],
-                'overall_analysis' => $analysis,
-                'entry_exit' => $entryExit,
-                'swing_analysis' => $swing,
-                'accumulation' => $accumulation,
-                'is_favorite' => $isFavorite,
-                'updated_at' => now()->toDateTimeString(),
-            ],
-        ]);
+            ]);
+        });
     }
 
     /**
@@ -486,38 +494,44 @@ class StockAnalysisController extends Controller
             ]);
         }
 
-        $stocksData = $this->fetcher->fetchMultipleStocks($symbols);
-        $dashboards = [];
+        // Cache based on favorite symbols list (10 minutes)
+        $cacheKey = "favorites_dashboard_" . md5(json_encode($symbols));
 
-        foreach ($stocksData as $stockData) {
-            $analysis = $this->analyzer->analyze($stockData);
-            $entryExit = $this->entryExitAnalyzer->analyze($stockData);
-            $accumulation = $this->accumulationDetector->analyze($stockData);
-            $swing = $this->swingAnalyzer->analyze($stockData);
+        return Cache::remember($cacheKey, 600, function () use ($symbols) {
+            $stocksData = $this->fetcher->fetchMultipleStocks($symbols);
+            $dashboards = [];
 
-            $dashboards[] = [
-                'symbol' => $stockData['symbol'],
-                'name' => $stockData['name'],
-                'price' => $stockData['current_price'],
-                'change_percent' => round($stockData['change_percent'], 2),
-                'score' => $analysis['score'],
-                'recommendation' => $analysis['recommendation']['action'],
-                'accumulation_phase' => $accumulation['phase']['current_phase'],
-                'entry_action' => $entryExit['position_recommendation']['recommended_action'],
-                'swing_rating' => $swing['swing_rating']['rating'],
-            ];
-        }
+            foreach ($stocksData as $stockData) {
+                $analysis = $this->analyzer->analyze($stockData);
+                $entryExit = $this->entryExitAnalyzer->analyze($stockData);
+                $accumulation = $this->accumulationDetector->analyze($stockData);
+                $swing = $this->swingAnalyzer->analyze($stockData);
 
-        // Sort by score
-        usort($dashboards, function ($a, $b) {
-            return $b['score'] <=> $a['score'];
+                $dashboards[] = [
+                    'symbol' => $stockData['symbol'],
+                    'name' => $stockData['name'],
+                    'price' => $stockData['current_price'],
+                    'change_percent' => round($stockData['change_percent'], 2),
+                    'score' => $analysis['score'],
+                    'recommendation' => $analysis['recommendation']['action'],
+                    'accumulation_phase' => $accumulation['phase']['current_phase'],
+                    'entry_action' => $entryExit['position_recommendation']['recommended_action'],
+                    'swing_rating' => $swing['swing_rating']['rating'],
+                ];
+            }
+
+            // Sort by score
+            usort($dashboards, function ($a, $b) {
+                return $b['score'] <=> $a['score'];
+            });
+
+            return response()->json([
+                'success' => true,
+                'count' => count($dashboards),
+                'data' => $dashboards,
+                'cached' => false,
+            ]);
         });
-
-        return response()->json([
-            'success' => true,
-            'count' => count($dashboards),
-            'data' => $dashboards,
-        ]);
     }
 
     /**
@@ -604,95 +618,109 @@ class StockAnalysisController extends Controller
     /**
      * Scan for stocks with institutional accumulation
      *
-     * GET /api/scan-institutional-stocks?market=idx
+     * GET /api/scan-institutional-stocks?market=idx&refresh=true (optional)
      */
     public function scanInstitutionalStocks(Request $request)
     {
         $market = $request->query('market', 'idx');
         $minInstitutionalPercent = $request->query('min_institutional', 60); // Default 60%
+        $forceRefresh = $request->query('refresh', false);
 
-        // Get all stocks based on market
-        $allStocks = [];
-        if ($market === 'idx') {
-            // Use top 50 big cap (institutions prefer liquid, large cap stocks)
-            $allStocks = IndonesianStocks::getTopBigCap();
-        } elseif ($market === 'sgx') {
-            // Use Singapore big cap stocks
-            $allStocks = SingaporeStocks::getTopBigCap();
-        } elseif ($market === 'us') {
-            $allStocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'AMD', 'META'];
+        // Cache key based on market and threshold
+        $cacheKey = "scan_institutional_{$market}_{$minInstitutionalPercent}";
+
+        // If force refresh requested, clear cache
+        if ($forceRefresh) {
+            Cache::forget($cacheKey);
         }
 
-        $institutionalStocks = [];
-        $scanned = 0;
-        $errors = 0;
+        // Cache results for 1 hour (3600 seconds)
+        return Cache::remember($cacheKey, 3600, function () use ($market, $minInstitutionalPercent) {
+            // Get all stocks based on market
+            $allStocks = [];
+            if ($market === 'idx') {
+                // Use top 50 big cap (institutions prefer liquid, large cap stocks)
+                $allStocks = IndonesianStocks::getTopBigCap();
+            } elseif ($market === 'sgx') {
+                // Use Singapore big cap stocks
+                $allStocks = SingaporeStocks::getTopBigCap();
+            } elseif ($market === 'us') {
+                $allStocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'AMD', 'META'];
+            }
 
-        foreach ($allStocks as $symbol) {
-            try {
-                $normalizedSymbol = $this->normalizeSymbol($symbol, $market);
-                $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
+            $institutionalStocks = [];
+            $scanned = 0;
+            $errors = 0;
 
-                if (!$stockData) {
+            foreach ($allStocks as $symbol) {
+                try {
+                    $normalizedSymbol = $this->normalizeSymbol($symbol, $market);
+                    $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
+
+                    if (!$stockData) {
+                        $errors++;
+                        continue;
+                    }
+
+                    $analysis = $this->analyzer->analyze($stockData);
+                    $accumulation = $this->accumulationDetector->analyze($stockData);
+                    $swing = $this->swingAnalyzer->analyze($stockData);
+
+                    $scanned++;
+
+                    $institutionalPercent = $accumulation['participants']['institutional_percent'] ?? 0;
+                    $participantType = $accumulation['participants']['primary_type'] ?? 'Unknown';
+
+                    // Filter for institutional stocks
+                    if ($institutionalPercent >= $minInstitutionalPercent || $participantType === 'Institutional') {
+                        $institutionalStocks[] = [
+                            'symbol' => $symbol,
+                            'name' => $stockData['name'],
+                            'price' => $stockData['current_price'],
+                            'change_percent' => $stockData['change_percent'],
+                            'score' => $analysis['score'],
+                            'action' => $analysis['recommendation']['action'],
+
+                            // Institutional indicators
+                            'institutional_percent' => $institutionalPercent,
+                            'participant_type' => $participantType,
+                            'accumulation_phase' => $accumulation['phase']['current_phase'] ?? 'N/A',
+                            'accumulation_strength' => $accumulation['strength']['score'] ?? 0,
+                            'accumulation_days' => $accumulation['duration']['days'] ?? 0,
+
+                            // Volume patterns (institutional signature)
+                            'volume_pattern' => $this->getVolumePattern($accumulation),
+                            'price_stability' => $swing['volatility']['volatility_rating'] ?? 'N/A',
+
+                            // Market data
+                            'market_cap' => $stockData['market_cap'],
+                            'volume' => $stockData['volume'],
+                            'avg_volume' => $stockData['avg_volume'],
+                        ];
+                    }
+                } catch (\Exception $e) {
                     $errors++;
+                    \Log::warning("Failed to scan {$symbol}: " . $e->getMessage());
                     continue;
                 }
-
-                $analysis = $this->analyzer->analyze($stockData);
-                $accumulation = $this->accumulationDetector->analyze($stockData);
-                $swing = $this->swingAnalyzer->analyze($stockData);
-
-                $scanned++;
-
-                $institutionalPercent = $accumulation['participants']['institutional_percent'] ?? 0;
-                $participantType = $accumulation['participants']['primary_type'] ?? 'Unknown';
-
-                // Filter for institutional stocks
-                if ($institutionalPercent >= $minInstitutionalPercent || $participantType === 'Institutional') {
-                    $institutionalStocks[] = [
-                        'symbol' => $symbol,
-                        'name' => $stockData['name'],
-                        'price' => $stockData['current_price'],
-                        'change_percent' => $stockData['change_percent'],
-                        'score' => $analysis['score'],
-                        'action' => $analysis['recommendation']['action'],
-
-                        // Institutional indicators
-                        'institutional_percent' => $institutionalPercent,
-                        'participant_type' => $participantType,
-                        'accumulation_phase' => $accumulation['phase']['current_phase'] ?? 'N/A',
-                        'accumulation_strength' => $accumulation['strength']['score'] ?? 0,
-                        'accumulation_days' => $accumulation['duration']['days'] ?? 0,
-
-                        // Volume patterns (institutional signature)
-                        'volume_pattern' => $this->getVolumePattern($accumulation),
-                        'price_stability' => $swing['volatility']['volatility_rating'] ?? 'N/A',
-
-                        // Market data
-                        'market_cap' => $stockData['market_cap'],
-                        'volume' => $stockData['volume'],
-                        'avg_volume' => $stockData['avg_volume'],
-                    ];
-                }
-            } catch (\Exception $e) {
-                $errors++;
-                \Log::warning("Failed to scan {$symbol}: " . $e->getMessage());
-                continue;
             }
-        }
 
-        // Sort by institutional percentage (highest first)
-        usort($institutionalStocks, fn($a, $b) => $b['institutional_percent'] <=> $a['institutional_percent']);
+            // Sort by institutional percentage (highest first)
+            usort($institutionalStocks, fn($a, $b) => $b['institutional_percent'] <=> $a['institutional_percent']);
 
-        return response()->json([
-            'success' => true,
-            'scanned' => $scanned,
-            'errors' => $errors,
-            'total_stocks' => count($allStocks),
-            'institutional_stocks_found' => count($institutionalStocks),
-            'min_institutional_threshold' => $minInstitutionalPercent,
-            'data' => $institutionalStocks,
-            'top_10' => array_slice($institutionalStocks, 0, 10),
-        ]);
+            return response()->json([
+                'success' => true,
+                'scanned' => $scanned,
+                'errors' => $errors,
+                'total_stocks' => count($allStocks),
+                'institutional_stocks_found' => count($institutionalStocks),
+                'min_institutional_threshold' => $minInstitutionalPercent,
+                'data' => $institutionalStocks,
+                'top_10' => array_slice($institutionalStocks, 0, 10),
+                'cached' => false,
+                'cached_at' => now()->toDateTimeString(),
+            ]);
+        });
     }
 
     /**
@@ -727,84 +755,98 @@ class StockAnalysisController extends Controller
     /**
      * Scan ALL stocks comprehensively (slower but complete)
      *
-     * GET /api/scan-opportunities?market=idx&mode=full
+     * GET /api/scan-all-stocks?market=idx&refresh=true (optional)
      */
     public function scanAllStocks(Request $request)
     {
         $market = $request->query('market', 'idx');
+        $forceRefresh = $request->query('refresh', false);
 
-        // Get all stocks based on market
-        $allStocks = [];
-        if ($market === 'idx') {
-            $allStocks = IndonesianStocks::getAll();
-        } elseif ($market === 'us') {
-            // Could add US comprehensive list here
-            $allStocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'AMD', 'META'];
+        // Cache key based on market
+        $cacheKey = "scan_all_stocks_{$market}";
+
+        // If force refresh requested, clear cache
+        if ($forceRefresh) {
+            Cache::forget($cacheKey);
         }
 
-        $buyOpportunities = [];
-        $scalpingOpportunities = [];
-        $scanned = 0;
-        $errors = 0;
+        // Cache results for 1 hour (3600 seconds)
+        return Cache::remember($cacheKey, 3600, function () use ($market) {
+            // Get all stocks based on market
+            $allStocks = [];
+            if ($market === 'idx') {
+                $allStocks = IndonesianStocks::getAll();
+            } elseif ($market === 'us') {
+                // Could add US comprehensive list here
+                $allStocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'AMD', 'META'];
+            }
 
-        foreach ($allStocks as $symbol) {
-            try {
-                $normalizedSymbol = $this->normalizeSymbol($symbol, $market);
-                $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
+            $buyOpportunities = [];
+            $scalpingOpportunities = [];
+            $scanned = 0;
+            $errors = 0;
 
-                if (!$stockData) {
+            foreach ($allStocks as $symbol) {
+                try {
+                    $normalizedSymbol = $this->normalizeSymbol($symbol, $market);
+                    $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
+
+                    if (!$stockData) {
+                        $errors++;
+                        continue;
+                    }
+
+                    $analysis = $this->analyzer->analyze($stockData);
+                    $accumulation = $this->accumulationDetector->analyze($stockData);
+                    $swing = $this->swingAnalyzer->analyze($stockData);
+
+                    $scanned++;
+
+                    $action = $analysis['recommendation']['action'];
+                    $stockInfo = [
+                        'symbol' => $symbol,
+                        'name' => $stockData['name'],
+                        'price' => $stockData['current_price'],
+                        'score' => $analysis['score'],
+                        'action' => $action,
+                        'volatility' => $swing['volatility']['volatility_percent'] ?? 0,
+                        'swing_score' => $swing['swing_rating']['score'] ?? 0,
+                    ];
+
+                    // Categorize as BUY opportunity
+                    if (strpos($action, 'BUY') !== false) {
+                        $buyOpportunities[] = $stockInfo;
+                    }
+
+                    // Categorize as SCALPING opportunity (high volatility)
+                    if (($stockInfo['volatility'] > 15 || $stockInfo['swing_score'] > 60) &&
+                        $stockData['volume'] > 1000000) {
+                        $scalpingOpportunities[] = $stockInfo;
+                    }
+                } catch (\Exception $e) {
                     $errors++;
+                    \Log::warning("Failed to scan {$symbol}: " . $e->getMessage());
                     continue;
                 }
-
-                $analysis = $this->analyzer->analyze($stockData);
-                $accumulation = $this->accumulationDetector->analyze($stockData);
-                $swing = $this->swingAnalyzer->analyze($stockData);
-
-                $scanned++;
-
-                $action = $analysis['recommendation']['action'];
-                $stockInfo = [
-                    'symbol' => $symbol,
-                    'name' => $stockData['name'],
-                    'price' => $stockData['current_price'],
-                    'score' => $analysis['score'],
-                    'action' => $action,
-                    'volatility' => $swing['volatility']['volatility_percent'] ?? 0,
-                    'swing_score' => $swing['swing_rating']['score'] ?? 0,
-                ];
-
-                // Categorize as BUY opportunity
-                if (strpos($action, 'BUY') !== false) {
-                    $buyOpportunities[] = $stockInfo;
-                }
-
-                // Categorize as SCALPING opportunity (high volatility)
-                if (($stockInfo['volatility'] > 15 || $stockInfo['swing_score'] > 60) &&
-                    $stockData['volume'] > 1000000) {
-                    $scalpingOpportunities[] = $stockInfo;
-                }
-            } catch (\Exception $e) {
-                $errors++;
-                \Log::warning("Failed to scan {$symbol}: " . $e->getMessage());
-                continue;
             }
-        }
 
-        // Sort by score
-        usort($buyOpportunities, fn($a, $b) => $b['score'] <=> $a['score']);
-        usort($scalpingOpportunities, fn($a, $b) => $b['volatility'] <=> $a['volatility']);
+            // Sort by score
+            usort($buyOpportunities, fn($a, $b) => $b['score'] <=> $a['score']);
+            usort($scalpingOpportunities, fn($a, $b) => $b['volatility'] <=> $a['volatility']);
 
-        return response()->json([
-            'success' => true,
-            'scanned' => $scanned,
-            'errors' => $errors,
-            'total_stocks' => count($allStocks),
-            'top_10_buy' => array_slice($buyOpportunities, 0, 10),
-            'top_5_scalping' => array_slice($scalpingOpportunities, 0, 5),
-            'all_buy_opportunities' => $buyOpportunities,
-            'all_scalping_opportunities' => $scalpingOpportunities,
-        ]);
+            return response()->json([
+                'success' => true,
+                'scanned' => $scanned,
+                'errors' => $errors,
+                'total_stocks' => count($allStocks),
+                'top_10_buy' => array_slice($buyOpportunities, 0, 10),
+                'top_5_scalping' => array_slice($scalpingOpportunities, 0, 5),
+                'all_buy_opportunities' => $buyOpportunities,
+                'all_scalping_opportunities' => $scalpingOpportunities,
+                'cached' => false,
+                'cached_at' => now()->toDateTimeString(),
+            ]);
+        });
     }
 
     /**

@@ -36,11 +36,14 @@ Route::post('/favorites', [StockAnalysisController::class, 'addFavorite']);
 Route::delete('/favorites/{symbol}', [StockAnalysisController::class, 'removeFavorite']);
 Route::get('/favorites/dashboard', [StockAnalysisController::class, 'favoritesDashboard']);
 
-// Scan for buy opportunities (quick preset scan)
-Route::get('/scan-opportunities', [StockAnalysisController::class, 'scanOpportunities']);
+// Scan for buy opportunities (quick preset scan) - Rate limited: 20 requests per minute
+Route::get('/scan-opportunities', [StockAnalysisController::class, 'scanOpportunities'])
+    ->middleware('throttle:20,1');
 
-// Scan ALL stocks comprehensively (slower but complete)
-Route::get('/scan-all-stocks', [StockAnalysisController::class, 'scanAllStocks']);
+// Scan ALL stocks comprehensively (slower but complete) - Rate limited: 5 requests per minute
+Route::get('/scan-all-stocks', [StockAnalysisController::class, 'scanAllStocks'])
+    ->middleware('throttle:5,1');
 
-// Scan for institutional stocks (smart money)
-Route::get('/scan-institutional-stocks', [StockAnalysisController::class, 'scanInstitutionalStocks']);
+// Scan for institutional stocks (smart money) - Rate limited: 10 requests per minute
+Route::get('/scan-institutional-stocks', [StockAnalysisController::class, 'scanInstitutionalStocks'])
+    ->middleware('throttle:10,1');
