@@ -948,15 +948,16 @@ class StockAnalysisController extends Controller
                 if (strpos($action, 'BUY') !== false) {
                     $opportunities[] = $stockInfo;
                 }
-                // Near-miss: High scores but not quite BUY (60-74 score range, or HOLD with bullish signals)
-                elseif ($score >= 60 && $score < 75) {
-                    $stockInfo['reason'] = 'High score (' . $score . ') but ' . $action;
-                    $nearMisses[] = $stockInfo;
-                }
-                // Also track HOLD with strong technical signals
-                elseif (strpos($action, 'HOLD') !== false && $score >= 55) {
-                    $stockInfo['reason'] = 'Hold recommendation but decent score (' . $score . ')';
-                    $nearMisses[] = $stockInfo;
+                // Near-miss: Track top stocks that didn't make BUY (score >= 15)
+                // Lower threshold to capture "best of current market conditions"
+                elseif ($score >= 15) {
+                    $reasons = $this->generateNearMissReasons($score, $action, $analysis, $stockData);
+
+                    if (!empty($reasons)) {
+                        $stockInfo['near_miss_reasons'] = $reasons;
+                        $stockInfo['summary'] = $this->generateNearMissSummary($score, $action, $reasons);
+                        $nearMisses[] = $stockInfo;
+                    }
                 }
             } catch (\Exception $e) {
                 $errors++;
@@ -985,8 +986,144 @@ class StockAnalysisController extends Controller
             'near_misses_found' => count($nearMisses),
             'data' => array_slice($opportunities, 0, 10), // Top 10 BUY opportunities
             'all_opportunities' => $opportunities, // All BUY opportunities
-            'near_misses' => array_slice($nearMisses, 0, 10), // Top 10 near-misses
+            'near_misses' => array_slice($nearMisses, 0, 15), // Top 15 near-misses
             'all_near_misses' => $nearMisses, // All near-misses
         ];
+    }
+
+    /**
+     * Generate detailed reasons why a stock didn't make it to BUY
+     */
+    private function generateNearMissReasons(float $score, string $action, array $analysis, array $stockData): array
+    {
+        $reasons = [];
+
+        // Check score threshold
+        if ($score < 75) {
+            $scoreGap = 75 - $score;
+            $reasons[] = [
+                'category' => 'Score',
+                'issue' => "Score is {$score}/100 - needs {$scoreGap} more points to reach BUY threshold (75+)",
+                'severity' => $scoreGap > 15 ? 'major' : 'minor',
+            ];
+        }
+
+        // Check RSI
+        $rsi = $analysis['metrics']['technical']['rsi'] ?? null;
+        if ($rsi !== null) {
+            if ($rsi > 70) {
+                $reasons[] = [
+                    'category' => 'Technical',
+                    'issue' => "RSI is overbought at {$rsi} (above 70) - stock may be overextended",
+                    'severity' => 'major',
+                ];
+            } elseif ($rsi < 30) {
+                $reasons[] = [
+                    'category' => 'Technical',
+                    'issue' => "RSI is {$rsi} - oversold but needs confirmation before entry",
+                    'severity' => 'minor',
+                ];
+            }
+        }
+
+        // Check MACD
+        $macdSignal = $analysis['metrics']['technical']['macd']['signal'] ?? null;
+        if ($macdSignal === 'BEARISH') {
+            $reasons[] = [
+                'category' => 'Technical',
+                'issue' => 'MACD shows bearish signal - momentum is negative',
+                'severity' => 'major',
+            ];
+        }
+
+        // Check price position vs SMA
+        $aboveSMA = $analysis['metrics']['technical']['above_sma'] ?? null;
+        if ($aboveSMA === false) {
+            $reasons[] = [
+                'category' => 'Technical',
+                'issue' => 'Price is below moving average - not in confirmed uptrend',
+                'severity' => 'moderate',
+            ];
+        }
+
+        // Check valuation (if available)
+        $peRatio = $analysis['metrics']['valuation']['pe_ratio'] ?? null;
+        if ($peRatio !== null && $peRatio > 30) {
+            $reasons[] = [
+                'category' => 'Valuation',
+                'issue' => "P/E ratio is {$peRatio} - stock appears overvalued (>30)",
+                'severity' => 'moderate',
+            ];
+        }
+
+        // Check recommendation action
+        if (strpos($action, 'HOLD') !== false) {
+            $reasons[] = [
+                'category' => 'Recommendation',
+                'issue' => "Current recommendation is {$action} - not strong enough for BUY",
+                'severity' => 'moderate',
+            ];
+        } elseif (strpos($action, 'SELL') !== false) {
+            $reasons[] = [
+                'category' => 'Recommendation',
+                'issue' => "Current recommendation is {$action} - multiple negative indicators",
+                'severity' => 'major',
+            ];
+        }
+
+        // Check 52-week position
+        $week52Position = $analysis['metrics']['technical']['52_week']['position'] ?? null;
+        if ($week52Position === 'Near High' || $week52Position === 'At High') {
+            $reasons[] = [
+                'category' => 'Technical',
+                'issue' => "Stock is {$week52Position} of 52-week range - limited upside potential",
+                'severity' => 'minor',
+            ];
+        }
+
+        // Check divergence
+        $divergence = $analysis['metrics']['technical']['divergence']['divergence'] ?? 'NONE';
+        if ($divergence === 'BEARISH') {
+            $reasons[] = [
+                'category' => 'Technical',
+                'issue' => 'Bearish divergence detected - price making higher highs but momentum weakening',
+                'severity' => 'major',
+            ];
+        }
+
+        // Check volume
+        $volume = $stockData['volume'] ?? 0;
+        $avgVolume = $stockData['avg_volume'] ?? 1;
+        if ($avgVolume > 0) {
+            $volumeRatio = $volume / $avgVolume;
+            if ($volumeRatio < 0.5) {
+                $reasons[] = [
+                    'category' => 'Liquidity',
+                    'issue' => 'Volume is ' . round($volumeRatio * 100) . '% of average - low liquidity/conviction',
+                    'severity' => 'moderate',
+                ];
+            }
+        }
+
+        return $reasons;
+    }
+
+    /**
+     * Generate a concise summary of why stock didn't make BUY list
+     */
+    private function generateNearMissSummary(float $score, string $action, array $reasons): string
+    {
+        $majorIssues = array_filter($reasons, fn($r) => $r['severity'] === 'major');
+        $moderateIssues = array_filter($reasons, fn($r) => $r['severity'] === 'moderate');
+
+        if (count($majorIssues) > 0) {
+            $topIssue = $majorIssues[array_key_first($majorIssues)]['issue'];
+            return "Major issue: {$topIssue}";
+        } elseif (count($moderateIssues) > 0) {
+            $topIssue = $moderateIssues[array_key_first($moderateIssues)]['issue'];
+            return "Moderate concern: {$topIssue}";
+        } else {
+            return "Score {$score}/100 - Close to BUY threshold, monitor for improvement";
+        }
     }
 }
