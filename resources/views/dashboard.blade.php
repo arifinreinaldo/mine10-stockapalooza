@@ -1037,7 +1037,7 @@
                 `;
             }
 
-            // Display Near-Misses (Grouped by Country)
+            // Display Near-Misses (Grouped by Country with Tabs)
             if (nearMisses.length > 0) {
                 // Group stocks by market
                 const groupedByMarket = {
@@ -1047,42 +1047,87 @@
                 };
 
                 const marketInfo = {
-                    idx: { name: '🇮🇩 Indonesia (IDX)', color: '#ef4444', flag: '🇮🇩' },
-                    sgx: { name: '🇸🇬 Singapore (SGX)', color: '#8b5cf6', flag: '🇸🇬' },
-                    us: { name: '🇺🇸 United States', color: '#3b82f6', flag: '🇺🇸' }
+                    idx: { name: '🇮🇩 Indonesia', shortName: 'IDX', color: '#ef4444', flag: '🇮🇩' },
+                    sgx: { name: '🇸🇬 Singapore', shortName: 'SGX', color: '#8b5cf6', flag: '🇸🇬' },
+                    us: { name: '🇺🇸 United States', shortName: 'US', color: '#3b82f6', flag: '🇺🇸' }
                 };
 
+                // Create unique ID for this instance
+                const instanceId = 'nearMiss_' + Date.now();
+
                 html += `
-                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div id="${instanceId}" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h3 style="color: #f59e0b; margin: 0;">⚠️ Near-Miss Stocks by Country</h3>
                             <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Score 15-74/100</span>
                         </div>
                         <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: 0 0 15px 0;">
-                            Stocks that almost made the BUY list, grouped by market. Monitor these for improvement signals.
+                            Stocks that almost made the BUY list. Click a country to view its near-miss stocks.
                         </p>
+
+                        <!-- Market Selection Tabs -->
+                        <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
                 `;
 
-                // Render each market group
-                ['idx', 'sgx', 'us'].forEach(marketKey => {
+                // Render tab buttons
+                ['idx', 'sgx', 'us'].forEach((marketKey, index) => {
                     const marketStocks = groupedByMarket[marketKey];
                     if (marketStocks.length === 0) return;
 
                     const info = marketInfo[marketKey];
+                    const isFirst = index === 0;
+
                     html += `
-                        <div style="margin-bottom: 25px;">
-                            <div style="background: ${info.color}20; border-left: 4px solid ${info.color}; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <h4 style="margin: 0; color: ${info.color}; font-size: 1rem;">${info.name}</h4>
-                                    <span style="background: ${info.color}40; color: ${info.color}; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">
-                                        ${marketStocks.length} stocks
-                                    </span>
-                                </div>
-                            </div>
+                        <button
+                            onclick="window.switchNearMissMarket_${instanceId}('${marketKey}')"
+                            id="${instanceId}_tab_${marketKey}"
+                            style="
+                                background: ${isFirst ? info.color : 'rgba(100, 116, 139, 0.2)'};
+                                border: 2px solid ${isFirst ? info.color : 'rgba(100, 116, 139, 0.3)'};
+                                color: ${isFirst ? '#fff' : '#94a3b8'};
+                                padding: 10px 20px;
+                                border-radius: 8px;
+                                cursor: pointer;
+                                font-weight: ${isFirst ? 'bold' : 'normal'};
+                                font-size: 0.9rem;
+                                transition: all 0.2s;
+                                display: flex;
+                                align-items: center;
+                                gap: 8px;
+                            "
+                            onmouseover="if(this.style.background === 'rgba(100, 116, 139, 0.2)') { this.style.background = 'rgba(100, 116, 139, 0.3)'; }"
+                            onmouseout="if(this.id !== '${instanceId}_tab_' + window.activeNearMissMarket_${instanceId}) { this.style.background = 'rgba(100, 116, 139, 0.2)'; }"
+                        >
+                            <span style="font-size: 1.2rem;">${info.flag}</span>
+                            <span>${info.name}</span>
+                            <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">
+                                ${marketStocks.length}
+                            </span>
+                        </button>
+                    `;
+                });
+
+                html += `
+                        </div>
+
+                        <!-- Market Content Containers -->
+                        <div id="${instanceId}_content" style="min-height: 200px;">
+                `;
+
+                // Render each market's content (hidden by default except first)
+                ['idx', 'sgx', 'us'].forEach((marketKey, index) => {
+                    const marketStocks = groupedByMarket[marketKey];
+                    if (marketStocks.length === 0) return;
+
+                    const info = marketInfo[marketKey];
+                    const isFirst = index === 0;
+
+                    html += `
+                        <div id="${instanceId}_market_${marketKey}" style="display: ${isFirst ? 'block' : 'none'};">
                             <div style="display: grid; gap: 10px;">
                     `;
 
-                    marketStocks.slice(0, 5).forEach((stock, index) => {
+                    marketStocks.slice(0, 10).forEach((stock, stockIndex) => {
                     const actionColor = stock.action === 'BUY' ? '#10b981' : stock.action === 'SELL' ? '#ef4444' : '#f59e0b';
                     const severityIcon = (severity) => {
                         return severity === 'major' ? '❌' : severity === 'moderate' ? '⚠️' : 'ℹ️';
@@ -1098,7 +1143,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                                 <div style="flex: 1;">
                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                        <span style="color: #64748b; font-size: 0.75rem; font-family: monospace;">#${index + 1}</span>
+                                        <span style="color: #64748b; font-size: 0.75rem; font-family: monospace;">#${stockIndex + 1}</span>
                                         <span style="color: #fff; font-weight: bold; font-size: 1rem;">${stock.symbol}</span>
                                         <span style="background: rgba(100, 116, 139, 0.3); color: #94a3b8; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">
                                             ${(stock.market || 'auto').toUpperCase()}
@@ -1195,7 +1240,49 @@
                 });
 
                 html += `
+                        </div>
                     </div>
+
+                    <script>
+                        // Initialize active market
+                        window.activeNearMissMarket_${instanceId} = 'idx';
+
+                        // Switch market function
+                        window.switchNearMissMarket_${instanceId} = function(marketKey) {
+                            // Hide all markets
+                            ['idx', 'sgx', 'us'].forEach(key => {
+                                const content = document.getElementById('${instanceId}_market_' + key);
+                                const tab = document.getElementById('${instanceId}_tab_' + key);
+                                if (content) content.style.display = 'none';
+                                if (tab) {
+                                    tab.style.background = 'rgba(100, 116, 139, 0.2)';
+                                    tab.style.borderColor = 'rgba(100, 116, 139, 0.3)';
+                                    tab.style.color = '#94a3b8';
+                                    tab.style.fontWeight = 'normal';
+                                }
+                            });
+
+                            // Show selected market
+                            const selectedContent = document.getElementById('${instanceId}_market_' + marketKey);
+                            const selectedTab = document.getElementById('${instanceId}_tab_' + marketKey);
+
+                            if (selectedContent) selectedContent.style.display = 'block';
+                            if (selectedTab) {
+                                const marketColors = {
+                                    idx: '#ef4444',
+                                    sgx: '#8b5cf6',
+                                    us: '#3b82f6'
+                                };
+                                const color = marketColors[marketKey];
+                                selectedTab.style.background = color;
+                                selectedTab.style.borderColor = color;
+                                selectedTab.style.color = '#fff';
+                                selectedTab.style.fontWeight = 'bold';
+                            }
+
+                            window.activeNearMissMarket_${instanceId} = marketKey;
+                        };
+                    </script>
                 `;
             }
 
