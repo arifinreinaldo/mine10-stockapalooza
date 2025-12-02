@@ -1037,21 +1037,52 @@
                 `;
             }
 
-            // Display Near-Misses
+            // Display Near-Misses (Grouped by Country)
             if (nearMisses.length > 0) {
+                // Group stocks by market
+                const groupedByMarket = {
+                    idx: nearMisses.filter(s => s.market === 'idx'),
+                    sgx: nearMisses.filter(s => s.market === 'sgx'),
+                    us: nearMisses.filter(s => s.market === 'us' || s.market === 'auto')
+                };
+
+                const marketInfo = {
+                    idx: { name: '🇮🇩 Indonesia (IDX)', color: '#ef4444', flag: '🇮🇩' },
+                    sgx: { name: '🇸🇬 Singapore (SGX)', color: '#8b5cf6', flag: '🇸🇬' },
+                    us: { name: '🇺🇸 United States', color: '#3b82f6', flag: '🇺🇸' }
+                };
+
                 html += `
                     <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h3 style="color: #f59e0b; margin: 0;">⚠️ Near-Miss Stocks (Top 15)</h3>
+                            <h3 style="color: #f59e0b; margin: 0;">⚠️ Near-Miss Stocks by Country</h3>
                             <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Score 15-74/100</span>
                         </div>
                         <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: 0 0 15px 0;">
-                            Stocks that almost made the BUY list. Monitor these for improvement signals.
+                            Stocks that almost made the BUY list, grouped by market. Monitor these for improvement signals.
                         </p>
-                        <div style="display: grid; gap: 10px;">
                 `;
 
-                nearMisses.slice(0, 15).forEach((stock, index) => {
+                // Render each market group
+                ['idx', 'sgx', 'us'].forEach(marketKey => {
+                    const marketStocks = groupedByMarket[marketKey];
+                    if (marketStocks.length === 0) return;
+
+                    const info = marketInfo[marketKey];
+                    html += `
+                        <div style="margin-bottom: 25px;">
+                            <div style="background: ${info.color}20; border-left: 4px solid ${info.color}; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h4 style="margin: 0; color: ${info.color}; font-size: 1rem;">${info.name}</h4>
+                                    <span style="background: ${info.color}40; color: ${info.color}; padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;">
+                                        ${marketStocks.length} stocks
+                                    </span>
+                                </div>
+                            </div>
+                            <div style="display: grid; gap: 10px;">
+                    `;
+
+                    marketStocks.slice(0, 5).forEach((stock, index) => {
                     const actionColor = stock.action === 'BUY' ? '#10b981' : stock.action === 'SELL' ? '#ef4444' : '#f59e0b';
                     const severityIcon = (severity) => {
                         return severity === 'major' ? '❌' : severity === 'moderate' ? '⚠️' : 'ℹ️';
@@ -1155,10 +1186,15 @@
                             </div>
                         </div>
                     `;
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
                 });
 
                 html += `
-                        </div>
                     </div>
                 `;
             }
