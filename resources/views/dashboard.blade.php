@@ -1180,6 +1180,7 @@
             const opportunitiesFound = data.opportunities_found || 0;
             const nearMissesFound = data.near_misses_found || 0;
             const cachedAt = data.cached_at || null;
+            const instanceId = 'nearMiss_' + Date.now();
 
             let html = `
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
@@ -1271,9 +1272,6 @@
                     sgx: { name: '🇸🇬 Singapore', shortName: 'SGX', color: '#8b5cf6', flag: '🇸🇬' },
                     us: { name: '🇺🇸 United States', shortName: 'US', color: '#3b82f6', flag: '🇺🇸' }
                 };
-
-                // Create unique ID for this instance
-                const instanceId = 'nearMiss_' + Date.now();
 
                 html += `
                     <div id="${instanceId}" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
@@ -1462,47 +1460,6 @@
                 html += `
                         </div>
                     </div>
-
-                    <script>
-                        // Initialize active market
-                        window.activeNearMissMarket_${instanceId} = 'idx';
-
-                        // Switch market function
-                        window.switchNearMissMarket_${instanceId} = function(marketKey) {
-                            // Hide all markets
-                            ['idx', 'sgx', 'us'].forEach(key => {
-                                const content = document.getElementById('${instanceId}_market_' + key);
-                                const tab = document.getElementById('${instanceId}_tab_' + key);
-                                if (content) content.style.display = 'none';
-                                if (tab) {
-                                    tab.style.background = 'rgba(100, 116, 139, 0.2)';
-                                    tab.style.borderColor = 'rgba(100, 116, 139, 0.3)';
-                                    tab.style.color = '#94a3b8';
-                                    tab.style.fontWeight = 'normal';
-                                }
-                            });
-
-                            // Show selected market
-                            const selectedContent = document.getElementById('${instanceId}_market_' + marketKey);
-                            const selectedTab = document.getElementById('${instanceId}_tab_' + marketKey);
-
-                            if (selectedContent) selectedContent.style.display = 'block';
-                            if (selectedTab) {
-                                const marketColors = {
-                                    idx: '#ef4444',
-                                    sgx: '#8b5cf6',
-                                    us: '#3b82f6'
-                                };
-                                const color = marketColors[marketKey];
-                                selectedTab.style.background = color;
-                                selectedTab.style.borderColor = color;
-                                selectedTab.style.color = '#fff';
-                                selectedTab.style.fontWeight = 'bold';
-                            }
-
-                            window.activeNearMissMarket_${instanceId} = marketKey;
-                        };
-                    </script>
                 `;
             }
 
@@ -1514,6 +1471,46 @@
             `;
 
             container.innerHTML = html;
+
+            // Initialize tab switching functionality
+            if (nearMisses.length > 0) {
+                window['activeNearMissMarket_' + instanceId] = 'idx';
+
+                window['switchNearMissMarket_' + instanceId] = function(marketKey) {
+                    // Hide all markets
+                    ['idx', 'sgx', 'us'].forEach(key => {
+                        const content = document.getElementById(instanceId + '_market_' + key);
+                        const tab = document.getElementById(instanceId + '_tab_' + key);
+                        if (content) content.style.display = 'none';
+                        if (tab) {
+                            tab.style.background = 'rgba(100, 116, 139, 0.2)';
+                            tab.style.borderColor = 'rgba(100, 116, 139, 0.3)';
+                            tab.style.color = '#94a3b8';
+                            tab.style.fontWeight = 'normal';
+                        }
+                    });
+
+                    // Show selected market
+                    const selectedContent = document.getElementById(instanceId + '_market_' + marketKey);
+                    const selectedTab = document.getElementById(instanceId + '_tab_' + marketKey);
+
+                    if (selectedContent) selectedContent.style.display = 'block';
+                    if (selectedTab) {
+                        const marketColors = {
+                            idx: '#ef4444',
+                            sgx: '#8b5cf6',
+                            us: '#3b82f6'
+                        };
+                        const color = marketColors[marketKey];
+                        selectedTab.style.background = color;
+                        selectedTab.style.borderColor = color;
+                        selectedTab.style.color = '#fff';
+                        selectedTab.style.fontWeight = 'bold';
+                    }
+
+                    window['activeNearMissMarket_' + instanceId] = marketKey;
+                };
+            }
         }
 
         // Scan ALL stocks comprehensively (~200 Indonesian stocks)
