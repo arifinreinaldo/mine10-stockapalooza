@@ -70,14 +70,18 @@
         <!-- Data Display -->
         <div x-show="!loading && !error && data">
             <!-- Scan Info -->
-            <div x-show="data && data.opportunities_found !== undefined" class="flex items-center justify-between mb-4 p-3 bg-dark rounded-lg">
-                <div>
-                    <span class="text-success font-bold text-2xl" x-text="data?.opportunities_found || 0"></span>
-                    <span class="text-gray-400 ml-2" x-text="$store.language.t('opportunitiesFound')"></span>
+            <div x-show="data && data.opportunities_found !== undefined" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <div class="p-3 bg-dark rounded-lg">
+                    <span class="text-success font-bold text-2xl block" x-text="data?.opportunities_found || 0"></span>
+                    <span class="text-gray-400 text-sm" x-text="$store.language.t('opportunitiesFound')"></span>
                 </div>
-                <div class="text-sm text-gray-400">
-                    <span x-text="$store.language.t('stocksScanned')"></span>:
-                    <span class="font-semibold" x-text="data?.scanned || 0"></span>
+                <div class="p-3 bg-dark rounded-lg">
+                    <span class="text-warning font-bold text-2xl block" x-text="data?.near_misses_found || 0"></span>
+                    <span class="text-gray-400 text-sm">Near-Misses</span>
+                </div>
+                <div class="p-3 bg-dark rounded-lg">
+                    <span class="text-primary-500 font-bold text-2xl block" x-text="data?.scanned || 0"></span>
+                    <span class="text-gray-400 text-sm" x-text="$store.language.t('stocksScanned')"></span>
                 </div>
             </div>
 
@@ -146,8 +150,109 @@
                 </template>
             </div>
 
+            <!-- Near-Misses Section -->
+            <div x-show="data && data.near_misses && data.near_misses.length > 0" class="mt-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-md font-semibold text-warning">⚠️ Near-Miss Stocks (Top 15)</h4>
+                    <span class="text-xs text-gray-400">Score 15-74/100</span>
+                </div>
+                <p class="text-xs text-gray-400 mb-4">
+                    Stocks that almost made the BUY list. Monitor these for improvement signals.
+                </p>
+
+                <div class="space-y-3">
+                    <template x-for="(stock, index) in (data.near_misses || []).slice(0, 15)" :key="stock.symbol">
+                        <div @click="$store.dashboard.loadStock(stock.symbol, stock.market || 'auto')"
+                             class="bg-dark rounded-lg p-4 border border-dark-lighter hover:border-warning
+                                    transition-all cursor-pointer group">
+
+                            <!-- Header -->
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-gray-400 text-xs font-mono">#<span x-text="index + 1"></span></span>
+                                        <h5 class="font-bold group-hover:text-warning transition-colors"
+                                            x-text="stock.symbol"></h5>
+                                        <span class="text-xs px-2 py-0.5 bg-dark-lighter rounded"
+                                              x-text="stock.market?.toUpperCase()"></span>
+                                    </div>
+                                    <p class="text-xs text-gray-400 line-clamp-1 mt-1" x-text="stock.name || ''"></p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold text-warning" x-text="stock.score + '/100'"></div>
+                                    <div class="text-xs px-2 py-0.5 rounded"
+                                         :class="stock.action === 'BUY' ? 'bg-success/20 text-success' :
+                                                 stock.action === 'SELL' ? 'bg-danger/20 text-danger' :
+                                                 'bg-warning/20 text-warning'"
+                                         x-text="stock.action"></div>
+                                </div>
+                            </div>
+
+                            <!-- Price & Stats -->
+                            <div class="grid grid-cols-3 gap-2 mb-3 text-xs">
+                                <div>
+                                    <p class="text-gray-400">Price</p>
+                                    <p class="font-semibold" x-text="stock.price?.toLocaleString()"></p>
+                                </div>
+                                <div x-show="stock.rsi">
+                                    <p class="text-gray-400">RSI</p>
+                                    <p class="font-semibold"
+                                       :class="stock.rsi > 70 ? 'text-danger' : stock.rsi < 30 ? 'text-success' : 'text-gray-300'"
+                                       x-text="stock.rsi?.toFixed(1)"></p>
+                                </div>
+                                <div x-show="stock.institutional_percent">
+                                    <p class="text-gray-400">Inst. %</p>
+                                    <p class="font-semibold text-primary-500" x-text="stock.institutional_percent + '%'"></p>
+                                </div>
+                            </div>
+
+                            <!-- Main Reason (Summary) -->
+                            <div class="bg-dark-lighter rounded p-2 mb-2">
+                                <p class="text-xs text-gray-300" x-text="stock.summary"></p>
+                            </div>
+
+                            <!-- Detailed Reasons -->
+                            <div x-show="stock.near_miss_reasons && stock.near_miss_reasons.length > 0"
+                                 class="space-y-1">
+                                <template x-for="reason in (stock.near_miss_reasons || []).slice(0, 3)" :key="reason.category">
+                                    <div class="flex items-start gap-2 text-xs">
+                                        <span x-text="reason.severity === 'major' ? '❌' : reason.severity === 'moderate' ? '⚠️' : 'ℹ️'"></span>
+                                        <span class="text-gray-400 flex-1" x-text="reason.issue"></span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Additional Info -->
+                            <div class="mt-3 pt-2 border-t border-dark-lighter grid grid-cols-3 gap-2 text-xs">
+                                <div x-show="stock.macd_signal">
+                                    <p class="text-gray-500">MACD</p>
+                                    <p class="font-semibold"
+                                       :class="stock.macd_signal === 'BULLISH' ? 'text-success' : 'text-danger'"
+                                       x-text="stock.macd_signal"></p>
+                                </div>
+                                <div x-show="stock.divergence && stock.divergence !== 'NONE'">
+                                    <p class="text-gray-500">Divergence</p>
+                                    <p class="font-semibold text-warning" x-text="stock.divergence"></p>
+                                </div>
+                                <div x-show="stock.accumulation_phase">
+                                    <p class="text-gray-500">Phase</p>
+                                    <p class="font-semibold text-primary-500 text-xs" x-text="stock.accumulation_phase"></p>
+                                </div>
+                            </div>
+
+                            <!-- Click hint -->
+                            <div class="mt-2 text-center">
+                                <p class="text-xs text-gray-400 group-hover:text-warning transition-colors">
+                                    👆 Click to view full analysis
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <!-- Empty State -->
-            <div x-show="data && (!data.data || data.data.length === 0)"
+            <div x-show="data && (!data.data || data.data.length === 0) && (!data.near_misses || data.near_misses.length === 0)"
                  class="text-center py-8 text-gray-400">
                 <p class="text-4xl mb-4">🔍</p>
                 <p x-text="$store.language.t('noOpportunitiesFound')"></p>
