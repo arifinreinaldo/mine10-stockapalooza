@@ -1,0 +1,3290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis Dashboard - Stockapalooza</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .search-bar {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .search-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-section input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 15px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            transition: all 0.3s;
+        }
+
+        .search-section input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button.btn-success {
+            background: #10b981;
+        }
+
+        button.btn-success:hover {
+            background: #059669;
+        }
+
+        button.btn-danger {
+            background: #ef4444;
+        }
+
+        button.btn-danger:hover {
+            background: #dc2626;
+        }
+
+        button.btn-secondary {
+            background: #6b7280;
+        }
+
+        button.btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .quick-picks {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-pick-btn {
+            padding: 8px 16px;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 2px solid #334155;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-pick-btn:hover {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .card h3 {
+            color: #667eea;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #334155;
+        }
+
+        .card h4 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .compact-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 1200px) {
+            .compact-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .compact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stock-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .stock-name h2 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        .stock-symbol {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .price-box {
+            text-align: right;
+        }
+
+        .current-price {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .price-change {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .price-change.positive { color: #10b981; }
+        .price-change.negative { color: #ef4444; }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin: 5px 5px 5px 0;
+        }
+
+        .badge.success { background: #10b981; color: white; }
+        .badge.danger { background: #ef4444; color: white; }
+        .badge.warning { background: #f59e0b; color: white; }
+        .badge.info { background: #3b82f6; color: white; }
+        .badge.secondary { background: #6b7280; color: white; }
+
+        .metric-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .metric {
+            background: #0f172a;
+            padding: 10px 12px;
+            border-radius: 6px;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+
+        .metric-small {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.3;
+        }
+
+        .entry-exit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .entry-exit-zone {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .zone-label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .zone-price {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #e2e8f0;
+            margin-bottom: 5px;
+        }
+
+        .zone-desc {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .zone-distance {
+            font-size: 0.85rem;
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #1e293b;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 4px solid #334155;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .error-box {
+            background: #7f1d1d;
+            border: 2px solid #dc2626;
+            color: #fca5a5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .support-resistance {
+            margin: 15px 0;
+        }
+
+        .level-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .level-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .level-item.support {
+            border-left: 4px solid #10b981;
+        }
+
+        .level-item.resistance {
+            border-left: 4px solid #ef4444;
+        }
+
+        .reason-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .reason-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            background: #0f172a;
+            border-radius: 6px;
+        }
+
+        .reason-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .reason-icon.positive { background: #10b981; }
+        .reason-icon.negative { background: #ef4444; }
+        .reason-icon.warning { background: #f59e0b; }
+        .reason-icon.neutral { background: #6b7280; }
+
+        .favorite-btn {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        .favorites-sidebar {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: #1e293b;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+            padding: 20px;
+            overflow-y: auto;
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        .favorites-sidebar.open {
+            transform: translateX(0);
+        }
+
+        .favorites-item {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .favorites-item:hover {
+            background: #334155;
+        }
+
+        .toggle-favorites {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            z-index: 999;
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .toggle-language {
+            position: fixed;
+            right: 20px;
+            top: 80px;
+            z-index: 999;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .toggle-language:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        /* Small mobile devices */
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .current-price {
+                font-size: 1.6rem;
+            }
+
+            .executive-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-section {
+                flex-direction: column;
+            }
+        }
+
+        /* Tablet and mobile */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            header {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            header p {
+                font-size: 0.95rem;
+            }
+
+            .search-bar {
+                padding: 15px;
+            }
+
+            .search-section {
+                gap: 10px;
+            }
+
+            .search-section input {
+                min-width: 100%;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            select {
+                min-width: 100%;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            button {
+                width: 100%;
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+
+            .quick-picks {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .quick-pick-btn {
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .compact-grid {
+                gap: 15px;
+            }
+
+            /* Fix grid-column spans on mobile */
+            .card[style*="grid-column"] {
+                grid-column: span 1 !important;
+            }
+
+            .stock-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .price-box {
+                text-align: left;
+            }
+
+            .current-price {
+                font-size: 2rem;
+            }
+
+            .favorites-sidebar {
+                width: 100%;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .executive-summary {
+                padding: 15px;
+            }
+
+            .executive-box {
+                padding: 12px;
+            }
+
+            .executive-label {
+                font-size: 0.7rem;
+            }
+
+            .executive-value {
+                font-size: 1.3rem;
+            }
+
+            .executive-desc {
+                font-size: 0.7rem;
+            }
+
+            .executive-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 10px;
+            }
+
+            /* Make tables scrollable on mobile */
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Adjust font sizes for mobile readability */
+            .card h3 {
+                font-size: 1.1rem;
+            }
+
+            .card p {
+                font-size: 0.85rem;
+            }
+
+            /* Scanner results on mobile */
+            #buyOpportunities, #institutionalStocks {
+                font-size: 0.9rem;
+            }
+
+            /* Stock price in header - make it bigger on mobile for visibility */
+            .stock-symbol {
+                font-size: 0.9rem;
+            }
+
+            /* Ensure metrics display properly on mobile */
+            .metric-row {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+                gap: 8px;
+            }
+
+            /* Override inline grid styles for fundamentals and volume sections */
+            .metric-row[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            .metric {
+                padding: 8px 10px;
+            }
+
+            .metric-label {
+                font-size: 0.7rem;
+            }
+
+            .metric-value {
+                font-size: 1rem;
+            }
+
+            .metric-small {
+                font-size: 0.75rem;
+            }
+
+            /* Whale Flow Widget Mobile Optimization */
+            .card h3 {
+                font-size: 1.1rem !important;
+            }
+
+            /* Phase banner mobile adjustments */
+            .card[style*="bandarmology"] div[style*="font-size: 2.5rem"] {
+                font-size: 2rem !important;
+            }
+
+            .card[style*="bandarmology"] div[style*="font-size: 1.5rem"] {
+                font-size: 1.2rem !important;
+            }
+
+            /* Buy/Sell signals - stack on mobile */
+            .compact-grid[style*="minmax(250px"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Bandar strength meter - full width on mobile */
+            .card div[style*="Kekuatan Bandar"] + div {
+                margin-bottom: 15px;
+            }
+
+            /* Final recommendation box - adjust padding */
+            .card div[style*="Rekomendasi Final"] {
+                padding: 15px !important;
+            }
+
+            /* Stop loss & target profit - stack vertically on small screens */
+            .compact-grid[style*="1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        .swing-indicators {
+            margin: 15px 0;
+        }
+
+        .indicator-item {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .indicator-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 5px;
+        }
+
+        .indicator-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .phase-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .phase-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .phase-desc {
+            font-size: 1rem;
+            opacity: 0.95;
+        }
+
+        .executive-summary {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            border: 2px solid #475569;
+        }
+
+        .executive-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #667eea;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .executive-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .executive-box {
+            background: #0f172a;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s;
+        }
+
+        .executive-box:hover {
+            transform: translateY(-2px);
+        }
+
+        .executive-box.highlight {
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
+        }
+
+        .executive-box.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .executive-box.danger {
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #7f1d1d 0%, #0f172a 100%);
+        }
+
+        .executive-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .executive-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .executive-desc {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            line-height: 1.3;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 2px solid #334155;
+        }
+
+        .action-button {
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+        }
+
+        .action-button.primary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .action-button.primary:hover {
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .action-button.secondary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .action-button.secondary:hover {
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <button class="toggle-favorites" onclick="toggleFavorites()">
+        ⭐ Favorites (<span id="favCount">0</span>)
+    </button>
+
+    <button class="toggle-language" onclick="toggleLanguage()" title="Switch Language / Ganti Bahasa">
+        <span id="langIcon">🇮🇩</span> <span id="langText">ID</span>
+    </button>
+
+    <div class="favorites-sidebar" id="favoritesSidebar">
+        <h3 style="margin-bottom: 20px;">My Favorites</h3>
+        <div id="favoritesList"></div>
+    </div>
+
+    <div class="container">
+        <div class="search-bar" style="margin-top: 50px;">
+            <div class="search-section">
+                <select id="marketSelector" style="padding: 10px 15px; border-radius: 8px; border: 2px solid #4b5563; background: #1e293b; color: white; font-size: 0.9rem; margin-right: 10px; cursor: pointer;">
+                    <option value="auto">🌐 Auto-detect</option>
+                    <option value="idx">🇮🇩 Indonesia (IDX)</option>
+                    <option value="us">🇺🇸 United States</option>
+                    <option value="sgx">🇸🇬 Singapore (SGX)</option>
+                </select>
+                <input
+                    type="text"
+                    id="stockSymbol"
+                    placeholder="Enter stock symbol (e.g., BBCA, AAPL, D05)"
+                    onkeypress="if(event.key==='Enter') loadDashboard()"
+                >
+                <button onclick="loadDashboard()">Analyze</button>
+                <button class="btn-secondary" onclick="window.location.href='/'">Simple View</button>
+                <button class="btn-danger" onclick="clearSearchHistory()" style="margin-left: 10px;">Clear History</button>
+            </div>
+
+            <!-- Buy Opportunities Scanner -->
+            <div id="buyOpportunities" style="margin-bottom: 30px;"></div>
+
+            <!-- Institutional Stocks Scanner -->
+            <div id="institutionalStocks" style="margin-bottom: 30px;"></div>
+
+            <!-- Smart Accumulation Breakout Widget -->
+            <div id="smartAccumulation" style="margin-bottom: 30px;"></div>
+
+            <!-- 1. Indonesia Suggestions -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇮🇩 Indonesia - Suggestions:</strong>
+                </div>
+                <div style="overflow-x: auto; white-space: nowrap;">
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BBCA')">BBCA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BBRI')">BBRI</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('BMRI')">BMRI</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('TLKM')">TLKM</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('ASII')">ASII</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('UNVR')">UNVR</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('HMSP')">HMSP</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('ICBP')">ICBP</button>
+                </div>
+            </div>
+
+            <!-- 2. Indonesia History -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇮🇩 Indonesia - Recent Searches:</strong>
+                </div>
+                <div id="idxHistory" style="overflow-x: auto; white-space: nowrap;">
+                    <p style="color: #94a3b8; font-size: 0.9rem;">No Indonesia stocks searched yet</p>
+                </div>
+            </div>
+
+            <!-- 3. US Suggestions -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇺🇸 United States - Suggestions:</strong>
+                </div>
+                <div style="overflow-x: auto; white-space: nowrap;">
+                    <button class="quick-pick-btn" onclick="quickAnalyze('AAPL', 'us')">AAPL</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('MSFT', 'us')">MSFT</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('GOOGL', 'us')">GOOGL</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('TSLA', 'us')">TSLA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('NVDA', 'us')">NVDA</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('META', 'us')">META</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('AMZN', 'us')">AMZN</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('NFLX', 'us')">NFLX</button>
+                </div>
+            </div>
+
+            <!-- 4. US History -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇺🇸 United States - Recent Searches:</strong>
+                </div>
+                <div id="usHistory" style="overflow-x: auto; white-space: nowrap;">
+                    <p style="color: #94a3b8; font-size: 0.9rem;">No US stocks searched yet</p>
+                </div>
+            </div>
+
+            <!-- 5. Singapore Suggestions -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇸🇬 Singapore - Suggestions:</strong>
+                </div>
+                <div style="overflow-x: auto; white-space: nowrap;">
+                    <button class="quick-pick-btn" onclick="quickAnalyze('D05', 'sgx')">D05</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('O39', 'sgx')">O39</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('U11', 'sgx')">U11</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('C31', 'sgx')">C31</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('Z74', 'sgx')">Z74</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('C52', 'sgx')">C52</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('N2IU', 'sgx')">N2IU</button>
+                    <button class="quick-pick-btn" onclick="quickAnalyze('G13', 'sgx')">G13</button>
+                </div>
+            </div>
+
+            <!-- 6. Singapore History -->
+            <div class="quick-picks" style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="margin-right: 10px;">🇸🇬 Singapore - Recent Searches:</strong>
+                </div>
+                <div id="sgxHistory" style="overflow-x: auto; white-space: nowrap;">
+                    <p style="color: #94a3b8; font-size: 0.9rem;">No Singapore stocks searched yet</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboard"></div>
+    </div>
+
+    <script>
+        // Language Management
+        let currentLanguage = localStorage.getItem('language') || 'id'; // Default to Indonesian
+
+        const translations = {
+            id: {
+                // Header & Navigation
+                favorites: 'Favorit',
+                simpleView: 'Tampilan Sederhana',
+                clearHistory: 'Hapus Riwayat',
+                analyze: 'Analisis',
+
+                // Search
+                enterStock: 'Masukkan simbol saham (contoh: BBCA, AAPL, D05)',
+                autoDetect: '🌐 Deteksi Otomatis',
+
+                // Dashboard Sections
+                myFavorites: 'Favorit Saya',
+                searchHistory: 'Riwayat Pencarian',
+                nothingHere: 'Belum ada di sini',
+
+                // Stock Analysis
+                currentPrice: 'Harga Saat Ini',
+                change: 'Perubahan',
+                signal: 'Sinyal',
+                recommendation: 'Rekomendasi',
+                buyPrice: 'Harga Beli',
+                sellPrice: 'Harga Jual',
+                stopLoss: 'Stop Loss',
+                targetProfit: 'Target Profit',
+
+                // Widget Titles
+                smartAccumulation: '🚀 Smart Accumulation Breakout',
+                bandarmology: '🐋 Whale Flow (Bandarmology)',
+                scalpingSuggestions: '⚡ Saran Scalping',
+                swingSuggestions: '📊 Saran Swing Trading',
+                institutionalStocks: '🏦 Saham Institusional',
+
+                // Smart Accumulation
+                topStocksAccumulation: 'Top saham dengan akumulasi institusional & potensi breakout',
+                freshScan: '✅ Scan Terbaru',
+                awaitingScan: '⏳ Menunggu scan berikutnya',
+                updatedHourly: 'Diperbarui setiap jam',
+                market: 'Pasar',
+                noQualifying: 'Tidak ada saham yang memenuhi kriteria dalam scan terbaru',
+                scanProcessing: 'Scan sedang diproses. Hasil akan muncul dalam satu jam',
+                lastScan: '📅 Scan terakhir',
+                clickForAnalysis: '💡 Klik saham untuk analisis lengkap',
+                autoRefresh: 'Auto-refresh setiap jam',
+                daysHistory: 'hari riwayat disimpan',
+
+                // Debug Mode
+                debug: '🔍 Debug',
+                debugMode: '🔍 Mode Debug',
+                seeWhyNotQualify: 'Lihat Mengapa Saham Tidak Memenuhi Syarat',
+                runningDebugScan: '🔍 Menjalankan Scan Debug',
+                analyzingStocks: 'Menganalisis saham dan memeriksa kriteria...',
+                totalScanned: 'Total scan',
+                fullyQualified: 'Memenuhi syarat penuh',
+                stocks: 'saham',
+                showing: 'Menampilkan',
+                closestStocks: 'saham terdekat dengan alasan mengapa tidak memenuhi syarat',
+                backToScanner: '← Kembali ke Scanner',
+                fullyQualifiedStocks: '✅ Saham yang Memenuhi Syarat Penuh',
+                topClosest: '🔎 Top 10 Saham Terdekat (Belum Memenuhi Syarat)',
+                showPromise: 'Saham ini menunjukkan potensi tetapi belum memenuhi semua kriteria. Gunakan ini untuk memantau peluang masa depan!',
+                proximity: 'Kedekatan',
+                phase: 'Fase',
+                strength: 'Kekuatan',
+                breakout: 'Breakout',
+                institutional: 'Institusional',
+                passed: '✓ Lulus',
+                failed: '❌ Gagal',
+                qualifyingCriteria: '📋 Kriteria Kualifikasi',
+                mustBeAccumulation: 'Harus dalam fase ACCUMULATION',
+                strengthMinimum: 'Kekuatan akumulasi ≥ 50',
+                breakoutMinimum: 'Probabilitas breakout ≥ 50%',
+
+                // Quality & Metrics
+                quality: 'Kualitas',
+                accumulationPhase: '📊 Fase Akumulasi',
+                participants: '👥 Partisipan',
+                breakoutProbability: '🎯 Probabilitas Breakout',
+                timeframe: 'Jangka waktu',
+                weeks: 'minggu',
+                bandarStrength: '💪 Kekuatan Bandar',
+
+                // Targets
+                priceTargets: '💰 Target Harga',
+                conservative: 'Konservatif',
+                baseCase: 'Dasar',
+                bullCase: 'Bullish',
+
+                // Messages
+                loadingDashboard: 'Memuat dashboard komprehensif...',
+                error: 'Kesalahan',
+                retry: '🔄 Coba Lagi',
+            },
+            en: {
+                // Header & Navigation
+                favorites: 'Favorites',
+                simpleView: 'Simple View',
+                clearHistory: 'Clear History',
+                analyze: 'Analyze',
+
+                // Search
+                enterStock: 'Enter stock symbol (e.g., BBCA, AAPL, D05)',
+                autoDetect: '🌐 Auto-detect',
+
+                // Dashboard Sections
+                myFavorites: 'My Favorites',
+                searchHistory: 'Search History',
+                nothingHere: 'Nothing here yet',
+
+                // Stock Analysis
+                currentPrice: 'Current Price',
+                change: 'Change',
+                signal: 'Signal',
+                recommendation: 'Recommendation',
+                buyPrice: 'Buy Price',
+                sellPrice: 'Sell Price',
+                stopLoss: 'Stop Loss',
+                targetProfit: 'Target Profit',
+
+                // Widget Titles
+                smartAccumulation: '🚀 Smart Accumulation Breakout',
+                bandarmology: '🐋 Whale Flow (Bandarmology)',
+                scalpingSuggestions: '⚡ Scalping Suggestions',
+                swingSuggestions: '📊 Swing Trading Suggestions',
+                institutionalStocks: '🏦 Institutional Stocks',
+
+                // Smart Accumulation
+                topStocksAccumulation: 'Top stocks with institutional accumulation & breakout potential',
+                freshScan: '✅ Fresh scan',
+                awaitingScan: '⏳ Awaiting next scan',
+                updatedHourly: 'Updated hourly',
+                market: 'Market',
+                noQualifying: 'No qualifying stocks found in latest scan',
+                scanProcessing: 'Scan is being processed. Results will appear within the hour',
+                lastScan: '📅 Last scan',
+                clickForAnalysis: '💡 Click any stock for full analysis',
+                autoRefresh: 'Auto-refreshes every hour',
+                daysHistory: 'days history kept',
+
+                // Debug Mode
+                debug: '🔍 Debug',
+                debugMode: '🔍 Debug Mode',
+                seeWhyNotQualify: 'See Why Stocks Don\'t Qualify',
+                runningDebugScan: '🔍 Running Debug Scan',
+                analyzingStocks: 'Analyzing stocks and checking criteria...',
+                totalScanned: 'Total scanned',
+                fullyQualified: 'Fully qualified',
+                stocks: 'stocks',
+                showing: 'Showing',
+                closestStocks: 'closest stocks with reasons why they don\'t qualify',
+                backToScanner: '← Back to Scanner',
+                fullyQualifiedStocks: '✅ Fully Qualified Stocks',
+                topClosest: '🔎 Top 10 Closest Stocks (Not Yet Qualified)',
+                showPromise: 'These stocks show promise but don\'t meet all criteria yet. Use this to monitor potential future opportunities!',
+                proximity: 'Proximity',
+                phase: 'Phase',
+                strength: 'Strength',
+                breakout: 'Breakout',
+                institutional: 'Institutional',
+                passed: '✓ Passed',
+                failed: '❌ Failed',
+                qualifyingCriteria: '📋 Qualifying Criteria',
+                mustBeAccumulation: 'Must be in ACCUMULATION phase',
+                strengthMinimum: 'Accumulation strength ≥ 50',
+                breakoutMinimum: 'Breakout probability ≥ 50%',
+
+                // Quality & Metrics
+                quality: 'Quality',
+                accumulationPhase: '📊 Accumulation Phase',
+                participants: '👥 Participants',
+                breakoutProbability: '🎯 Breakout Probability',
+                timeframe: 'Timeframe',
+                weeks: 'weeks',
+                bandarStrength: '💪 Bandar Strength',
+
+                // Targets
+                priceTargets: '💰 Price Targets',
+                conservative: 'Conservative',
+                baseCase: 'Base Case',
+                bullCase: 'Bull Case',
+
+                // Messages
+                loadingDashboard: 'Loading comprehensive dashboard...',
+                error: 'Error',
+                retry: '🔄 Retry',
+            }
+        };
+
+        // Get translated text
+        function t(key) {
+            return translations[currentLanguage][key] || key;
+        }
+
+        // Toggle language
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'id' ? 'en' : 'id';
+            localStorage.setItem('language', currentLanguage);
+
+            // Update language button
+            document.getElementById('langIcon').textContent = currentLanguage === 'id' ? '🇮🇩' : '🇬🇧';
+            document.getElementById('langText').textContent = currentLanguage === 'id' ? 'ID' : 'EN';
+
+            // Reload the current view to apply translations
+            location.reload();
+        }
+
+        // Initialize language on page load
+        function initLanguage() {
+            document.getElementById('langIcon').textContent = currentLanguage === 'id' ? '🇮🇩' : '🇬🇧';
+            document.getElementById('langText').textContent = currentLanguage === 'id' ? 'ID' : 'EN';
+
+            // Update UI text elements
+            const favoritesBtn = document.querySelector('.toggle-favorites');
+            if (favoritesBtn) {
+                const favCount = document.getElementById('favCount').textContent;
+                favoritesBtn.innerHTML = `⭐ ${t('favorites')} (<span id="favCount">${favCount}</span>)`;
+            }
+
+            const stockInput = document.getElementById('stockSymbol');
+            if (stockInput) {
+                stockInput.placeholder = t('enterStock');
+            }
+
+            // Update button texts
+            const analyzeBtn = document.querySelector('button[onclick="loadDashboard()"]');
+            if (analyzeBtn && !analyzeBtn.classList.contains('btn-secondary')) {
+                analyzeBtn.textContent = t('analyze');
+            }
+
+            const simpleViewBtn = document.querySelector('.btn-secondary');
+            if (simpleViewBtn) {
+                simpleViewBtn.textContent = t('simpleView');
+            }
+
+            const clearHistoryBtn = document.querySelector('.btn-danger');
+            if (clearHistoryBtn) {
+                clearHistoryBtn.textContent = t('clearHistory');
+            }
+
+            const favSidebarTitle = document.querySelector('.favorites-sidebar h3');
+            if (favSidebarTitle) {
+                favSidebarTitle.textContent = t('myFavorites');
+            }
+        }
+
+        let currentSymbol = '';
+        let isFavorite = false;
+
+        // Search history management
+        function saveToHistory(symbol, market) {
+            let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+
+            // Remove if already exists (to move to front)
+            history = history.filter(item => item.symbol !== symbol);
+
+            // Add to front
+            history.unshift({
+                symbol: symbol,
+                market: market || 'auto',
+                timestamp: new Date().toISOString()
+            });
+
+            // Keep only last 10
+            history = history.slice(0, 10);
+
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+            updateHistoryDisplay();
+        }
+
+        function getSearchHistory() {
+            return JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        }
+
+        function clearSearchHistory() {
+            if (confirm('Clear all search history?')) {
+                localStorage.removeItem('searchHistory');
+                updateHistoryDisplay();
+            }
+        }
+
+        function updateHistoryDisplay() {
+            const history = getSearchHistory();
+            const idxHistoryDiv = document.getElementById('idxHistory');
+            const usHistoryDiv = document.getElementById('usHistory');
+            const sgxHistoryDiv = document.getElementById('sgxHistory');
+
+            // Group by market - prioritize explicit market value over pattern matching
+            const grouped = {
+                us: [],
+                idx: [],
+                sgx: []
+            };
+
+            history.forEach(item => {
+                if (item.market === 'idx') {
+                    // Explicitly marked as Indonesian stock
+                    grouped.idx.push(item);
+                } else if (item.market === 'us') {
+                    // Explicitly marked as US stock
+                    grouped.us.push(item);
+                } else if (item.market === 'sgx') {
+                    // Explicitly marked as Singapore stock
+                    grouped.sgx.push(item);
+                } else {
+                    // Auto-detect for 'auto' market setting
+                    if (item.symbol.includes('.JK') || item.symbol.length === 4) {
+                        grouped.idx.push(item);
+                    } else if (item.symbol.includes('.SI')) {
+                        grouped.sgx.push(item);
+                    } else {
+                        grouped.us.push(item);
+                    }
+                }
+            });
+
+            // Update Indonesia history
+            if (grouped.idx.length === 0) {
+                idxHistoryDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No Indonesia stocks searched yet</p>';
+            } else {
+                const idxHtml = grouped.idx.map(item => {
+                    const cleanSymbol = item.symbol.replace('.JK', '');
+                    return `<button class="quick-pick-btn" onclick="quickAnalyze('${cleanSymbol}', 'idx')">${cleanSymbol}</button>`;
+                }).join('');
+                idxHistoryDiv.innerHTML = idxHtml;
+            }
+
+            // Update US history
+            if (grouped.us.length === 0) {
+                usHistoryDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No US stocks searched yet</p>';
+            } else {
+                const usHtml = grouped.us.map(item => {
+                    return `<button class="quick-pick-btn" onclick="quickAnalyze('${item.symbol}', 'us')">${item.symbol}</button>`;
+                }).join('');
+                usHistoryDiv.innerHTML = usHtml;
+            }
+
+            // Update Singapore history
+            if (grouped.sgx.length === 0) {
+                sgxHistoryDiv.innerHTML = '<p style="color: #94a3b8; font-size: 0.9rem;">No Singapore stocks searched yet</p>';
+            } else {
+                const sgxHtml = grouped.sgx.map(item => {
+                    const cleanSymbol = item.symbol.replace('.SI', '');
+                    return `<button class="quick-pick-btn" onclick="quickAnalyze('${cleanSymbol}', 'sgx')">${cleanSymbol}</button>`;
+                }).join('');
+                sgxHistoryDiv.innerHTML = sgxHtml;
+            }
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+
+            if (seconds < 60) return 'just now';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return `${hours}h ago`;
+            const days = Math.floor(hours / 24);
+            return `${days}d ago`;
+        }
+
+        function getCurrencySymbol(market) {
+            switch(market) {
+                case 'idx':
+                    return 'Rp ';
+                case 'sgx':
+                    return 'S$';
+                case 'us':
+                    return '$';
+                default:
+                    return '$';
+            }
+        }
+
+        async function loadDashboard() {
+            const symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+            const market = document.getElementById('marketSelector').value;
+
+            if (!symbol) {
+                alert('Please enter a stock symbol');
+                return;
+            }
+
+            currentSymbol = symbol;
+
+            // Save to history
+            saveToHistory(symbol, market);
+
+            showLoading();
+
+            try {
+                const marketParam = market !== 'auto' ? `?market=${market}` : '';
+                const response = await fetch(`/api/dashboard/${symbol}${marketParam}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayDashboard(data.data);
+                } else {
+                    showError(data.message);
+                }
+            } catch (error) {
+                showError('Error fetching dashboard data: ' + error.message);
+            }
+        }
+
+        function quickAnalyze(symbol, market = null) {
+            document.getElementById('stockSymbol').value = symbol;
+            if (market && market !== 'auto') {
+                document.getElementById('marketSelector').value = market;
+            }
+            loadDashboard();
+        }
+
+        // Load buy opportunities with optional force refresh (async, non-blocking)
+        async function loadBuyOpportunities(forceRefresh = false) {
+            const container = document.getElementById('buyOpportunities');
+
+            // Show compact loading indicator that doesn't block the page
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 24px; height: 24px; border-width: 3px;"></div>
+                        <div>
+                            <div style="color: #fff; font-weight: bold;">🔍 ${forceRefresh ? 'Force scanning all Indonesian stocks...' : 'Loading buy opportunities...'}</div>
+                            <div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 3px;">
+                                ${forceRefresh ? 'This may take a moment. Feel free to use other features while waiting.' : 'Loading from cache...'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const url = forceRefresh ? '/api/scan-opportunities?market=auto&refresh=true' : '/api/scan-opportunities?market=auto';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.opportunities_found > 0) {
+                    displayBuyOpportunities(data);
+
+                    // Show success notification if force refresh
+                    if (forceRefresh) {
+                        showNotification(`✅ Found ${data.opportunities_found} buy opportunities from ${data.scanned} stocks!`, 'success');
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
+                            <p style="color: #94a3b8;">😔 No strong buy opportunities found among top ${data.scanned || 0} stocks (5 Big Cap + 5 Small Cap)</p>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-top: 10px;">Most stocks showing SELL or HOLD signals currently. Check back later or try analyzing specific stocks manually.</p>
+                            ${data.cached_at ? `<p style="color: #64748b; font-size: 0.75rem; margin-top: 10px;">📅 Cached: ${data.cached_at} • Auto-refreshes every 3 hours</p>` : ''}
+                            <button onclick="loadBuyOpportunities(true)" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                                🔄 Force Refresh
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error loading opportunities: ${error.message}</p>
+                        <button onclick="loadBuyOpportunities()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Simple notification system
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : '#3b82f6'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function displayBuyOpportunities(data) {
+            const container = document.getElementById('buyOpportunities');
+            const opportunities = data.data || [];
+            const scanned = data.scanned || 0;
+            const totalStocks = data.total_stocks || 0;
+            const cachedAt = data.cached_at || null;
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div>
+                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities (Preset Scan)</h2>
+                            <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                Found ${opportunities.length} BUY signals • Scanned ${scanned} curated stocks (Top 10 Buy + Top 5 Scalping)
+                            </p>
+                            ${cachedAt ? `<p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : ''}
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="scanAllStocks()" style="background: rgba(16, 185, 129, 0.3); border: 1px solid #10b981; color: #10b981; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: bold;"
+                                    onmouseover="this.style.background='rgba(16, 185, 129, 0.4)'"
+                                    onmouseout="this.style.background='rgba(16, 185, 129, 0.3)'">
+                                📊 Scan ALL Stocks
+                            </button>
+                            <button onclick="loadBuyOpportunities(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                🔄 Refresh Preset
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+            `;
+
+            opportunities.forEach(opp => {
+                const bgColor = opp.action === 'STRONG BUY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(34, 197, 94, 0.1)';
+                const borderColor = opp.action === 'STRONG BUY' ? '#10b981' : '#22c55e';
+                const priceClass = opp.change_percent >= 0 ? '#10b981' : '#ef4444';
+
+                html += `
+                    <div onclick="quickAnalyze('${opp.symbol}', '${opp.market}')" style="background: ${bgColor}; border: 2px solid ${borderColor}; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.3)';"
+                         onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                            <div>
+                                <div style="font-size: 1.2rem; font-weight: bold; color: #fff;">${opp.symbol}</div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
+                            </div>
+                            <div style="background: ${borderColor}; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+                                ${opp.action}
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Price:</span>
+                            <span style="color: #fff; font-weight: bold;">
+                                ${getCurrencySymbol(opp.market)}${opp.price.toLocaleString()}
+                                <span style="color: ${priceClass}; font-size: 0.85rem; margin-left: 5px;">
+                                    ${opp.change_percent >= 0 ? '+' : ''}${opp.change_percent.toFixed(2)}%
+                                </span>
+                            </span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 5px;">
+                            📊 Score: <strong>${opp.score.toFixed(0)}/100</strong> • ${opp.confidence}
+                        </div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">
+                            ${opp.macd_signal !== 'N/A' ? '🚀 MACD: ' + opp.macd_signal.replace(/_/g, ' ') : ''}
+                            ${opp.divergence !== 'NONE' ? ' • ⚠️ ' + opp.divergence : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <p style="text-align: center; color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
+                        💡 Click any stock to see full analysis
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Scan ALL stocks comprehensively (~200 Indonesian stocks)
+        async function scanAllStocks() {
+            const container = document.getElementById('buyOpportunities');
+
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                    <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                    <h3 style="color: #fff; margin: 20px 0 10px 0;">📊 Comprehensive Stock Scan</h3>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Scanning ALL ${200}+ Indonesian stocks...</p>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">This may take 1-2 minutes. Please wait...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/scan-all-stocks?market=idx');
+                const data = await response.json();
+
+                if (data.success) {
+                    displayComprehensiveScanResults(data);
+                    showNotification(`✅ Scanned ${data.scanned} stocks! Found ${data.top_10_buy.length} buy opportunities and ${data.top_5_scalping.length} scalping stocks`, 'success');
+                } else {
+                    throw new Error('Scan failed');
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error scanning all stocks: ${error.message}</p>
+                        <button onclick="loadBuyOpportunities()" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            ← Back to Preset Scan
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Display results from comprehensive scan
+        function displayComprehensiveScanResults(data) {
+            const container = document.getElementById('buyOpportunities');
+            const top10Buy = data.top_10_buy || [];
+            const top5Scalping = data.top_5_scalping || [];
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h2 style="margin: 0; color: #fff;">📊 Comprehensive Scan Results</h2>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                    Scanned ${data.scanned} stocks • Found ${data.all_buy_opportunities.length} BUY opportunities
+                                </p>
+                            </div>
+                            <button onclick="loadBuyOpportunities()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer;">
+                                ← Back to Preset
+                            </button>
+                        </div>
+                    </div>
+
+                    <h3 style="color: #fff; margin: 15px 0 10px 0; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
+                        🎯 Top 10 BUY/BULLISH Stocks
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px;">
+            `;
+
+            top10Buy.forEach(stock => {
+                html += `
+                    <div onclick="quickAnalyze('${stock.symbol}', 'idx')" style="background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; border-radius: 8px; padding: 15px; cursor: pointer;"
+                         onmouseover="this.style.transform='translateY(-2px)'"
+                         onmouseout="this.style.transform=''">
+                        <div style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 5px;">${stock.symbol}</div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-bottom: 8px;">${stock.name}</div>
+                        <div style="color: #10b981; font-weight: bold; font-size: 0.85rem;">${stock.action}</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 5px;">Score: ${stock.score}/100</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <h3 style="color: #fff; margin: 15px 0 10px 0; border-bottom: 2px solid rgba(255,255,255,0.3); padding-bottom: 8px;">
+                        ⚡ Top 5 SCALPING Stocks (High Volatility)
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+            `;
+
+            top5Scalping.forEach(stock => {
+                html += `
+                    <div onclick="quickAnalyze('${stock.symbol}', 'idx')" style="background: rgba(251, 191, 36, 0.2); border: 2px solid #fbbf24; border-radius: 8px; padding: 15px; cursor: pointer;"
+                         onmouseover="this.style.transform='translateY(-2px)'"
+                         onmouseout="this.style.transform=''">
+                        <div style="font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 5px;">${stock.symbol}</div>
+                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-bottom: 8px;">${stock.name}</div>
+                        <div style="color: #fbbf24; font-weight: bold; font-size: 0.85rem;">Volatility: ${stock.volatility.toFixed(1)}%</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 5px;">Swing Score: ${stock.swing_score}/100</div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <p style="text-align: center; color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
+                        💡 Click any stock to see full analysis • Scanned ${data.total_stocks} total stocks
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Load institutional stocks (smart money)
+        async function loadInstitutionalStocks() {
+            const container = document.getElementById('institutionalStocks');
+
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                    <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                    <h3 style="color: #fff; margin: 20px 0 10px 0;">🏦 Scanning for Institutional Stocks</h3>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Finding stocks with smart money accumulation...</p>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Scanning top 50 big cap stocks...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/scan-institutional-stocks?market=idx&min_institutional=60');
+                const data = await response.json();
+
+                if (data.success && data.institutional_stocks_found > 0) {
+                    displayInstitutionalStocks(data);
+                    showNotification(`✅ Found ${data.institutional_stocks_found} institutional stocks!`, 'success');
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
+                            <p style="color: #94a3b8;">No strong institutional stocks found at ${data.min_institutional_threshold}% threshold</p>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-top: 10px;">Try again later or check individual stocks</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error scanning institutional stocks: ${error.message}</p>
+                        <button onclick="loadInstitutionalStocks()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Display institutional stocks results
+        function displayInstitutionalStocks(data) {
+            const container = document.getElementById('institutionalStocks');
+            const stocks = data.top_10 || [];
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h2 style="margin: 0; color: #fff;">🏦 Institutional Stocks (Smart Money)</h2>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                    Found ${data.institutional_stocks_found} stocks with institutional accumulation ≥${data.min_institutional_threshold}%
+                                </p>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">
+                                    These stocks show signs of professional/institutional investor activity
+                                </p>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <button onclick="loadInstitutionalStocks()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px;">
+            `;
+
+            stocks.forEach(stock => {
+                const actionColor = stock.action.includes('BUY') ? '#10b981' : (stock.action.includes('HOLD') ? '#f59e0b' : '#ef4444');
+                const institutionalColor = stock.institutional_percent >= 80 ? '#10b981' : (stock.institutional_percent >= 70 ? '#3b82f6' : '#8b5cf6');
+
+                html += `
+                    <div onclick="quickAnalyze('${stock.symbol}', '${stock.market}')" style="background: rgba(99, 102, 241, 0.15); border: 2px solid ${institutionalColor}; border-radius: 10px; padding: 18px; cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 12px rgba(0,0,0,0.4)'"
+                         onmouseout="this.style.transform=''; this.style.boxShadow=''">
+
+                        <!-- Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div>
+                                <div style="font-size: 1.3rem; font-weight: bold; color: #fff; margin-bottom: 3px;">${stock.symbol}</div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">${stock.name.substring(0, 30)}${stock.name.length > 30 ? '...' : ''}</div>
+                            </div>
+                            <div style="background: ${institutionalColor}; color: #000; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold;">
+                                ${stock.institutional_percent.toFixed(0)}% Inst.
+                            </div>
+                        </div>
+
+                        <!-- Price & Action -->
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Price</div>
+                                <div style="font-size: 1.1rem; font-weight: bold; color: #fff;">
+                                    ${getCurrencySymbol(stock.market)}${stock.price.toLocaleString()}
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Action</div>
+                                <div style="font-size: 0.9rem; font-weight: bold; color: ${actionColor};">
+                                    ${stock.action}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Institutional Indicators -->
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-bottom: 6px;">
+                            <strong>Pattern:</strong> ${stock.volume_pattern}
+                        </div>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-bottom: 6px;">
+                            <strong>Phase:</strong> ${stock.accumulation_phase}
+                        </div>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85); margin-bottom: 6px;">
+                            <strong>Strength:</strong> ${stock.accumulation_strength}/100 • ${stock.accumulation_days} days
+                        </div>
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.85);">
+                            <strong>Volatility:</strong> ${stock.price_stability}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <p style="text-align: center; color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
+                        💡 Click any stock to see full analysis • Higher % = More institutional involvement
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Load Smart Accumulation Breakout Stocks
+        async function loadSmartAccumulation(market = 'idx') {
+            const container = document.getElementById('smartAccumulation');
+
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                    <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                    <h3 style="color: #fff; margin: 20px 0 10px 0;">🚀 Loading Smart Accumulation Stocks</h3>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Finding stocks with breakout potential...</p>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Market: ${market.toUpperCase()} • Refreshed hourly</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/api/smart-accumulation?market=${market}`);
+                const data = await response.json();
+
+                if (data.success && data.data.length > 0) {
+                    displaySmartAccumulation(data, market);
+                } else {
+                    container.innerHTML = `
+                        <div style="background: #1e293b; border-radius: 12px; padding: 20px; border: 2px solid #334155;">
+                            <div style="text-align: center;">
+                                <h3 style="color: #94a3b8; margin-bottom: 10px;">🚀 Smart Accumulation Scanner</h3>
+                                <p style="color: #64748b; font-size: 0.9rem;">
+                                    ${data.meta.is_fresh ?
+                                        'No qualifying stocks found in latest scan. Stocks need 60%+ institutional participation and active accumulation phase.' :
+                                        'Scan is being processed. Results will appear within the hour.'
+                                    }
+                                </p>
+                                ${data.meta.last_scan ? `
+                                    <p style="color: #64748b; font-size: 0.75rem; margin-top: 10px;">
+                                        📅 Last scan: ${new Date(data.meta.last_scan).toLocaleString()}
+                                    </p>
+                                ` : ''}
+                                <div style="margin-top: 15px;">
+                                    <button onclick="loadSmartAccumulation('idx')" style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; color: #10b981; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 5px;">
+                                        🇮🇩 Indonesia
+                                    </button>
+                                    <button onclick="loadSmartAccumulation('sgx')" style="background: rgba(99, 102, 241, 0.2); border: 1px solid #6366f1; color: #6366f1; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 5px;">
+                                        🇸🇬 Singapore
+                                    </button>
+                                    <button onclick="loadSmartAccumulation('us')" style="background: rgba(234, 179, 8, 0.2); border: 1px solid #eab308; color: #eab308; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 5px;">
+                                        🇺🇸 United States
+                                    </button>
+                                </div>
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155;">
+                                    <button onclick="showDebugMode('${market}')" style="background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;"
+                                            onmouseover="this.style.background='rgba(245, 158, 11, 0.3)'"
+                                            onmouseout="this.style.background='rgba(245, 158, 11, 0.2)'">
+                                        🔍 Debug Mode - See Why Stocks Don't Qualify
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error loading smart accumulation stocks: ${error.message}</p>
+                        <button onclick="loadSmartAccumulation('idx')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Display Smart Accumulation results
+        function displaySmartAccumulation(data, currentMarket) {
+            const container = document.getElementById('smartAccumulation');
+            const stocks = data.data || [];
+            const meta = data.meta || {};
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                            <div>
+                                <h2 style="margin: 0; color: #fff;">🚀 Smart Accumulation Breakout</h2>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                    Top ${stocks.length} stocks with institutional accumulation & breakout potential
+                                </p>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">
+                                    ${meta.is_fresh ? '✅ Fresh scan' : '⏳ Awaiting next scan'} • Updated hourly • Market: ${data.market}
+                                </p>
+                                ${meta.last_scan ? `
+                                    <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.6); font-size: 0.7rem;">
+                                        📅 ${new Date(meta.last_scan).toLocaleString()}
+                                    </p>
+                                ` : ''}
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                <button onclick="loadSmartAccumulation('idx')" style="background: ${currentMarket === 'idx' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}; border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: ${currentMarket === 'idx' ? 'bold' : 'normal'};"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                        onmouseout="this.style.background='${currentMarket === 'idx' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}'">
+                                    🇮🇩 IDX
+                                </button>
+                                <button onclick="loadSmartAccumulation('sgx')" style="background: ${currentMarket === 'sgx' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}; border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: ${currentMarket === 'sgx' ? 'bold' : 'normal'};"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                        onmouseout="this.style.background='${currentMarket === 'sgx' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}'">
+                                    🇸🇬 SGX
+                                </button>
+                                <button onclick="loadSmartAccumulation('us')" style="background: ${currentMarket === 'us' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}; border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: ${currentMarket === 'us' ? 'bold' : 'normal'};"
+                                        onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                        onmouseout="this.style.background='${currentMarket === 'us' ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}'">
+                                    🇺🇸 US
+                                </button>
+                                <button onclick="showDebugMode('${currentMarket}')" style="background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: bold;"
+                                        onmouseover="this.style.background='rgba(245, 158, 11, 0.3)'"
+                                        onmouseout="this.style.background='rgba(245, 158, 11, 0.2)'"
+                                        title="See why stocks don't qualify">
+                                    🔍 Debug
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 15px;">
+            `;
+
+            stocks.forEach((stock, index) => {
+                const qualityColor = stock.quality_score >= 80 ? '#10b981' : (stock.quality_score >= 65 ? '#3b82f6' : '#8b5cf6');
+                const probColor = stock.breakout_probability >= 75 ? '#10b981' : (stock.breakout_probability >= 60 ? '#f59e0b' : '#6366f1');
+
+                html += `
+                    <div onclick="quickAnalyze('${stock.symbol}', '${stock.market}')" style="background: rgba(16, 185, 129, 0.15); border: 3px solid ${qualityColor}; border-radius: 10px; padding: 18px; cursor: pointer; transition: all 0.2s; position: relative;"
+                         onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 16px rgba(0,0,0,0.4)'"
+                         onmouseout="this.style.transform=''; this.style.boxShadow=''">
+
+                        <!-- Rank Badge -->
+                        <div style="position: absolute; top: -10px; left: -10px; background: ${qualityColor}; color: #000; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                            #${stock.rank || index + 1}
+                        </div>
+
+                        <!-- Header -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 1.4rem; font-weight: bold; color: #fff; margin-bottom: 3px;">${stock.symbol}</div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">${stock.name ? stock.name.substring(0, 25) : stock.symbol}${stock.name && stock.name.length > 25 ? '...' : ''}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="background: ${qualityColor}; color: #000; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; margin-bottom: 5px;">
+                                    ${stock.quality_score}/100
+                                </div>
+                                <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">Quality</div>
+                            </div>
+                        </div>
+
+                        <!-- Price -->
+                        <div style="background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Current Price</div>
+                                    <div style="font-size: 1.3rem; font-weight: bold; color: #fff;">
+                                        ${getCurrencySymbol(stock.market)}${parseFloat(stock.price).toLocaleString()}
+                                    </div>
+                                </div>
+                                ${stock.change_percent ? `
+                                    <div style="font-size: 1rem; font-weight: bold; color: ${parseFloat(stock.change_percent) >= 0 ? '#10b981' : '#ef4444'};">
+                                        ${parseFloat(stock.change_percent) >= 0 ? '+' : ''}${parseFloat(stock.change_percent).toFixed(2)}%
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Accumulation Metrics -->
+                        <div style="background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 8px;">📊 Accumulation Phase</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                                <div>
+                                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">Strength</div>
+                                    <div style="font-size: 0.9rem; font-weight: bold; color: #10b981;">${stock.accumulation_strength}/100</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.7rem; color: rgba(255,255,255,0.5);">Duration</div>
+                                    <div style="font-size: 0.9rem; font-weight: bold; color: #3b82f6;">${stock.accumulation_days} days</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.85);">
+                                <strong>Participants:</strong> ${stock.institutional_percent}% Institutional
+                            </div>
+                        </div>
+
+                        <!-- Breakout Potential -->
+                        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%); border: 1px solid ${probColor}; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 8px;">🎯 Breakout Probability</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: ${probColor};">
+                                    ${stock.breakout_probability}%
+                                </div>
+                                ${stock.breakout_timeframe ? `
+                                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7); text-align: right;">
+                                        Timeframe:<br><strong>${stock.breakout_timeframe}</strong>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${stock.bandar_strength ? `
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">
+                                    <strong>Bandar Strength:</strong> ${stock.bandar_strength}/100
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Price Targets -->
+                        <div style="background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 12px;">
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 8px;">💰 Price Targets</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">
+                                ${stock.conservative_target ? `
+                                    <div>
+                                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">Conservative</div>
+                                        <div style="font-size: 0.85rem; font-weight: bold; color: #10b981;">
+                                            ${getCurrencySymbol(stock.market)}${parseFloat(stock.conservative_target).toLocaleString()}
+                                        </div>
+                                        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4);">
+                                            +${(((parseFloat(stock.conservative_target) - parseFloat(stock.price)) / parseFloat(stock.price)) * 100).toFixed(1)}%
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${stock.base_target ? `
+                                    <div>
+                                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">Base Case</div>
+                                        <div style="font-size: 0.85rem; font-weight: bold; color: #3b82f6;">
+                                            ${getCurrencySymbol(stock.market)}${parseFloat(stock.base_target).toLocaleString()}
+                                        </div>
+                                        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4);">
+                                            +${(((parseFloat(stock.base_target) - parseFloat(stock.price)) / parseFloat(stock.price)) * 100).toFixed(1)}%
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${stock.bull_target ? `
+                                    <div>
+                                        <div style="font-size: 0.65rem; color: rgba(255,255,255,0.5);">Bull Case</div>
+                                        <div style="font-size: 0.85rem; font-weight: bold; color: #f59e0b;">
+                                            ${getCurrencySymbol(stock.market)}${parseFloat(stock.bull_target).toLocaleString()}
+                                        </div>
+                                        <div style="font-size: 0.6rem; color: rgba(255,255,255,0.4);">
+                                            +${(((parseFloat(stock.bull_target) - parseFloat(stock.price)) / parseFloat(stock.price)) * 100).toFixed(1)}%
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${stock.stop_loss ? `
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.7rem; color: rgba(255,255,255,0.7);">
+                                    <strong>Stop Loss:</strong> ${getCurrencySymbol(stock.market)}${parseFloat(stock.stop_loss).toLocaleString()}
+                                    <span style="color: #ef4444;">(${(((parseFloat(stock.stop_loss) - parseFloat(stock.price)) / parseFloat(stock.price)) * 100).toFixed(1)}%)</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <p style="text-align: center; color: rgba(255,255,255,0.8); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
+                        💡 Click any stock for full analysis • Auto-refreshes every hour • ${meta.retention_days || 7} days history kept
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Show debug mode - displays top 10 closest stocks with reasons why they don't qualify
+        async function showDebugMode(market = 'idx') {
+            const container = document.getElementById('smartAccumulation');
+
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                    <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                    <h3 style="color: #fff; margin: 20px 0 10px 0;">🔍 Running Debug Scan</h3>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Analyzing ${market.toUpperCase()} stocks and checking criteria...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/api/smart-accumulation-debug?market=${market}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayDebugResults(data.data, market);
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                            <p style="color: #ef4444;">⚠️ Error running debug scan: ${data.error || 'Unknown error'}</p>
+                            <button onclick="loadSmartAccumulation('${market}')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                                ← Back to Scanner
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error running debug scan: ${error.message}</p>
+                        <button onclick="loadSmartAccumulation('${market}')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            ← Back to Scanner
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Display debug scan results
+        function displayDebugResults(debugData, market) {
+            const container = document.getElementById('smartAccumulation');
+            const closest = debugData.top_10_closest || [];
+            const qualified = debugData.fully_qualified || [];
+
+            let html = `
+                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                            <div>
+                                <h2 style="margin: 0; color: #fff;">🔍 Debug Mode - ${market.toUpperCase()}</h2>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                                    Total scanned: ${debugData.total_scanned} stocks | Fully qualified: ${debugData.qualifying_stocks}
+                                </p>
+                                <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.8rem;">
+                                    Showing top 10 closest stocks with reasons why they don't qualify
+                                </p>
+                            </div>
+                            <button onclick="loadSmartAccumulation('${market}')" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: bold;"
+                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                ← Back to Scanner
+                            </button>
+                        </div>
+                    </div>
+
+                    ${qualified.length > 0 ? `
+                        <div style="background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; border-radius: 10px; padding: 15px; margin-bottom: 20px;">
+                            <h3 style="color: #10b981; margin: 0 0 10px 0;">✅ Fully Qualified Stocks (${qualified.length})</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                                ${qualified.map(stock => `
+                                    <div onclick="quickAnalyze('${stock.symbol}', '${stock.market}')" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 10px; border-radius: 6px; cursor: pointer;">
+                                        <div style="font-weight: bold; color: #fff;">${stock.symbol}</div>
+                                        <div style="font-size: 0.75rem; color: #10b981;">Score: ${stock.quality_score}/100</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 15px;">
+                        <h3 style="color: #fff; margin: 0 0 15px 0;">🔎 Top 10 Closest Stocks (Not Yet Qualified)</h3>
+                        <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-bottom: 15px;">
+                            These stocks show promise but don't meet all criteria yet. Use this to monitor potential future opportunities!
+                        </p>
+
+                        <div style="display: grid; gap: 12px;">
+            `;
+
+            closest.forEach((stock, index) => {
+                const proximityColor = stock.proximity_score >= 80 ? '#10b981' : (stock.proximity_score >= 60 ? '#f59e0b' : '#6366f1');
+
+                html += `
+                    <div onclick="quickAnalyze('${stock.symbol}', '${market}')" style="background: rgba(15, 23, 42, 0.8); border: 2px solid ${proximityColor}; border-radius: 10px; padding: 15px; cursor: pointer; transition: all 0.2s;"
+                         onmouseover="this.style.transform='translateX(5px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.4)'"
+                         onmouseout="this.style.transform=''; this.style.boxShadow=''">
+
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                    <div style="background: ${proximityColor}; color: #000; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem;">
+                                        #${index + 1}
+                                    </div>
+                                    <div style="font-size: 1.2rem; font-weight: bold; color: #fff;">${stock.symbol}</div>
+                                </div>
+                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">${stock.name.substring(0, 40)}${stock.name.length > 40 ? '...' : ''}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="background: ${proximityColor}; color: #000; padding: 6px 10px; border-radius: 6px; font-weight: bold;">
+                                    ${stock.proximity_score}/100
+                                </div>
+                                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.6); margin-top: 3px;">Proximity</div>
+                            </div>
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.75rem;">
+                                <div>
+                                    <div style="color: rgba(255,255,255,0.6);">Phase</div>
+                                    <div style="color: ${stock.accumulation_phase === 'ACCUMULATION' ? '#10b981' : '#94a3b8'}; font-weight: bold;">${stock.accumulation_phase}</div>
+                                </div>
+                                <div>
+                                    <div style="color: rgba(255,255,255,0.6);">Strength</div>
+                                    <div style="color: ${stock.accumulation_strength >= 50 ? '#10b981' : '#f59e0b'}; font-weight: bold;">${stock.accumulation_strength}</div>
+                                </div>
+                                <div>
+                                    <div style="color: rgba(255,255,255,0.6);">Breakout</div>
+                                    <div style="color: ${stock.breakout_probability >= 50 ? '#10b981' : '#f59e0b'}; font-weight: bold;">${stock.breakout_probability}%</div>
+                                </div>
+                                <div>
+                                    <div style="color: rgba(255,255,255,0.6);">Institutional</div>
+                                    <div style="color: #6366f1; font-weight: bold;">${stock.institutional_percent}%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${stock.passed_criteria.length > 0 ? `
+                            <div style="margin-bottom: 8px;">
+                                <div style="font-size: 0.75rem; color: #10b981; font-weight: bold; margin-bottom: 5px;">✓ Passed (${stock.criteria_passed}/${stock.criteria_passed + stock.criteria_failed}):</div>
+                                <div style="font-size: 0.7rem; color: #10b981; line-height: 1.6;">
+                                    ${stock.passed_criteria.join(' • ')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${stock.failed_criteria.length > 0 ? `
+                            <div>
+                                <div style="font-size: 0.75rem; color: #f59e0b; font-weight: bold; margin-bottom: 5px;">❌ Failed (${stock.criteria_failed}/${stock.criteria_passed + stock.criteria_failed}):</div>
+                                <div style="font-size: 0.7rem; color: #f59e0b; line-height: 1.6;">
+                                    ${stock.failed_criteria.join(' | ')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            html += `
+                        </div>
+
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                            <h4 style="color: #fbbf24; margin: 0 0 10px 0;">📋 Qualifying Criteria</h4>
+                            <div style="font-size: 0.8rem; color: rgba(255,255,255,0.8); line-height: 1.8;">
+                                <div>1. <strong style="color: #fff;">Phase:</strong> Must be in ACCUMULATION phase</div>
+                                <div>2. <strong style="color: #fff;">Strength:</strong> Accumulation strength ≥ 50</div>
+                                <div>3. <strong style="color: #fff;">Breakout:</strong> Breakout probability ≥ 50%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Initialize on page load - always show history first
+        window.addEventListener('DOMContentLoaded', () => {
+            initLanguage();  // Initialize language toggle
+            updateHistoryDisplay();
+            loadBuyOpportunities();
+            loadInstitutionalStocks();  // Auto-load institutional stocks
+            loadSmartAccumulation('idx');  // Auto-load smart accumulation for Indonesia
+        });
+
+        function showLoading() {
+            document.getElementById('dashboard').innerHTML = `
+                <div class="card loading">
+                    <div class="spinner"></div>
+                    <p>Loading comprehensive dashboard...</p>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            document.getElementById('dashboard').innerHTML = `
+                <div class="error-box">
+                    <h3>⚠️ Error</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function displayDashboard(data) {
+            const {stock_info, overall_analysis, entry_exit, swing_analysis, accumulation, bandarmology, is_favorite} = data;
+            isFavorite = is_favorite;
+
+            const priceChangeClass = stock_info.change_percent >= 0 ? 'positive' : 'negative';
+            const priceChangeSign = stock_info.change_percent >= 0 ? '+' : '';
+
+            const favoriteBtn = isFavorite
+                ? `<button class="favorite-btn btn-danger" onclick="removeFavorite()">⭐ Remove</button>`
+                : `<button class="favorite-btn btn-success" onclick="addFavorite()">☆ Add</button>`;
+
+            // Get key values for executive summary
+            const bestEntry = entry_exit.entry_recommendation.conservative || entry_exit.entry_recommendation.moderate;
+            const bestExit = entry_exit.exit_recommendation.target_2 || entry_exit.exit_recommendation.target_1;
+            const overallRec = overall_analysis.recommendation;
+            const accPhase = accumulation.phase;
+            const swingRating = swing_analysis.swing_rating;
+            const metrics = overall_analysis.metrics || {};
+
+            // Determine executive box classes
+            const getExecutiveBoxClass = (action) => {
+                if (action.includes('STRONG BUY') || action.includes('BUY')) return 'highlight';
+                if (action.includes('SELL')) return 'danger';
+                return 'warning';
+            };
+
+            // Calculate stop loss and risk-reward
+            const stopLoss = (bestEntry.price * 0.95).toFixed(0);
+            const riskAmount = bestEntry.price - stopLoss;
+            const rewardAmount = bestExit.price - bestEntry.price;
+            const riskRewardRatio = riskAmount > 0 ? (rewardAmount / riskAmount).toFixed(2) : 0;
+
+            // Generate AI Analysis Summary
+            const generateAnalysisSummary = () => {
+                const macd = metrics.technical?.macd;
+                const divergence = metrics.technical?.divergence;
+                const week52 = metrics.technical?.['52_week'];
+                const mfi = metrics.technical?.mfi;
+                const stochastic = metrics.technical?.stochastic;
+
+                let summary = `${stock_info.symbol} `;
+
+                // Overall sentiment
+                if (overallRec.action.includes('STRONG BUY')) {
+                    summary += `shows <strong style="color: #10b981;">STRONG BUY signals</strong>. `;
+                } else if (overallRec.action.includes('BUY')) {
+                    summary += `shows <strong style="color: #10b981;">BUY signals</strong>. `;
+                } else if (overallRec.action.includes('HOLD')) {
+                    summary += `presents <strong style="color: #f59e0b;">MIXED signals</strong>. `;
+                } else {
+                    summary += `shows <strong style="color: #ef4444;">SELL signals</strong>. `;
+                }
+
+                // MACD + Divergence (most important combo)
+                if (macd && divergence) {
+                    if (macd.signal === 'BULLISH' && divergence.divergence === 'BEARISH') {
+                        summary += `⚠️ <strong style="color: #f97316;">Critical conflict:</strong> While momentum is currently positive (MACD bullish), a <strong style="color: #ef4444;">bearish divergence warns momentum is weakening</strong> - the rally may be running out of steam. `;
+                    } else if (macd.signal === 'BEARISH' && divergence.divergence === 'BULLISH') {
+                        summary += `💎 <strong style="color: #10b981;">Hidden opportunity:</strong> Despite downward pressure (MACD bearish), a <strong style="color: #10b981;">bullish divergence suggests selling is exhausting</strong> - reversal up may be near. `;
+                    } else if (macd.signal === 'BULLISH' && divergence.divergence === 'BULLISH') {
+                        summary += `🚀 <strong style="color: #10b981;">Strong confirmation:</strong> Both MACD and divergence align bullish - momentum is strong and healthy. `;
+                    } else if (macd.signal === 'BEARISH' && divergence.divergence === 'BEARISH') {
+                        summary += `📉 <strong style="color: #ef4444;">Double bearish:</strong> Both MACD and divergence signal weakness - downtrend is confirmed. `;
+                    } else if (macd.signal === 'TURNING_UP') {
+                        summary += `🔄 Momentum is <strong style="color: #22c55e;">turning positive</strong> (MACD). `;
+                    } else if (macd.signal === 'TURNING_DOWN') {
+                        summary += `🔄 Momentum is <strong style="color: #f97316;">turning negative</strong> (MACD). `;
+                    } else if (macd.signal === 'BULLISH') {
+                        summary += `Momentum is <strong style="color: #10b981;">positive</strong> (MACD bullish). `;
+                    } else if (macd.signal === 'BEARISH') {
+                        summary += `Momentum is <strong style="color: #ef4444;">negative</strong> (MACD bearish). `;
+                    }
+                }
+
+                // 52-week position context
+                if (week52) {
+                    if (week52.position === 'NEAR_HIGH') {
+                        summary += `Stock is near its <strong style="color: #f59e0b;">52-week high</strong> (${week52.percent_in_range.toFixed(0)}%) - limited upside or breakout potential? `;
+                    } else if (week52.position === 'NEAR_LOW') {
+                        summary += `Stock is near its <strong style="color: #10b981;">52-week low</strong> (${week52.percent_in_range.toFixed(0)}%) - potential value opportunity or falling knife? `;
+                    } else if (week52.position === 'UPPER_RANGE') {
+                        summary += `Trading in <strong>upper range</strong> (${week52.percent_in_range.toFixed(0)}% of 52-week range). `;
+                    } else if (week52.position === 'LOWER_RANGE') {
+                        summary += `Trading in <strong>lower range</strong> (${week52.percent_in_range.toFixed(0)}% of 52-week range). `;
+                    }
+                }
+
+                // Institutional activity
+                const instPercent = accumulation.participants.institutional_percent;
+                if (instPercent > 60) {
+                    summary += `<strong style="color: #10b981;">Institutions heavily involved</strong> (${instPercent.toFixed(0)}% institutional). `;
+                } else if (instPercent < 40) {
+                    summary += `Retail-dominated (${instPercent.toFixed(0)}% institutional). `;
+                }
+
+                // Money flow
+                if (mfi) {
+                    if (mfi.signal === 'BULLISH' || mfi.signal === 'OVERSOLD') {
+                        summary += `Money is <strong style="color: #10b981;">flowing IN</strong> (MFI ${mfi.mfi.toFixed(0)}). `;
+                    } else if (mfi.signal === 'BEARISH' || mfi.signal === 'OVERBOUGHT') {
+                        summary += `Money is <strong style="color: #ef4444;">flowing OUT</strong> (MFI ${mfi.mfi.toFixed(0)}). `;
+                    }
+                }
+
+                // Stochastic timing
+                if (stochastic) {
+                    if (stochastic.signal === 'OVERSOLD') {
+                        summary += `📍 <strong style="color: #10b981;">Oversold zone</strong> - potential bounce timing. `;
+                    } else if (stochastic.signal === 'OVERBOUGHT') {
+                        summary += `📍 <strong style="color: #ef4444;">Overbought zone</strong> - potential pullback. `;
+                    } else if (stochastic.signal === 'BULLISH_CROSS') {
+                        summary += `📍 <strong style="color: #10b981;">Bullish crossover</strong> detected - entry signal. `;
+                    } else if (stochastic.signal === 'BEARISH_CROSS') {
+                        summary += `📍 <strong style="color: #ef4444;">Bearish crossover</strong> detected - exit signal. `;
+                    }
+                }
+
+                // Risk-reward assessment
+                if (riskRewardRatio >= 2) {
+                    summary += `<strong style="color: #10b981;">Excellent</strong> risk:reward (1:${riskRewardRatio}). `;
+                } else if (riskRewardRatio >= 1.5) {
+                    summary += `Good risk:reward (1:${riskRewardRatio}). `;
+                } else if (riskRewardRatio < 1) {
+                    summary += `<strong style="color: #ef4444;">Poor</strong> risk:reward (1:${riskRewardRatio}). `;
+                }
+
+                // Final recommendation
+                summary += `<br><br><strong>💡 Action:</strong> `;
+                if (overallRec.action.includes('STRONG BUY')) {
+                    summary += `<strong style="color: #10b981; font-size: 1.1rem;">STRONG BUY</strong> - Multiple positive signals align.`;
+                } else if (overallRec.action.includes('BUY')) {
+                    summary += `<strong style="color: #10b981; font-size: 1.1rem;">BUY</strong> - Positive factors outweigh risks.`;
+                } else if (overallRec.action.includes('HOLD')) {
+                    if (divergence?.divergence === 'BEARISH' || macd?.signal === 'TURNING_DOWN') {
+                        summary += `<strong style="color: #f59e0b; font-size: 1.1rem;">HOLD/CAUTION</strong> - Wait for conflicting signals to clear.`;
+                    } else if (divergence?.divergence === 'BULLISH' || macd?.signal === 'TURNING_UP') {
+                        summary += `<strong style="color: #f59e0b; font-size: 1.1rem;">HOLD/WATCH</strong> - Potential opportunity developing, wait for confirmation.`;
+                    } else {
+                        summary += `<strong style="color: #f59e0b; font-size: 1.1rem;">HOLD</strong> - Mixed signals, neutral stance advised.`;
+                    }
+                } else {
+                    summary += `<strong style="color: #ef4444; font-size: 1.1rem;">SELL</strong> - Negative factors dominate.`;
+                }
+
+                return summary;
+            };
+
+            const analysisSummary = generateAnalysisSummary();
+
+            let html = `
+                <!-- EXECUTIVE SUMMARY -->
+                <div class="executive-summary">
+                    <div class="executive-title">⚡ Decision Dashboard</div>
+                    <p style="font-size: 0.85rem; color: #94a3b8; text-align: center; margin: -10px 0 15px 0;">🎯 THE BIG PICTURE! Everything you need to know at a glance - like a report card for the stock!</p>
+
+                    <!-- AI Analysis Summary -->
+                    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                        <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                            📊 AI Analysis Summary
+                        </div>
+                        <div style="font-size: 0.95rem; line-height: 1.6; color: #e2e8f0;">
+                            ${analysisSummary}
+                        </div>
+                    </div>
+
+                    <div class="executive-grid">
+                        <!-- Overall Recommendation -->
+                        <div class="executive-box ${getExecutiveBoxClass(overallRec.action)}">
+                            <div class="executive-label">Action</div>
+                            <div class="executive-value" style="color: ${overallRec.color === 'success' ? '#10b981' : overallRec.color === 'danger' ? '#ef4444' : '#f59e0b'}; font-size: 1.5rem;">
+                                ${overallRec.action}
+                            </div>
+                            <div class="executive-desc">Score: ${overall_analysis.score.toFixed(0)}/100 • ${overallRec.confidence}</div>
+                        </div>
+
+                        <!-- Entry Price -->
+                        <div class="executive-box">
+                            <div class="executive-label">💰 Entry Price</div>
+                            <div class="executive-value" style="color: #10b981">
+                                ${getCurrencySymbol(stock_info.market)}${bestEntry.price.toLocaleString()}
+                            </div>
+                            <div class="executive-desc">${bestEntry.distance_percent > 0 ? '↑' : '↓'} ${Math.abs(bestEntry.distance_percent).toFixed(1)}% from current</div>
+                        </div>
+
+                        <!-- Exit Target -->
+                        <div class="executive-box">
+                            <div class="executive-label">🎯 Exit Target</div>
+                            <div class="executive-value" style="color: #3b82f6">
+                                ${getCurrencySymbol(stock_info.market)}${bestExit.price.toLocaleString()}
+                            </div>
+                            <div class="executive-desc" style="color: #10b981;">+${bestExit.potential_gain_percent.toFixed(1)}% gain</div>
+                        </div>
+
+                        <!-- Stop Loss -->
+                        <div class="executive-box">
+                            <div class="executive-label">🛑 Stop Loss</div>
+                            <div class="executive-value" style="color: #ef4444">
+                                ${getCurrencySymbol(stock_info.market)}${stopLoss}
+                            </div>
+                            <div class="executive-desc">5% below entry (ATR-based)</div>
+                        </div>
+
+                        <!-- Risk-Reward -->
+                        <div class="executive-box ${riskRewardRatio >= 2 ? 'highlight' : ''}">
+                            <div class="executive-label">⚖️ Risk:Reward</div>
+                            <div class="executive-value" style="color: ${riskRewardRatio >= 2 ? '#10b981' : riskRewardRatio >= 1.5 ? '#f59e0b' : '#ef4444'}">
+                                1:${riskRewardRatio}
+                            </div>
+                            <div class="executive-desc">${riskRewardRatio >= 2 ? 'Excellent' : riskRewardRatio >= 1.5 ? 'Good' : 'Fair'}</div>
+                        </div>
+
+                        <!-- Phase -->
+                        <div class="executive-box ${accPhase.current_phase === 'ACCUMULATION' ? 'highlight' : accPhase.current_phase === 'DISTRIBUTION' ? 'danger' : ''}">
+                            <div class="executive-label">📊 Phase</div>
+                            <div class="executive-value" style="color: ${accPhase.current_phase === 'ACCUMULATION' ? '#10b981' : accPhase.current_phase === 'DISTRIBUTION' ? '#ef4444' : '#f59e0b'}; font-size: 1rem;">
+                                ${accPhase.current_phase}
+                            </div>
+                            <div class="executive-desc">Strength: ${accumulation.strength.score}/100</div>
+                        </div>
+
+                        <!-- Swing Rating -->
+                        <div class="executive-box">
+                            <div class="executive-label">📈 Swing</div>
+                            <div class="executive-value" style="color: #f59e0b">
+                                ${swingRating.score}/100
+                            </div>
+                            <div class="executive-desc">±${swing_analysis.swing_size.average_swing_percent.toFixed(1)}% avg</div>
+                        </div>
+
+                        <!-- Participant Type -->
+                        <div class="executive-box ${accumulation.participants.primary_type.includes('Institutional') ? 'highlight' : ''}">
+                            <div class="executive-label">👥 Money Type</div>
+                            <div class="executive-value" style="color: ${accumulation.participants.primary_type.includes('Institutional') ? '#10b981' : '#f59e0b'}; font-size: 0.9rem;">
+                                ${accumulation.participants.primary_type.replace('Dominant', '').replace('Leaning', '')}
+                            </div>
+                            <div class="executive-desc">${accumulation.participants.institutional_percent.toFixed(0)}% inst</div>
+                        </div>
+
+                        <!-- MACD Momentum (PRO) -->
+                        <div class="executive-box ${
+                            overall_analysis.metrics?.technical?.macd?.signal === 'BULLISH' || overall_analysis.metrics?.technical?.macd?.signal === 'TURNING_UP' ? 'highlight' :
+                            overall_analysis.metrics?.technical?.macd?.signal === 'BEARISH' || overall_analysis.metrics?.technical?.macd?.signal === 'TURNING_DOWN' ? 'danger' : ''
+                        }">
+                            <div class="executive-label">🚀 MACD</div>
+                            <div class="executive-value" style="color: ${
+                                overall_analysis.metrics?.technical?.macd?.signal === 'BULLISH' ? '#10b981' :
+                                overall_analysis.metrics?.technical?.macd?.signal === 'TURNING_UP' ? '#22c55e' :
+                                overall_analysis.metrics?.technical?.macd?.signal === 'BEARISH' ? '#ef4444' :
+                                overall_analysis.metrics?.technical?.macd?.signal === 'TURNING_DOWN' ? '#f97316' : '#94a3b8'
+                            }; font-size: 0.85rem;">
+                                ${overall_analysis.metrics?.technical?.macd ? overall_analysis.metrics.technical.macd.signal.replace(/_/g, ' ') : 'N/A'}
+                            </div>
+                            <div class="executive-desc">Momentum trend</div>
+                        </div>
+
+                        <!-- Divergence Alert (PRO) -->
+                        <div class="executive-box ${
+                            overall_analysis.metrics?.technical?.divergence?.divergence === 'BULLISH' ? 'highlight' :
+                            overall_analysis.metrics?.technical?.divergence?.divergence === 'BEARISH' ? 'danger' : ''
+                        }">
+                            <div class="executive-label">⚠️ Divergence</div>
+                            <div class="executive-value" style="color: ${
+                                overall_analysis.metrics?.technical?.divergence?.divergence === 'BULLISH' ? '#10b981' :
+                                overall_analysis.metrics?.technical?.divergence?.divergence === 'BEARISH' ? '#ef4444' : '#94a3b8'
+                            }; font-size: 0.85rem;">
+                                ${overall_analysis.metrics?.technical?.divergence?.divergence || 'NONE'}
+                            </div>
+                            <div class="executive-desc">${overall_analysis.metrics?.technical?.divergence?.divergence === 'BULLISH' ? '🟢 Buy signal' : overall_analysis.metrics?.technical?.divergence?.divergence === 'BEARISH' ? '🔴 Sell signal' : 'No warning'}</div>
+                        </div>
+
+                        <!-- 52-Week Position (PRO) -->
+                        <div class="executive-box ${
+                            overall_analysis.metrics?.technical?.['52_week']?.position === 'NEAR_LOW' ? 'highlight' :
+                            overall_analysis.metrics?.technical?.['52_week']?.position === 'NEAR_HIGH' ? 'danger' : ''
+                        }">
+                            <div class="executive-label">📍 52-Week</div>
+                            <div class="executive-value" style="color: ${
+                                overall_analysis.metrics?.technical?.['52_week']?.percent_in_range < 25 ? '#10b981' :
+                                overall_analysis.metrics?.technical?.['52_week']?.percent_in_range > 75 ? '#f59e0b' : '#94a3b8'
+                            }; font-size: 1.2rem;">
+                                ${overall_analysis.metrics?.technical?.['52_week']?.percent_in_range?.toFixed(0) || 'N/A'}%
+                            </div>
+                            <div class="executive-desc">${overall_analysis.metrics?.technical?.['52_week']?.position?.replace(/_/g, ' ') || 'In range'}</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Stock Header (Compact) -->
+                <div class="card" style="padding: 15px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h2 style="font-size: 1.5rem; margin: 0;">${stock_info.name}</h2>
+                            <p class="stock-symbol" style="margin: 5px 0;">${stock_info.symbol}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 2rem; font-weight: bold;">${getCurrencySymbol(stock_info.market)}${stock_info.current_price.toLocaleString()}</div>
+                            <div class="price-change ${priceChangeClass}" style="font-size: 1rem;">
+                                ${priceChangeSign}${stock_info.change_percent.toFixed(2)}%
+                            </div>
+                        </div>
+                        <div>
+                            ${favoriteBtn}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KEY DECISION METRICS (COMPACT) -->
+                <div class="compact-grid">
+                    <!-- Technical Indicators -->
+                    <div class="card">
+                        <h3>📈 Technical Indicators</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">📊 Like a thermometer for stocks! Shows if the stock is "hot" (overbought), "cold" (oversold), or just right!</p>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
+                            <div class="metric">
+                                <div class="metric-label">RSI (14)</div>
+                                <div class="metric-value" style="color: ${overall_analysis.metrics?.technical?.rsi < 30 ? '#10b981' : overall_analysis.metrics?.technical?.rsi > 70 ? '#ef4444' : '#f59e0b'}">
+                                    ${overall_analysis.metrics?.technical?.rsi?.toFixed(0) || 'N/A'}
+                                </div>
+                                <div class="metric-small">${overall_analysis.metrics?.technical?.rsi < 30 ? 'Oversold' : overall_analysis.metrics?.technical?.rsi > 70 ? 'Overbought' : 'Neutral'}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">MA Status</div>
+                                <div class="metric-value" style="font-size: 0.85rem; color: ${overall_analysis.metrics?.technical?.above_sma ? '#10b981' : '#ef4444'}">
+                                    ${overall_analysis.metrics?.technical?.above_sma ? '↑ Above' : '↓ Below'}
+                                </div>
+                                <div class="metric-small">20-day SMA</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Volatility</div>
+                                <div class="metric-value" style="font-size: 0.9rem;">
+                                    ${swing_analysis.volatility.volatility_rating}
+                                </div>
+                                <div class="metric-small">${swing_analysis.volatility.daily_volatility_percent.toFixed(1)}% daily</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Trend</div>
+                                <div class="metric-value" style="font-size: 0.85rem; color: ${swing_analysis.swing_pattern.pattern.includes('Higher') ? '#10b981' : '#ef4444'}">
+                                    ${swing_analysis.swing_pattern.pattern.includes('Higher') ? '📈 Up' : swing_analysis.swing_pattern.pattern.includes('Lower') ? '📉 Down' : '↔️ Side'}
+                                </div>
+                                <div class="metric-small">${swing_analysis.swing_pattern.pattern.substring(0, 15)}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fundamental Ratios -->
+                    <div class="card">
+                        <h3>💰 Fundamentals</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">💎 Is this stock a good VALUE? Like comparing toy prices - are we getting a good deal or paying too much?</p>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
+                            <div class="metric">
+                                <div class="metric-label">P/E Ratio</div>
+                                <div class="metric-value" style="color: ${metrics.valuation?.pe_ratio < 15 ? '#10b981' : metrics.valuation?.pe_ratio < 25 ? '#f59e0b' : '#ef4444'}">
+                                    ${metrics.valuation?.pe_ratio?.toFixed(1) || 'N/A'}
+                                </div>
+                                <div class="metric-small">${metrics.valuation?.pe_ratio < 15 ? 'Cheap' : metrics.valuation?.pe_ratio < 25 ? 'Fair' : 'Expensive'}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">P/B Ratio</div>
+                                <div class="metric-value" style="color: ${metrics.valuation?.pb_ratio < 1.5 ? '#10b981' : metrics.valuation?.pb_ratio < 3 ? '#f59e0b' : '#ef4444'}">
+                                    ${metrics.valuation?.pb_ratio?.toFixed(1) || 'N/A'}
+                                </div>
+                                <div class="metric-small">${metrics.valuation?.pb_ratio < 1.5 ? 'Underval' : metrics.valuation?.pb_ratio < 3 ? 'Fair' : 'Overval'}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">ROE</div>
+                                <div class="metric-value" style="color: ${metrics.profitability?.roe > 15 ? '#10b981' : metrics.profitability?.roe > 10 ? '#f59e0b' : '#ef4444'}">
+                                    ${metrics.profitability?.roe?.toFixed(1) || 'N/A'}%
+                                </div>
+                                <div class="metric-small">${metrics.profitability?.roe > 15 ? 'Strong' : metrics.profitability?.roe > 10 ? 'Good' : 'Weak'}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">EPS</div>
+                                <div class="metric-value" style="font-size: 0.9rem; color: ${metrics.profitability?.eps > 0 ? '#10b981' : '#ef4444'}">
+                                    ${metrics.profitability?.eps?.toFixed(0) || 'N/A'}
+                                </div>
+                                <div class="metric-small">${metrics.profitability?.eps > 0 ? 'Profit' : 'Loss'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Volume & Liquidity -->
+                    <div class="card">
+                        <h3>📊 Volume & Liquidity</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🏪 How BUSY is the stock store? Lots of buyers = popular! Shows how many people are trading this stock.</p>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
+                            <div class="metric">
+                                <div class="metric-label">Volume Ratio</div>
+                                <div class="metric-value" style="color: ${accumulation.current_volume_vs_average.ratio > 1.2 ? '#10b981' : accumulation.current_volume_vs_average.ratio > 0.8 ? '#f59e0b' : '#ef4444'}">
+                                    ${accumulation.current_volume_vs_average.ratio}x
+                                </div>
+                                <div class="metric-small">${accumulation.current_volume_vs_average.status}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Market Cap</div>
+                                <div class="metric-value" style="font-size: 0.85rem;">
+                                    ${metrics.valuation?.market_cap ? (metrics.valuation.market_cap / 1000000000000).toFixed(1) + 'T' : 'N/A'}
+                                </div>
+                                <div class="metric-small">${metrics.valuation?.market_cap > 100000000000000 ? 'Large' : metrics.valuation?.market_cap > 10000000000000 ? 'Mid' : 'Small'}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Accum Duration</div>
+                                <div class="metric-value" style="color: ${accumulation.duration.days > 15 ? '#10b981' : '#f59e0b'}">
+                                    ${accumulation.duration.days}d
+                                </div>
+                                <div class="metric-small">${accumulation.duration.status}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Magnitude</div>
+                                <div class="metric-value" style="font-size: 0.9rem; color: ${accumulation.magnitude.vs_average_percent > 25 ? '#10b981' : '#f59e0b'}">
+                                    ${accumulation.magnitude.size}
+                                </div>
+                                <div class="metric-small">${accumulation.magnitude.vs_average_percent > 0 ? '+' : ''}${accumulation.magnitude.vs_average_percent}%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Professional Indicators -->
+                    <div class="card" style="grid-column: span 3;">
+                        <h3>🎯 Professional Indicators</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">⭐ What the PROS use! Advanced signals that professional traders watch every day!</p>
+                        <div class="metric-row" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                            <!-- MACD -->
+                            ${metrics.technical?.macd ? `
+                                <div class="metric" style="border-left: 3px solid ${
+                                    metrics.technical.macd.signal === 'BULLISH' ? '#10b981' :
+                                    metrics.technical.macd.signal === 'BEARISH' ? '#ef4444' :
+                                    metrics.technical.macd.signal === 'TURNING_UP' ? '#22c55e' :
+                                    metrics.technical.macd.signal === 'TURNING_DOWN' ? '#f97316' : '#94a3b8'
+                                }; padding-left: 10px;">
+                                    <div class="metric-label">MACD (Momentum)</div>
+                                    <div class="metric-value" style="font-size: 0.85rem; color: ${
+                                        metrics.technical.macd.signal === 'BULLISH' || metrics.technical.macd.signal === 'TURNING_UP' ? '#10b981' :
+                                        metrics.technical.macd.signal === 'BEARISH' || metrics.technical.macd.signal === 'TURNING_DOWN' ? '#ef4444' : '#f59e0b'
+                                    }">
+                                        ${metrics.technical.macd.signal.replace(/_/g, ' ')}
+                                    </div>
+                                    <div class="metric-small">${metrics.technical.macd.interpretation}</div>
+                                </div>
+                            ` : '<div class="metric"><div class="metric-label">MACD</div><div class="metric-value">N/A</div></div>'}
+
+                            <!-- Stochastic Oscillator -->
+                            ${metrics.technical?.stochastic ? `
+                                <div class="metric" style="border-left: 3px solid ${
+                                    metrics.technical.stochastic.signal === 'OVERSOLD' || metrics.technical.stochastic.signal === 'BULLISH_CROSS' ? '#10b981' :
+                                    metrics.technical.stochastic.signal === 'OVERBOUGHT' || metrics.technical.stochastic.signal === 'BEARISH_CROSS' ? '#ef4444' : '#94a3b8'
+                                }; padding-left: 10px;">
+                                    <div class="metric-label">Stochastic %K</div>
+                                    <div class="metric-value" style="color: ${
+                                        metrics.technical.stochastic.k < 20 ? '#10b981' :
+                                        metrics.technical.stochastic.k > 80 ? '#ef4444' : '#f59e0b'
+                                    }">
+                                        ${metrics.technical.stochastic.k.toFixed(0)}
+                                    </div>
+                                    <div class="metric-small">${metrics.technical.stochastic.signal.replace(/_/g, ' ')}</div>
+                                </div>
+                            ` : '<div class="metric"><div class="metric-label">Stochastic</div><div class="metric-value">N/A</div></div>'}
+
+                            <!-- Money Flow Index -->
+                            ${metrics.technical?.mfi ? `
+                                <div class="metric" style="border-left: 3px solid ${
+                                    metrics.technical.mfi.signal === 'OVERSOLD' || metrics.technical.mfi.signal === 'BULLISH' ? '#10b981' :
+                                    metrics.technical.mfi.signal === 'OVERBOUGHT' || metrics.technical.mfi.signal === 'BEARISH' ? '#ef4444' : '#94a3b8'
+                                }; padding-left: 10px;">
+                                    <div class="metric-label">MFI (Money Flow)</div>
+                                    <div class="metric-value" style="color: ${
+                                        metrics.technical.mfi.mfi < 20 ? '#10b981' :
+                                        metrics.technical.mfi.mfi > 80 ? '#ef4444' : '#f59e0b'
+                                    }">
+                                        ${metrics.technical.mfi.mfi.toFixed(0)}
+                                    </div>
+                                    <div class="metric-small">${metrics.technical.mfi.interpretation}</div>
+                                </div>
+                            ` : '<div class="metric"><div class="metric-label">MFI</div><div class="metric-value">N/A</div></div>'}
+
+                            <!-- 52-Week Position -->
+                            ${metrics.technical?.['52_week'] ? `
+                                <div class="metric" style="border-left: 3px solid ${
+                                    metrics.technical['52_week'].position === 'NEAR_HIGH' ? '#ef4444' :
+                                    metrics.technical['52_week'].position === 'NEAR_LOW' ? '#10b981' :
+                                    metrics.technical['52_week'].position === 'UPPER_RANGE' ? '#f59e0b' :
+                                    metrics.technical['52_week'].position === 'LOWER_RANGE' ? '#22c55e' : '#94a3b8'
+                                }; padding-left: 10px;">
+                                    <div class="metric-label">52-Week Position</div>
+                                    <div class="metric-value" style="font-size: 0.85rem; color: ${
+                                        metrics.technical['52_week'].percent_in_range > 75 ? '#f59e0b' : '#10b981'
+                                    }">
+                                        ${metrics.technical['52_week'].percent_in_range.toFixed(0)}%
+                                    </div>
+                                    <div class="metric-small">${metrics.technical['52_week'].position.replace(/_/g, ' ')}</div>
+                                </div>
+                            ` : '<div class="metric"><div class="metric-label">52-Week</div><div class="metric-value">N/A</div></div>'}
+
+                            <!-- Divergence Alert -->
+                            ${metrics.technical?.divergence ? `
+                                <div class="metric" style="border-left: 3px solid ${
+                                    metrics.technical.divergence.divergence === 'BULLISH' ? '#10b981' :
+                                    metrics.technical.divergence.divergence === 'BEARISH' ? '#ef4444' : '#94a3b8'
+                                }; padding-left: 10px;">
+                                    <div class="metric-label">RSI Divergence</div>
+                                    <div class="metric-value" style="font-size: 0.75rem; color: ${
+                                        metrics.technical.divergence.divergence === 'BULLISH' ? '#10b981' :
+                                        metrics.technical.divergence.divergence === 'BEARISH' ? '#ef4444' : '#94a3b8'
+                                    }">
+                                        ${metrics.technical.divergence.divergence === 'NONE' ? 'None' : metrics.technical.divergence.signal}
+                                    </div>
+                                    <div class="metric-small">${metrics.technical.divergence.divergence !== 'NONE' ? '⚠️ ' + metrics.technical.divergence.divergence : 'No divergence'}</div>
+                                </div>
+                            ` : '<div class="metric"><div class="metric-label">Divergence</div><div class="metric-value">N/A</div></div>'}
+
+                            <!-- Debt to Equity -->
+                            ${metrics.valuation?.debt_to_equity ? `
+                                <div class="metric" style="border-left: 3px solid ${
+                                    metrics.valuation.debt_to_equity < 50 ? '#10b981' :
+                                    metrics.valuation.debt_to_equity < 100 ? '#f59e0b' : '#ef4444'
+                                }; padding-left: 10px;">
+                                    <div class="metric-label">Debt/Equity</div>
+                                    <div class="metric-value" style="color: ${
+                                        metrics.valuation.debt_to_equity < 50 ? '#10b981' :
+                                        metrics.valuation.debt_to_equity < 100 ? '#f59e0b' : '#ef4444'
+                                    }">
+                                        ${metrics.valuation.debt_to_equity.toFixed(0)}%
+                                    </div>
+                                    <div class="metric-small">${
+                                        metrics.valuation.debt_to_equity < 50 ? 'Low risk' :
+                                        metrics.valuation.debt_to_equity < 100 ? 'Moderate' : 'High risk'
+                                    }</div>
+                                </div>
+                            ` : '<div class="metric"><div class="metric-label">D/E Ratio</div><div class="metric-value">N/A</div></div>'}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accumulation Analysis (Compact) -->
+                <div class="compact-grid">
+                    <!-- Accumulation Phase Card -->
+                    <div class="card" style="grid-column: span 2;">
+                        <div style="background: ${getPhaseColor(accumulation.phase.current_phase)}; padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">${accumulation.phase.current_phase}</div>
+                            <div style="font-size: 0.85rem; opacity: 0.95;">${accumulation.phase.description}</div>
+                        </div>
+                        <h3 style="margin-top: 15px;">📊 Accumulation Metrics</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🐘 Are the BIG SMART elephants (rich people) buying? When elephants dance, we follow! Strong = good sign!</p>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr 1fr;">
+                            <div class="metric">
+                                <div class="metric-label">Strength</div>
+                                <div class="metric-value">${accumulation.strength.score}</div>
+                                <div class="metric-small">${accumulation.strength.strength}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">OBV</div>
+                                <div class="metric-value" style="font-size: 0.9rem;">${accumulation.obv_analysis.trend}</div>
+                                <div class="metric-small">${accumulation.obv_analysis.interpretation.substring(0, 12)}</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Vol Ratio</div>
+                                <div class="metric-value">${accumulation.current_volume_vs_average.ratio}x</div>
+                                <div class="metric-small">${accumulation.current_volume_vs_average.status.substring(0, 10)}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Participant Analysis -->
+                    <div class="card">
+                        <h3>👥 Participants</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🏦 WHO is buying? Big banks (green) = smart! Regular people (red) = be careful! Follow the smart money!</p>
+                        <div style="text-align: center; margin: 15px 0;">
+                            <div style="font-size: 1.1rem; font-weight: bold; color: ${accumulation.participants.primary_type.includes('Institutional') ? '#10b981' : '#f59e0b'};">
+                                ${accumulation.participants.primary_type.replace('Dominant', '').replace('Leaning', '')}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin: 12px 0;">
+                            <div style="flex: ${accumulation.participants.institutional_percent}; background: #10b981; height: 25px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">
+                                ${accumulation.participants.institutional_percent >= 15 ? accumulation.participants.institutional_percent.toFixed(0) + '%' : ''}
+                            </div>
+                            <div style="flex: ${accumulation.participants.retail_percent}; background: #ef4444; height: 25px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">
+                                ${accumulation.participants.retail_percent >= 15 ? accumulation.participants.retail_percent.toFixed(0) + '%' : ''}
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                            🏦 ${accumulation.participants.institutional_percent.toFixed(0)}% | 👤 ${accumulation.participants.retail_percent.toFixed(0)}%
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Whale Flow Analysis Widget -->
+                ${bandarmology && bandarmology.phase ? `
+                <div class="card" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px solid ${bandarmology.phase.color};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0; font-size: 1.3rem;">🐋 Whale Flow Analysis</h3>
+                        <div class="badge" style="background: ${bandarmology.phase.color}; padding: 6px 12px; font-size: 0.85rem;">
+                            ${bandarmology.phase.icon} ${bandarmology.phase.current_phase}
+                        </div>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: #94a3b8; margin: 0 0 20px 0;">
+                        🐋 Melacak pergerakan bandar (whale/smart money) di pasar saham Indonesia. Ikuti jejak pemain besar!
+                    </p>
+
+                    <!-- Phase Banner -->
+                    <div style="background: ${bandarmology.phase.color}; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">${bandarmology.phase.icon}</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 8px;">${bandarmology.phase.current_phase}</div>
+                        <div style="font-size: 0.95rem; opacity: 0.95; margin-bottom: 10px;">${bandarmology.phase.description}</div>
+                        <div style="font-size: 0.9rem; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; margin-top: 10px;">
+                            💡 ${bandarmology.phase.action_hint}
+                        </div>
+                    </div>
+
+                    <!-- Bandar Strength Meter -->
+                    <div style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 600; font-size: 0.95rem;">🔥 Kekuatan Bandar</span>
+                            <span style="font-weight: bold; color: ${bandarmology.bandar_strength.score >= 70 ? '#10b981' : bandarmology.bandar_strength.score >= 50 ? '#f59e0b' : '#ef4444'};">
+                                ${bandarmology.bandar_strength.score}/100
+                            </span>
+                        </div>
+                        <div style="background: #0f172a; height: 30px; border-radius: 15px; overflow: hidden; position: relative;">
+                            <div style="background: linear-gradient(90deg, ${
+                                bandarmology.bandar_strength.score >= 70 ? '#10b981, #059669' :
+                                bandarmology.bandar_strength.score >= 50 ? '#f59e0b, #d97706' :
+                                '#ef4444, #dc2626'
+                            }); height: 100%; width: ${bandarmology.bandar_strength.percent}%; transition: width 1s ease; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem;">
+                                ${bandarmology.bandar_strength.strength}
+                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 8px;">
+                            ${bandarmology.bandar_strength.indicators.slice(0, 2).join(' • ')}
+                        </div>
+                    </div>
+
+                    <!-- Buy/Sell Signals -->
+                    <div class="compact-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-bottom: 20px;">
+                        <!-- Buy Signals -->
+                        <div style="background: rgba(16, 185, 129, 0.1); border: 2px solid #10b981; border-radius: 10px; padding: 15px;">
+                            <h4 style="margin: 0 0 12px 0; color: #10b981; font-size: 1rem;">✅ Sinyal Beli (${bandarmology.signals.buy_signals.length})</h4>
+                            ${bandarmology.signals.buy_signals.length > 0 ? bandarmology.signals.buy_signals.map(signal => `
+                                <div style="background: rgba(16, 185, 129, 0.15); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #10b981;">
+                                    <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;">${signal.signal}</div>
+                                    <div style="font-size: 0.8rem; color: #cbd5e1;">${signal.description}</div>
+                                </div>
+                            `).join('') : '<p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">Tidak ada sinyal beli saat ini</p>'}
+                        </div>
+
+                        <!-- Sell Signals -->
+                        <div style="background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; border-radius: 10px; padding: 15px;">
+                            <h4 style="margin: 0 0 12px 0; color: #ef4444; font-size: 1rem;">⚠️ Sinyal Jual (${bandarmology.signals.sell_signals.length})</h4>
+                            ${bandarmology.signals.sell_signals.length > 0 ? bandarmology.signals.sell_signals.map(signal => `
+                                <div style="background: rgba(239, 68, 68, 0.15); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #ef4444;">
+                                    <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;">${signal.signal}</div>
+                                    <div style="font-size: 0.8rem; color: #cbd5e1;">${signal.description}</div>
+                                </div>
+                            `).join('') : '<p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">Tidak ada sinyal jual saat ini</p>'}
+                        </div>
+                    </div>
+
+                    <!-- Smart Money Flow & Risk -->
+                    <div class="compact-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px;">
+                        <div class="metric" style="background: #1e293b;">
+                            <div class="metric-label">💰 Smart Money Flow</div>
+                            <div class="metric-value" style="color: ${
+                                bandarmology.smart_money_flow.status.includes('Inflow') ? '#10b981' :
+                                bandarmology.smart_money_flow.status.includes('Outflow') ? '#ef4444' : '#f59e0b'
+                            };">${bandarmology.smart_money_flow.status}</div>
+                            <div class="metric-small">${bandarmology.smart_money_flow.interpretation}</div>
+                        </div>
+
+                        <div class="metric" style="background: #1e293b;">
+                            <div class="metric-label">📊 Divergence</div>
+                            <div class="metric-value" style="font-size: 0.95rem;">${bandarmology.divergence.divergence}</div>
+                            <div class="metric-small">${bandarmology.divergence.interpretation.substring(0, 40)}...</div>
+                        </div>
+
+                        <div class="metric" style="background: #1e293b;">
+                            <div class="metric-label">🎲 Risk Level</div>
+                            <div class="metric-value" style="color: ${bandarmology.risk_assessment.color};">${bandarmology.risk_assessment.risk_level}</div>
+                            <div class="metric-small">Score: ${bandarmology.risk_assessment.risk_score}/100</div>
+                        </div>
+
+                        <div class="metric" style="background: #1e293b;">
+                            <div class="metric-label">🚀 Breakout Probability</div>
+                            <div class="metric-value">${bandarmology.breakout_probability.probability_percent}%</div>
+                            <div class="metric-small">${bandarmology.breakout_probability.likelihood}</div>
+                        </div>
+                    </div>
+
+                    <!-- Final Recommendation -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                            <h4 style="margin: 0; font-size: 1.2rem;">📈 Rekomendasi Final</h4>
+                            <div class="badge" style="background: rgba(255,255,255,0.2); padding: 6px 12px;">
+                                Confidence: ${bandarmology.recommendation.confidence}
+                            </div>
+                        </div>
+                        <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 10px;">
+                            ${bandarmology.recommendation.action}
+                        </div>
+                        <div style="font-size: 0.9rem; margin-bottom: 15px; line-height: 1.6;">
+                            ${bandarmology.recommendation.reasoning.map(reason => `• ${reason}`).join('<br>')}
+                        </div>
+                        <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 6px; font-size: 0.85rem;">
+                            <strong>💡 Entry Strategy:</strong><br>
+                            ${bandarmology.recommendation.entry_strategy}
+                        </div>
+                    </div>
+
+                    <!-- Stop Loss & Target Profit -->
+                    <div class="compact-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div style="background: rgba(239, 68, 68, 0.15); border: 2px solid #ef4444; border-radius: 8px; padding: 15px;">
+                            <div style="font-weight: 600; margin-bottom: 8px; color: #ef4444;">🛡️ Stop Loss</div>
+                            <div style="font-size: 0.85rem; line-height: 1.5;">${bandarmology.recommendation.stop_loss_suggestion}</div>
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.15); border: 2px solid #10b981; border-radius: 8px; padding: 15px;">
+                            <div style="font-weight: 600; margin-bottom: 8px; color: #10b981;">🎯 Target Profit</div>
+                            <div style="font-size: 0.85rem; line-height: 1.5;">${bandarmology.recommendation.target_profit_suggestion}</div>
+                        </div>
+                    </div>
+                </div>
+                ` : `
+                <div class="card" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px solid #334155;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0; font-size: 1.3rem;">🐋 Whale Flow Analysis</h3>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: #94a3b8; margin: 0 0 20px 0;">
+                        🐋 Melacak pergerakan bandar (whale/smart money) di pasar saham Indonesia. Ikuti jejak pemain besar!
+                    </p>
+
+                    <div style="text-align: center; padding: 40px 20px; background: rgba(15, 23, 42, 0.6); border-radius: 12px; border: 2px dashed #334155;">
+                        <div style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;">📊</div>
+                        <p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 10px;">No Whale Flow Data Available</p>
+                        <p style="color: #64748b; font-size: 0.85rem; margin: 0;">
+                            Data could not be retrieved from the source. Please try again later or check the stock symbol.
+                        </p>
+                    </div>
+                </div>
+                `}
+
+                <!-- Entry/Exit & Swing (Compact 3-column) -->
+                <div class="compact-grid">
+                    <!-- Entry Zones -->
+                    <div class="card">
+                        <h3>🎯 Entry Zones</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🛒 WHEN to BUY? Like waiting for your favorite toy to go on SALE! Green = good deal!</p>
+                        ${Object.entries(entry_exit.entry_recommendation).map(([type, zone]) => `
+                            <div style="background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #10b981;">
+                                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">${type}</div>
+                                <div style="font-size: 1.1rem; font-weight: bold; margin: 4px 0;">${getCurrencySymbol(stock_info.market)}${zone.price.toLocaleString()}</div>
+                                <div style="font-size: 0.75rem; color: ${zone.distance_percent > 0 ? '#10b981' : '#ef4444'};">
+                                    ${zone.distance_percent > 0 ? '↑' : '↓'} ${Math.abs(zone.distance_percent).toFixed(1)}% from current
+                                </div>
+                            </div>
+                        `).join('')}
+                        <div style="margin-top: 10px; padding: 10px; background: #0f172a; border-radius: 6px; font-size: 0.8rem;">
+                            <strong>Action:</strong> ${entry_exit.position_recommendation.recommended_action}
+                        </div>
+                    </div>
+
+                    <!-- Exit Targets -->
+                    <div class="card">
+                        <h3>🚀 Exit Targets</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">💰 WHEN to SELL for PROFIT? Like selling your toys for MORE money than you paid! Take your profits!</p>
+                        ${Object.entries(entry_exit.exit_recommendation).map(([type, zone]) => `
+                            <div style="background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #3b82f6;">
+                                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">${type}</div>
+                                <div style="font-size: 1.1rem; font-weight: bold; margin: 4px 0;">${getCurrencySymbol(stock_info.market)}${zone.price.toLocaleString()}</div>
+                                <div style="font-size: 0.75rem; color: #10b981;">
+                                    ↑ +${zone.potential_gain_percent.toFixed(1)}% gain
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Swing Analysis -->
+                    <div class="card">
+                        <h3>📈 Swing Analysis</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🎢 Is this a FUN ROLLER COASTER? Big swings = exciting but bumpy! Shows how much the price goes up & down.</p>
+                        <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; margin-bottom: 12px;">
+                            <div style="font-size: 1.8rem; font-weight: bold;">${swing_analysis.swing_rating.score}/100</div>
+                            <div style="font-size: 0.85rem; opacity: 0.95;">${swing_analysis.swing_rating.rating}</div>
+                        </div>
+                        <div class="metric-row" style="grid-template-columns: 1fr 1fr;">
+                            <div class="metric">
+                                <div class="metric-label">Avg Swing</div>
+                                <div class="metric-value" style="font-size: 1rem;">${swing_analysis.swing_size.average_swing_percent.toFixed(1)}%</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-label">Pattern</div>
+                                <div class="metric-value" style="font-size: 0.75rem;">${swing_analysis.swing_pattern.pattern.includes('Higher') ? '📈' : swing_analysis.swing_pattern.pattern.includes('Lower') ? '📉' : '↔️'}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.75rem; color: #94a3b8;">
+                            <strong>Bollinger:</strong> ${swing_analysis.bollinger_bands.squeeze_status}<br>
+                            <strong>Position:</strong> ${swing_analysis.bollinger_bands.price_position_percent.toFixed(0)}% in bands
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support & Resistance (Compact) -->
+                <div class="compact-grid">
+                    <div class="card">
+                        <h3 style="color: #10b981;">📍 Support</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🛡️ SAFETY NET! Like a trampoline - price bounces UP when it hits these levels!</p>
+                        ${entry_exit.support_levels.length > 0
+                            ? entry_exit.support_levels.map((level, i) => `
+                                <div style="background: #0f172a; padding: 8px 10px; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #10b981; display: flex; justify-content: space-between;">
+                                    <span style="font-size: 0.75rem; color: #94a3b8;">S${i + 1}</span>
+                                    <strong style="font-size: 0.9rem;">${getCurrencySymbol(stock_info.market)}${level.toLocaleString()}</strong>
+                                </div>
+                            `).join('')
+                            : '<p style="color: #94a3b8; font-size: 0.8rem;">No support detected</p>'
+                        }
+                    </div>
+
+                    <div class="card">
+                        <h3 style="color: #ef4444;">📍 Resistance</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">🚧 CEILING BLOCK! Like hitting your head on the ceiling - price has trouble going higher!</p>
+                        ${entry_exit.resistance_levels.length > 0
+                            ? entry_exit.resistance_levels.map((level, i) => `
+                                <div style="background: #0f172a; padding: 8px 10px; border-radius: 4px; margin-bottom: 6px; border-left: 3px solid #ef4444; display: flex; justify-content: space-between;">
+                                    <span style="font-size: 0.75rem; color: #94a3b8;">R${i + 1}</span>
+                                    <strong style="font-size: 0.9rem;">${getCurrencySymbol(stock_info.market)}${level.toLocaleString()}</strong>
+                                </div>
+                            `).join('')
+                            : '<p style="color: #94a3b8; font-size: 0.8rem;">No resistance detected</p>'
+                        }
+                    </div>
+
+                    <div class="card">
+                        <h3>🔢 Fibonacci</h3>
+                        <p style="font-size: 0.8rem; color: #94a3b8; margin: -5px 0 12px 0;">📏 MAGIC RULER! Special levels where stock often takes a break or turns around - like steps on stairs!</p>
+                        <div style="font-size: 0.75rem;">
+                            ${Object.entries(entry_exit.fibonacci_levels).slice(0, 5).map(([level, price]) => `
+                                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #334155;">
+                                    <span style="color: #94a3b8;">${level.replace('level_', '').replace('_', '.')}%</span>
+                                    <strong>${getCurrencySymbol(stock_info.market)}${price.toLocaleString()}</strong>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Categories (Compact) -->
+                <div class="card">
+                    <h3>📋 Analysis Breakdown</h3>
+                    <div class="metric-row" style="grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));">
+                        ${Object.entries(overall_analysis.analysis).map(([category, data]) => `
+                            <div class="metric">
+                                <div class="metric-label">${category.substring(0, 12)}</div>
+                                <div class="metric-value" style="font-size: 1.1rem;">${data.score.toFixed(0)}%</div>
+                                <div style="margin-top: 5px; height: 5px; background: #0f172a; border-radius: 2px; overflow: hidden;">
+                                    <div style="width: ${data.score}%; height: 100%; background: ${data.score >= 70 ? '#10b981' : data.score >= 50 ? '#f59e0b' : '#ef4444'};"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('dashboard').innerHTML = html;
+        }
+
+        function getPhaseColor(phase) {
+            const colors = {
+                'ACCUMULATION': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                'MARKUP': 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                'DISTRIBUTION': 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                'MARKDOWN': 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                'NEUTRAL/CONSOLIDATION': 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
+            };
+            return colors[phase] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        }
+
+        function getActionBadgeClass(action) {
+            if (action.includes('BUY')) return 'success';
+            if (action.includes('SELL')) return 'danger';
+            if (action.includes('WAIT') || action.includes('HOLD')) return 'warning';
+            return 'secondary';
+        }
+
+        function getSignalClass(type) {
+            const classes = {
+                'BUY': 'positive',
+                'SELL': 'negative',
+                'ALERT': 'warning',
+                'HOLD': 'neutral'
+            };
+            return classes[type] || 'neutral';
+        }
+
+        function getSignalIcon(type) {
+            const icons = {
+                'BUY': '↑',
+                'SELL': '↓',
+                'ALERT': '⚠',
+                'HOLD': '='
+            };
+            return icons[type] || 'i';
+        }
+
+        function getReasonIcon(type) {
+            const icons = {
+                'positive': '✓',
+                'negative': '✗',
+                'warning': '!',
+                'neutral': 'i'
+            };
+            return icons[type] || 'i';
+        }
+
+        async function addFavorite() {
+            try {
+                const symbol = currentSymbol;
+                const name = document.querySelector('.stock-name h2').textContent;
+
+                const response = await fetch('/api/favorites', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({symbol, name})
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Added to favorites!');
+                    loadDashboard();
+                    loadFavorites();
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                alert('Error adding to favorites: ' + error.message);
+            }
+        }
+
+        async function removeFavorite() {
+            try {
+                const response = await fetch(`/api/favorites/${currentSymbol}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Removed from favorites!');
+                    loadDashboard();
+                    loadFavorites();
+                }
+            } catch (error) {
+                alert('Error removing from favorites: ' + error.message);
+            }
+        }
+
+        async function loadFavorites() {
+            try {
+                const response = await fetch('/api/favorites');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('favCount').textContent = data.count;
+
+                    if (data.count === 0) {
+                        document.getElementById('favoritesList').innerHTML = '<p style="color: #94a3b8;">No favorites yet</p>';
+                    } else {
+                        const html = data.data.map(fav => `
+                            <div class="favorites-item" onclick="loadFavoriteStock('${fav.symbol.replace('.JK', '')}')">
+                                <strong>${fav.symbol}</strong>
+                                <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 5px;">${fav.name}</div>
+                            </div>
+                        `).join('');
+                        document.getElementById('favoritesList').innerHTML = html;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading favorites:', error);
+            }
+        }
+
+        function loadFavoriteStock(symbol) {
+            document.getElementById('stockSymbol').value = symbol;
+            loadDashboard();
+            toggleFavorites();
+        }
+
+        function toggleFavorites() {
+            const sidebar = document.getElementById('favoritesSidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Load favorites on page load
+        window.addEventListener('load', () => {
+            loadFavorites();
+            // Auto-load BBCA as example
+            document.getElementById('stockSymbol').value = 'BBCA';
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Base styles for dark theme */
+  body {
+    @apply bg-dark text-gray-200 antialiased;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Alpine.js cloak - hide elements before Alpine loads */
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+@layer components {
+  /* Card component */
+  .card {
+    @apply bg-dark-light rounded-xl p-4 md:p-6 shadow-lg border border-dark-lighter transition-all duration-300;
+  }
+
+  .card:hover {
+    @apply shadow-xl;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    @apply px-5 py-2.5 bg-primary-500 text-white rounded-lg font-semibold
+           hover:bg-primary-600 transition-all duration-300
+           hover:-translate-y-0.5 hover:shadow-lg
+           min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  .btn-secondary {
+    @apply px-5 py-2.5 bg-dark-lighter text-gray-200 rounded-lg font-semibold
+           hover:bg-gray-700 transition-all duration-300
+           min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  .btn-success {
+    @apply px-5 py-2.5 bg-success text-white rounded-lg font-semibold
+           hover:bg-green-600 transition-all duration-300
+           min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  .btn-danger {
+    @apply px-5 py-2.5 bg-danger text-white rounded-lg font-semibold
+           hover:bg-red-600 transition-all duration-300
+           min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Metric card */
+  .metric-card {
+    @apply bg-dark rounded-lg p-3 md:p-4 border-2 border-dark-lighter;
+  }
+
+  /* Stock badges */
+  .stock-badge {
+    @apply px-3 py-1 rounded-full text-sm font-semibold inline-block;
+  }
+
+  .badge-buy {
+    @apply bg-success/20 text-success border border-success;
+  }
+
+  .badge-sell {
+    @apply bg-danger/20 text-danger border border-danger;
+  }
+
+  .badge-hold {
+    @apply bg-warning/20 text-warning border border-warning;
+  }
+
+  /* Input styles */
+  .input-primary {
+    @apply w-full px-4 py-2.5 bg-dark rounded-lg border-2 border-dark-lighter
+           focus:border-primary-500 focus:outline-none transition-colors
+           min-h-[44px] text-base;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply inline-block w-6 h-6 border-2 border-gray-300 border-t-primary-500
+           rounded-full animate-spin;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-500 to-purple-600 bg-clip-text text-transparent;
+  }
+
+  /* Section title */
+  .section-title {
+    @apply text-xl md:text-2xl font-bold mb-4 md:mb-6;
+  }
+
+  /* Widget header */
+  .widget-header {
+    @apply flex items-center justify-between mb-4 pb-3 border-b border-dark-lighter;
+  }
+
+  /* Scrollbar styles */
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-dark-light;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary-500 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-600;
+  }
+}
+
+@layer utilities {
+  /* Mobile tap target utility */
+  .tap-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Safe area padding for notched devices */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Text truncate with custom lines */
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Animations */
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromBottom {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight 0.3s ease-out;
+}
+
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.3s ease-out;
+}
