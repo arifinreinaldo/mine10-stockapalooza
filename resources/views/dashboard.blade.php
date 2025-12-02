@@ -897,21 +897,21 @@
                 const response = await fetch(url);
                 const data = await response.json();
 
-                if (data.success && data.opportunities_found > 0) {
+                if (data.success) {
                     displayBuyOpportunities(data);
 
                     // Show success notification if force refresh
                     if (forceRefresh) {
-                        showNotification(`✅ Found ${data.opportunities_found} buy opportunities from ${data.scanned} stocks!`, 'success');
+                        const oppCount = data.opportunities_found || 0;
+                        const nearMissCount = data.near_misses_found || 0;
+                        showNotification(`✅ Scanned ${data.scanned} stocks! Found ${oppCount} buy opportunities and ${nearMissCount} near-misses`, 'success');
                     }
                 } else {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
-                            <p style="color: #94a3b8;">😔 No strong buy opportunities found among top ${data.scanned || 0} stocks (5 Big Cap + 5 Small Cap)</p>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-top: 10px;">Most stocks showing SELL or HOLD signals currently. Check back later or try analyzing specific stocks manually.</p>
-                            ${data.cached_at ? `<p style="color: #64748b; font-size: 0.75rem; margin-top: 10px;">📅 Cached: ${data.cached_at} • Auto-refreshes every 3 hours</p>` : ''}
+                            <p style="color: #ef4444;">⚠️ Error loading scanner results</p>
                             <button onclick="loadBuyOpportunities(true)" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
-                                🔄 Force Refresh
+                                🔄 Retry
                             </button>
                         </div>
                     `;
@@ -955,78 +955,217 @@
         function displayBuyOpportunities(data) {
             const container = document.getElementById('buyOpportunities');
             const opportunities = data.data || [];
+            const nearMisses = data.near_misses || [];
             const scanned = data.scanned || 0;
-            const totalStocks = data.total_stocks || 0;
+            const opportunitiesFound = data.opportunities_found || 0;
+            const nearMissesFound = data.near_misses_found || 0;
             const cachedAt = data.cached_at || null;
 
             let html = `
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <!-- Header -->
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <div>
-                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities (Preset Scan)</h2>
+                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities Scanner</h2>
                             <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
-                                Found ${opportunities.length} BUY signals • Scanned ${scanned} curated stocks (Top 10 Buy + Top 5 Scalping)
+                                Expanded Scanner (150 stocks: 50 IDX + 50 SGX + 50 US)
                             </p>
                             ${cachedAt ? `<p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : ''}
                         </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="scanAllStocks()" style="background: rgba(16, 185, 129, 0.3); border: 1px solid #10b981; color: #10b981; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-weight: bold;"
-                                    onmouseover="this.style.background='rgba(16, 185, 129, 0.4)'"
-                                    onmouseout="this.style.background='rgba(16, 185, 129, 0.3)'">
-                                📊 Scan ALL Stocks
-                            </button>
-                            <button onclick="loadBuyOpportunities(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                                🔄 Refresh Preset
-                            </button>
+                        <button onclick="loadBuyOpportunities(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            🔄 Refresh
+                        </button>
+                    </div>
+
+                    <!-- Scan Info Cards -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                        <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #10b981;">${opportunitiesFound}</div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">BUY Opportunities</div>
+                        </div>
+                        <div style="background: rgba(251, 191, 36, 0.2); border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #f59e0b;">${nearMissesFound}</div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">Near-Misses</div>
+                        </div>
+                        <div style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #60a5fa;">${scanned}</div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">Stocks Scanned</div>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
             `;
 
-            opportunities.forEach(opp => {
-                const bgColor = opp.action === 'STRONG BUY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(34, 197, 94, 0.1)';
-                const borderColor = opp.action === 'STRONG BUY' ? '#10b981' : '#22c55e';
-                const priceClass = opp.change_percent >= 0 ? '#10b981' : '#ef4444';
+            // Display BUY Opportunities
+            if (opportunities.length > 0) {
+                html += `
+                    <h3 style="color: #fff; margin: 20px 0 10px 0;">✅ BUY Opportunities</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 30px;">
+                `;
+
+                opportunities.forEach(opp => {
+                    const bgColor = opp.action === 'STRONG BUY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(34, 197, 94, 0.1)';
+                    const borderColor = opp.action === 'STRONG BUY' ? '#10b981' : '#22c55e';
+                    const priceClass = opp.change_percent >= 0 ? '#10b981' : '#ef4444';
+
+                    html += `
+                        <div onclick="quickAnalyze('${opp.symbol}', '${opp.market}')" style="background: ${bgColor}; border: 2px solid ${borderColor}; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.2s;"
+                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.3)';"
+                             onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                <div>
+                                    <div style="font-size: 1.2rem; font-weight: bold; color: #fff;">${opp.symbol}</div>
+                                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
+                                </div>
+                                <div style="background: ${borderColor}; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+                                    ${opp.action}
+                                </div>
+                            </div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 5px;">
+                                📊 Score: <strong>${opp.score.toFixed(0)}/100</strong> • ${opp.confidence}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            } else {
+                html += `
+                    <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid #64748b; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 30px;">
+                        <p style="color: #94a3b8; margin: 0;">😔 No BUY opportunities found in current market conditions</p>
+                    </div>
+                `;
+            }
+
+            // Display Near-Misses
+            if (nearMisses.length > 0) {
+                html += `
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 style="color: #f59e0b; margin: 0;">⚠️ Near-Miss Stocks (Top 15)</h3>
+                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Score 15-74/100</span>
+                        </div>
+                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: 0 0 15px 0;">
+                            Stocks that almost made the BUY list. Monitor these for improvement signals.
+                        </p>
+                        <div style="display: grid; gap: 10px;">
+                `;
+
+                nearMisses.slice(0, 15).forEach((stock, index) => {
+                    const actionColor = stock.action === 'BUY' ? '#10b981' : stock.action === 'SELL' ? '#ef4444' : '#f59e0b';
+                    const severityIcon = (severity) => {
+                        return severity === 'major' ? '❌' : severity === 'moderate' ? '⚠️' : 'ℹ️';
+                    };
+
+                    html += `
+                        <div onclick="quickAnalyze('${stock.symbol}', '${stock.market}')"
+                             style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s;"
+                             onmouseover="this.style.borderColor='#f59e0b'; this.style.transform='translateX(4px)';"
+                             onmouseout="this.style.borderColor='rgba(100, 116, 139, 0.3)'; this.style.transform='';">
+
+                            <!-- Header -->
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                        <span style="color: #64748b; font-size: 0.75rem; font-family: monospace;">#${index + 1}</span>
+                                        <span style="color: #fff; font-weight: bold; font-size: 1rem;">${stock.symbol}</span>
+                                        <span style="background: rgba(100, 116, 139, 0.3); color: #94a3b8; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">
+                                            ${(stock.market || 'auto').toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <div style="color: #64748b; font-size: 0.75rem;">${stock.name ? stock.name.substring(0, 35) : ''}${stock.name && stock.name.length > 35 ? '...' : ''}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="color: #f59e0b; font-weight: bold; font-size: 1.1rem;">${stock.score}/100</div>
+                                    <div style="background: ${actionColor === '#10b981' ? 'rgba(16, 185, 129, 0.2)' : actionColor === '#ef4444' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'};
+                                               color: ${actionColor}; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-top: 2px;">
+                                        ${stock.action}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stats Grid -->
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; padding: 8px; background: rgba(15, 23, 42, 0.5); border-radius: 6px;">
+                                <div>
+                                    <div style="color: #64748b; font-size: 0.65rem;">Price</div>
+                                    <div style="color: #fff; font-size: 0.85rem; font-weight: 600;">${stock.price ? stock.price.toLocaleString() : 'N/A'}</div>
+                                </div>
+                                ${stock.rsi ? `
+                                <div>
+                                    <div style="color: #64748b; font-size: 0.65rem;">RSI</div>
+                                    <div style="color: ${stock.rsi > 70 ? '#ef4444' : stock.rsi < 30 ? '#10b981' : '#fff'}; font-size: 0.85rem; font-weight: 600;">
+                                        ${stock.rsi.toFixed(1)}
+                                    </div>
+                                </div>
+                                ` : ''}
+                                ${stock.institutional_percent ? `
+                                <div>
+                                    <div style="color: #64748b; font-size: 0.65rem;">Inst. %</div>
+                                    <div style="color: #60a5fa; font-size: 0.85rem; font-weight: 600;">${stock.institutional_percent}%</div>
+                                </div>
+                                ` : ''}
+                            </div>
+
+                            <!-- Summary -->
+                            ${stock.summary ? `
+                            <div style="background: rgba(100, 116, 139, 0.2); padding: 8px; border-radius: 6px; margin-bottom: 8px;">
+                                <div style="color: rgba(255,255,255,0.9); font-size: 0.75rem;">${stock.summary}</div>
+                            </div>
+                            ` : ''}
+
+                            <!-- Detailed Reasons -->
+                            ${stock.near_miss_reasons && stock.near_miss_reasons.length > 0 ? `
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                ${stock.near_miss_reasons.slice(0, 3).map(reason => `
+                                    <div style="display: flex; align-items: start; gap: 6px; font-size: 0.7rem;">
+                                        <span style="flex-shrink: 0;">${severityIcon(reason.severity)}</span>
+                                        <span style="color: #94a3b8; line-height: 1.3;">${reason.issue}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ` : ''}
+
+                            <!-- Additional Info -->
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(100, 116, 139, 0.2); font-size: 0.7rem;">
+                                ${stock.macd_signal ? `
+                                <div>
+                                    <span style="color: #64748b;">MACD:</span>
+                                    <span style="color: ${stock.macd_signal === 'BULLISH' ? '#10b981' : '#ef4444'}; font-weight: 600; margin-left: 3px;">
+                                        ${stock.macd_signal}
+                                    </span>
+                                </div>
+                                ` : ''}
+                                ${stock.divergence && stock.divergence !== 'NONE' ? `
+                                <div>
+                                    <span style="color: #64748b;">Div:</span>
+                                    <span style="color: #f59e0b; font-weight: 600; margin-left: 3px;">${stock.divergence}</span>
+                                </div>
+                                ` : ''}
+                                ${stock.accumulation_phase ? `
+                                <div>
+                                    <span style="color: #64748b;">Phase:</span>
+                                    <span style="color: #60a5fa; font-weight: 600; margin-left: 3px; font-size: 0.65rem;">${stock.accumulation_phase.substring(0, 10)}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+
+                            <!-- Click Hint -->
+                            <div style="text-align: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(100, 116, 139, 0.2);">
+                                <span style="color: #64748b; font-size: 0.7rem;">👆 Click to view full analysis</span>
+                            </div>
+                        </div>
+                    `;
+                });
 
                 html += `
-                    <div onclick="quickAnalyze('${opp.symbol}', '${opp.market}')" style="background: ${bgColor}; border: 2px solid ${borderColor}; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.2s;"
-                         onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.3)';"
-                         onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                            <div>
-                                <div style="font-size: 1.2rem; font-weight: bold; color: #fff;">${opp.symbol}</div>
-                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
-                            </div>
-                            <div style="background: ${borderColor}; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
-                                ${opp.action}
-                            </div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <span style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Price:</span>
-                            <span style="color: #fff; font-weight: bold;">
-                                ${opp.market === 'idx' ? 'Rp ' : '$'}${opp.price.toLocaleString()}
-                                <span style="color: ${priceClass}; font-size: 0.85rem; margin-left: 5px;">
-                                    ${opp.change_percent >= 0 ? '+' : ''}${opp.change_percent.toFixed(2)}%
-                                </span>
-                            </span>
-                        </div>
-                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 5px;">
-                            📊 Score: <strong>${opp.score.toFixed(0)}/100</strong> • ${opp.confidence}
-                        </div>
-                        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">
-                            ${opp.macd_signal !== 'N/A' ? '🚀 MACD: ' + opp.macd_signal.replace(/_/g, ' ') : ''}
-                            ${opp.divergence !== 'NONE' ? ' • ⚠️ ' + opp.divergence : ''}
                         </div>
                     </div>
                 `;
-            });
+            }
 
             html += `
-                    </div>
-                    <p style="text-align: center; color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 15px; margin-bottom: 0;">
-                        💡 Click any stock to see full analysis
+                    <p style="text-align: center; color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-top: 20px; margin-bottom: 0;">
+                        💡 Click any stock to see full technical analysis
                     </p>
                 </div>
             `;
