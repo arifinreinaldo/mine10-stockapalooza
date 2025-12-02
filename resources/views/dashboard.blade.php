@@ -861,6 +861,146 @@
             box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
             transform: translateY(-2px);
         }
+
+        /* Mobile-Responsive Classes for Dynamic Content - Tailwind-Inspired */
+        .institutional-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+        }
+
+        @media (min-width: 768px) {
+            .institutional-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .institutional-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        .institutional-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        @media (max-width: 767px) {
+            .institutional-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        .institutional-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .institutional-card-header {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        .institutional-card-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            gap: 0.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .institutional-card-stats {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+        }
+
+        .near-miss-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .near-miss-tab-button {
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 400;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            min-height: 44px;
+            min-width: 44px;
+        }
+
+        .near-miss-tab-button:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .near-miss-tab-button:active {
+            transform: scale(0.95);
+        }
+
+        @media (min-width: 768px) {
+            .near-miss-tab-button {
+                font-size: 1rem;
+                padding: 0.75rem 1.5rem;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .near-miss-tab-button {
+                flex: 1;
+                min-width: 0;
+                justify-content: center;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.75rem;
+            }
+        }
+
+        .near-miss-card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .near-miss-card-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        .near-miss-additional-grid {
+            display: grid;
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid rgba(100, 116, 139, 0.2);
+            font-size: 0.75rem;
+        }
+
+        @media (min-width: 640px) {
+            .near-miss-additional-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
     </style>
 </head>
 <body>
@@ -1284,7 +1424,7 @@
                         </p>
 
                         <!-- Market Selection Tabs -->
-                        <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <div class="near-miss-tabs">
                 `;
 
                 // Render tab buttons
@@ -1299,19 +1439,12 @@
                         <button
                             onclick="window.switchNearMissMarket_${instanceId}('${marketKey}')"
                             id="${instanceId}_tab_${marketKey}"
+                            class="near-miss-tab-button"
                             style="
                                 background: ${isFirst ? info.color : 'rgba(100, 116, 139, 0.2)'};
                                 border: 2px solid ${isFirst ? info.color : 'rgba(100, 116, 139, 0.3)'};
                                 color: ${isFirst ? '#fff' : '#94a3b8'};
-                                padding: 10px 20px;
-                                border-radius: 8px;
-                                cursor: pointer;
                                 font-weight: ${isFirst ? 'bold' : 'normal'};
-                                font-size: 0.9rem;
-                                transition: all 0.2s;
-                                display: flex;
-                                align-items: center;
-                                gap: 8px;
                             "
                             onmouseover="if(this.style.background === 'rgba(100, 116, 139, 0.2)') { this.style.background = 'rgba(100, 116, 139, 0.3)'; }"
                             onmouseout="if(this.id !== '${instanceId}_tab_' + window.activeNearMissMarket_${instanceId}) { this.style.background = 'rgba(100, 116, 139, 0.2)'; }"
@@ -1379,7 +1512,7 @@
                             </div>
 
                             <!-- Stats Grid -->
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; padding: 8px; background: rgba(15, 23, 42, 0.5); border-radius: 6px;">
+                            <div class="near-miss-card-grid" style="margin-bottom: 8px; padding: 8px; background: rgba(15, 23, 42, 0.5); border-radius: 6px;">
                                 <div>
                                     <div style="color: #64748b; font-size: 0.65rem;">Price</div>
                                     <div style="color: #fff; font-size: 0.85rem; font-weight: 600;">${stock.price ? stock.price.toLocaleString() : 'N/A'}</div>
@@ -1669,7 +1802,7 @@
             let html = `
                 <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
                     <div style="margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="institutional-header">
                             <div>
                                 <h2 style="margin: 0; color: #fff;">🏦 Institutional Stocks (Smart Money)</h2>
                                 <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
@@ -1689,7 +1822,7 @@
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px;">
+                    <div class="institutional-grid">
             `;
 
             stocks.forEach(stock => {
@@ -1702,7 +1835,7 @@
                          onmouseout="this.style.transform=''; this.style.boxShadow=''">
 
                         <!-- Header -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div class="institutional-card-header" style="margin-bottom: 12px;">
                             <div>
                                 <div style="font-size: 1.3rem; font-weight: bold; color: #fff; margin-bottom: 3px;">${stock.symbol}</div>
                                 <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">${stock.name.substring(0, 30)}${stock.name.length > 30 ? '...' : ''}</div>
@@ -1713,7 +1846,7 @@
                         </div>
 
                         <!-- Price & Action -->
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <div class="institutional-card-stats">
                             <div>
                                 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Price</div>
                                 <div style="font-size: 1.1rem; font-weight: bold; color: #fff;">
