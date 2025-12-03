@@ -1330,7 +1330,7 @@
                     container.innerHTML = `
                         <div class="text-center p-5 bg-slate-800 rounded-xl border-2 border-slate-600">
                             <p class="text-red-500">⚠️ Error loading scanner results</p>
-                            <button onclick="loadBuyOpportunitiesByMarket('${market}')" class="bg-blue-500/20 border border-blue-500 text-blue-400 px-4 py-2 rounded-md cursor-pointer mt-2.5 hover:bg-blue-500/30 transition">
+                            <button onclick="loadBuyOpportunitiesByMarket('${market}')" class="bg-blue-500 bg-opacity-20 border border-blue-500 text-blue-400 px-4 py-2 rounded-md cursor-pointer mt-2.5 hover:bg-opacity-30 transition">
                                 🔄 Retry
                             </button>
                         </div>
@@ -1340,7 +1340,7 @@
                 container.innerHTML = `
                     <div class="text-center p-5 bg-slate-800 rounded-xl border-2 border-red-500">
                         <p class="text-red-500">⚠️ Error loading opportunities: ${error.message}</p>
-                        <button onclick="loadBuyOpportunitiesByMarket('${market}')" class="bg-red-500/20 border border-red-500 text-red-500 px-4 py-2 rounded-md cursor-pointer mt-2.5 hover:bg-red-500/30 transition">
+                        <button onclick="loadBuyOpportunitiesByMarket('${market}')" class="bg-red-500 bg-opacity-20 border border-red-500 text-red-500 px-4 py-2 rounded-md cursor-pointer mt-2.5 hover:bg-opacity-30 transition">
                             🔄 Retry
                         </button>
                     </div>
@@ -1453,7 +1453,7 @@
                 `;
 
                 opportunities.forEach(opp => {
-                    const bgClass = opp.action === 'STRONG BUY' ? 'bg-emerald-500/15' : 'bg-green-500/10';
+                    const bgClass = opp.action === 'STRONG BUY' ? 'bg-emerald-500 bg-opacity-15' : 'bg-green-500 bg-opacity-10';
                     const borderClass = opp.action === 'STRONG BUY' ? 'border-emerald-500' : 'border-green-500';
                     const actionBgClass = opp.action === 'STRONG BUY' ? 'bg-emerald-500' : 'bg-green-500';
 
@@ -1462,13 +1462,13 @@
                             <div class="flex justify-between items-start mb-2.5">
                                 <div>
                                     <div class="text-xl font-bold text-white">${opp.symbol}</div>
-                                    <div class="text-xs text-white/70">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
+                                    <div class="text-xs text-white opacity-70">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
                                 </div>
                                 <div class="${actionBgClass} text-black px-2 py-1 rounded text-xs font-bold">
                                     ${opp.action}
                                 </div>
                             </div>
-                            <div class="text-xs text-white/80 mb-1">
+                            <div class="text-xs text-white opacity-80 mb-1">
                                 📊 Score: <strong>${opp.score.toFixed(0)}/100</strong> • ${opp.confidence}
                             </div>
                         </div>
@@ -1478,7 +1478,7 @@
                 html += `</div>`;
             } else {
                 html += `
-                    <div class="bg-slate-500/10 border border-slate-600 rounded-lg p-4 text-center mb-8">
+                    <div class="bg-slate-500 bg-opacity-10 border border-slate-600 rounded-lg p-4 text-center mb-8">
                         <p class="text-slate-400 m-0">😔 No BUY opportunities found in current market conditions</p>
                     </div>
                 `;
@@ -1487,19 +1487,19 @@
             // Display Near-Misses (Simplified - no tabs needed since already filtered)
             if (nearMisses.length > 0) {
                 html += `
-                    <div class="border-t border-white/10 pt-5 mt-5">
+                    <div class="border-t border-white border-opacity-10 pt-5 mt-5">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-amber-500 m-0 text-lg font-bold">⚠️ Near-Miss Stocks</h3>
-                            <span class="text-xs text-white/60">Score 15-74/100</span>
+                            <span class="text-xs text-white opacity-60">Score 15-74/100</span>
                         </div>
-                        <p class="text-sm text-white/70 mt-0 mb-4">
+                        <p class="text-sm text-white opacity-70 mt-0 mb-4">
                             Stocks that almost made the BUY list. These require further monitoring.
                         </p>
                         <div class="grid gap-2.5">
                 `;
 
                 nearMisses.slice(0, 10).forEach((stock, stockIndex) => {
-                    const actionBg = stock.action === 'BUY' ? 'bg-emerald-500/20' : stock.action === 'SELL' ? 'bg-red-500/20' : 'bg-amber-500/20';
+                    const actionBg = stock.action === 'BUY' ? 'bg-emerald-500 bg-opacity-20' : stock.action === 'SELL' ? 'bg-red-500 bg-opacity-20' : 'bg-amber-500 bg-opacity-20';
                     const actionColor = stock.action === 'BUY' ? 'text-emerald-500' : stock.action === 'SELL' ? 'text-red-500' : 'text-amber-500';
                     const rsiColor = stock.rsi > 70 ? 'text-red-500' : stock.rsi < 30 ? 'text-emerald-500' : 'text-white';
                     const macdColor = stock.macd_signal === 'BULLISH' ? 'text-emerald-500' : 'text-red-500';
@@ -1509,7 +1509,7 @@
 
                     html += `
                         <div onclick="quickAnalyze('${stock.symbol}', '${stock.market}')"
-                             class="bg-slate-800/80 border border-slate-600/30 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:border-amber-500 hover:translate-x-1">
+                             class="bg-slate-800 bg-opacity-80 border border-slate-600 border-opacity-30 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:border-amber-500 hover:translate-x-1">
 
                             <!-- Header -->
                             <div class="flex justify-between items-start mb-2">
@@ -1517,7 +1517,7 @@
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="text-slate-600 text-xs font-mono">#${stockIndex + 1}</span>
                                         <span class="text-white font-bold text-base">${stock.symbol}</span>
-                                        <span class="bg-slate-600/30 text-slate-400 px-1.5 py-0.5 rounded text-[0.65rem]">
+                                        <span class="bg-slate-600 bg-opacity-30 text-slate-400 px-1.5 py-0.5 rounded text-[0.65rem]">
                                             ${(stock.market || 'auto').toUpperCase()}
                                         </span>
                                     </div>
@@ -1532,7 +1532,7 @@
                             </div>
 
                             <!-- Stats Grid -->
-                            <div class="near-miss-card-grid mb-2 p-2 bg-slate-900/50 rounded-md">
+                            <div class="near-miss-card-grid mb-2 p-2 bg-slate-900 bg-opacity-50 rounded-md">
                                 <div>
                                     <div class="text-slate-600 text-[0.65rem]">Price</div>
                                     <div class="text-white text-sm font-semibold">${stock.price ? stock.price.toLocaleString() : 'N/A'}</div>
@@ -1555,8 +1555,8 @@
 
                             <!-- Summary -->
                             ${stock.summary ? `
-                            <div class="bg-slate-600/20 p-2 rounded-md mb-2">
-                                <div class="text-white/90 text-xs">${stock.summary}</div>
+                            <div class="bg-slate-600 bg-opacity-20 p-2 rounded-md mb-2">
+                                <div class="text-white opacity-90 text-xs">${stock.summary}</div>
                             </div>
                             ` : ''}
 
@@ -1573,7 +1573,7 @@
                             ` : ''}
 
                             <!-- Additional Info -->
-                            <div class="grid grid-cols-3 gap-1.5 mt-2 pt-2 border-t border-slate-600/20 text-[0.7rem]">
+                            <div class="grid grid-cols-3 gap-1.5 mt-2 pt-2 border-t border-slate-600 border-opacity-20 text-[0.7rem]">
                                 ${stock.macd_signal ? `
                                 <div>
                                     <span class="text-slate-600">MACD:</span>
@@ -1597,7 +1597,7 @@
                             </div>
 
                             <!-- Click Hint -->
-                            <div class="text-center mt-2 pt-2 border-t border-slate-600/20">
+                            <div class="text-center mt-2 pt-2 border-t border-slate-600 border-opacity-20">
                                 <span class="text-slate-600 text-[0.7rem]">👆 Click to view full analysis</span>
                             </div>
                         </div>
@@ -1611,7 +1611,7 @@
             }
 
             html += `
-                    <p class="text-center text-white/60 text-xs mt-5 mb-0">
+                    <p class="text-center text-white opacity-60 text-xs mt-5 mb-0">
                         💡 Click any stock to see full technical analysis
                     </p>
                 </div>
@@ -1873,7 +1873,7 @@
                                 <span class="text-3xl">🎯</span>
                                 <h2 class="m-0 text-white text-xl font-semibold">Buy Opportunities Scanner</h2>
                             </div>
-                            <p class="text-white/85 text-sm m-0">
+                            <p class="text-white opacity-85 text-sm m-0">
                                 Select a country to view BUY opportunities and near-miss stocks
                             </p>
                         </div>
