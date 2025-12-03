@@ -1403,22 +1403,26 @@
             };
             const currentMarketInfo = selectedMarket ? marketInfo[selectedMarket] : null;
 
+            const marketTitle = currentMarketInfo ? `- ${currentMarketInfo.name}` : '';
+            const subtitle = selectedMarket ? `Showing stocks from ${currentMarketInfo.shortName} market` : 'Expanded Scanner (150 stocks: 50 IDX + 50 SGX + 50 US)';
+            const cachedInfo = cachedAt ? `<p class="mt-1 mb-0 text-white opacity-70 text-xs">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : '';
+            const closeButton = selectedMarket ? '<button onclick="showBuyOpportunitiesPlaceholder()" class="bg-white bg-opacity-20 border border-white border-opacity-30 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-opacity-30">✖️ Close</button>' : '';
+            const refreshMarket = selectedMarket || 'all';
+
             let html = `
                 <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 shadow-lg">
                     <!-- Header -->
                     <div class="flex justify-between items-center mb-4 flex-wrap gap-2.5">
                         <div>
-                            <h2 class="m-0 text-white text-xl font-bold">🎯 Buy Opportunities Scanner ${currentMarketInfo ? `- ${currentMarketInfo.name}` : ''}</h2>
-                            <p class="mt-1 mb-0 text-white/90 text-sm">
-                                ${selectedMarket ? `Showing stocks from ${currentMarketInfo.shortName} market` : 'Expanded Scanner (150 stocks: 50 IDX + 50 SGX + 50 US)'}
+                            <h2 class="m-0 text-white text-xl font-bold">🎯 Buy Opportunities Scanner ${marketTitle}</h2>
+                            <p class="mt-1 mb-0 text-white opacity-90 text-sm">
+                                ${subtitle}
                             </p>
-                            ${cachedAt ? `<p class="mt-1 mb-0 text-white/70 text-xs">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : ''}
+                            ${cachedInfo}
                         </div>
                         <div class="flex gap-2">
-                            ${selectedMarket ? `<button onclick="showBuyOpportunitiesPlaceholder()" class="bg-white/20 border border-white/30 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-white/30">
-                                ✖️ Close
-                            </button>` : ''}
-                            <button onclick="loadBuyOpportunitiesByMarket('${selectedMarket || 'all'}')" class="bg-white/20 border border-white/30 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-white/30">
+                            ${closeButton}
+                            <button onclick="loadBuyOpportunitiesByMarket('${refreshMarket}')" class="bg-white bg-opacity-20 border border-white border-opacity-30 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-opacity-30">
                                 🔄 Refresh
                             </button>
                         </div>
@@ -1426,17 +1430,17 @@
 
                     <!-- Scan Info Cards -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-5">
-                        <div class="bg-emerald-500/20 border border-emerald-500 rounded-lg p-3 text-center">
+                        <div class="bg-emerald-500 bg-opacity-20 border border-emerald-500 rounded-lg p-3 text-center">
                             <div class="text-3xl font-bold text-emerald-500">${opportunitiesFound}</div>
-                            <div class="text-xs text-white/80">BUY Opportunities</div>
+                            <div class="text-xs text-white opacity-80">BUY Opportunities</div>
                         </div>
-                        <div class="bg-amber-500/20 border border-amber-500 rounded-lg p-3 text-center">
+                        <div class="bg-amber-500 bg-opacity-20 border border-amber-500 rounded-lg p-3 text-center">
                             <div class="text-3xl font-bold text-amber-500">${nearMissesFound}</div>
-                            <div class="text-xs text-white/80">Near-Misses</div>
+                            <div class="text-xs text-white opacity-80">Near-Misses</div>
                         </div>
-                        <div class="bg-blue-400/20 border border-blue-500 rounded-lg p-3 text-center">
+                        <div class="bg-blue-400 bg-opacity-20 border border-blue-500 rounded-lg p-3 text-center">
                             <div class="text-3xl font-bold text-blue-400">${scanned}</div>
-                            <div class="text-xs text-white/80">Stocks Scanned</div>
+                            <div class="text-xs text-white opacity-80">Stocks Scanned</div>
                         </div>
                     </div>
             `;
