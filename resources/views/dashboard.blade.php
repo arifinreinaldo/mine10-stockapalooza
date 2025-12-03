@@ -1290,7 +1290,10 @@
 
         // Load buy opportunities filtered by market
         async function loadBuyOpportunitiesByMarket(market, forceRefresh = false) {
+            console.log('🚀 loadBuyOpportunitiesByMarket called with:', { market, forceRefresh });
+
             const container = document.getElementById('buyOpportunities');
+            console.log('📦 Container found:', container ? 'YES' : 'NO');
 
             const marketInfo = {
                 idx: { name: '🇮🇩 Indonesia', shortName: 'IDX' },
@@ -1298,6 +1301,7 @@
                 us: { name: '🇺🇸 United States', shortName: 'US' }
             };
             const currentMarket = marketInfo[market] || { name: 'All Markets', shortName: 'ALL' };
+            console.log('🌍 Current market:', currentMarket);
 
             // Show loading indicator
             container.innerHTML = `
@@ -1316,10 +1320,21 @@
 
             try {
                 const url = forceRefresh ? '/api/scan-opportunities?market=auto&refresh=true' : '/api/scan-opportunities?market=auto';
+                console.log('🌐 Fetching from URL:', url);
+
                 const response = await fetch(url);
+                console.log('✅ Response status:', response.status);
+
                 const data = await response.json();
+                console.log('📊 API Data received:', {
+                    success: data.success,
+                    opportunities: data.data?.length || 0,
+                    nearMisses: data.near_misses?.length || 0,
+                    scanned: data.scanned
+                });
 
                 if (data.success) {
+                    console.log('✨ Calling displayBuyOpportunities with market:', market);
                     displayBuyOpportunities(data, market);
 
                     // Show success notification if force refresh
@@ -1373,12 +1388,21 @@
         }
 
         function displayBuyOpportunities(data, selectedMarket = null) {
+            console.log('🎨 displayBuyOpportunities called with:', { selectedMarket, hasData: !!data });
+
             const container = document.getElementById('buyOpportunities');
+            console.log('📦 Container in display function:', container ? 'FOUND' : 'NOT FOUND');
+
             let opportunities = data.data || [];
             let nearMisses = data.near_misses || [];
             const scanned = data.scanned || 0;
             const cachedAt = data.cached_at || null;
             const instanceId = 'nearMiss_' + Date.now();
+
+            console.log('📋 Before filtering:', {
+                opportunities: opportunities.length,
+                nearMisses: nearMisses.length
+            });
 
             // Filter by market if specified
             if (selectedMarket) {
@@ -1395,6 +1419,11 @@
             const opportunitiesFound = opportunities.length;
             const nearMissesFound = nearMisses.length;
 
+            console.log('📋 After filtering:', {
+                opportunities: opportunitiesFound,
+                nearMisses: nearMissesFound
+            });
+
             // Market info for display
             const marketInfo = {
                 idx: { name: '🇮🇩 Indonesia', shortName: 'IDX', color: '#ef4444', flag: '🇮🇩' },
@@ -1402,6 +1431,7 @@
                 us: { name: '🇺🇸 United States', shortName: 'US', color: '#3b82f6', flag: '🇺🇸' }
             };
             const currentMarketInfo = selectedMarket ? marketInfo[selectedMarket] : null;
+            console.log('🎯 Current market info:', currentMarketInfo);
 
             const marketTitle = currentMarketInfo ? `- ${currentMarketInfo.name}` : '';
             const subtitle = selectedMarket ? `Showing stocks from ${currentMarketInfo.shortName} market` : 'Expanded Scanner (150 stocks: 50 IDX + 50 SGX + 50 US)';
@@ -1617,7 +1647,11 @@
                 </div>
             `;
 
+            console.log('📝 Generated HTML length:', html.length, 'characters');
+            console.log('📝 First 500 chars of HTML:', html.substring(0, 500));
+
             container.innerHTML = html;
+            console.log('✅ HTML set to container. Container now has', container.children.length, 'children');
         }
 
         // Scan ALL stocks comprehensively (~200 Indonesian stocks)
