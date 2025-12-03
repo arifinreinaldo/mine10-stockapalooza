@@ -1288,6 +1288,66 @@
             }
         }
 
+        // Load buy opportunities filtered by market
+        async function loadBuyOpportunitiesByMarket(market, forceRefresh = false) {
+            const container = document.getElementById('buyOpportunities');
+
+            const marketInfo = {
+                idx: { name: '🇮🇩 Indonesia', shortName: 'IDX' },
+                sgx: { name: '🇸🇬 Singapore', shortName: 'SGX' },
+                us: { name: '🇺🇸 United States', shortName: 'US' }
+            };
+            const currentMarket = marketInfo[market] || { name: 'All Markets', shortName: 'ALL' };
+
+            // Show loading indicator
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 24px; height: 24px; border-width: 3px;"></div>
+                        <div>
+                            <div style="color: #fff; font-weight: bold;">🔍 Loading ${currentMarket.name} opportunities...</div>
+                            <div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 3px;">
+                                ${forceRefresh ? 'Refreshing data...' : 'Loading from cache...'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            try {
+                const url = forceRefresh ? '/api/scan-opportunities?market=auto&refresh=true' : '/api/scan-opportunities?market=auto';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayBuyOpportunities(data, market);
+
+                    // Show success notification if force refresh
+                    if (forceRefresh) {
+                        showNotification(`✅ Refreshed ${currentMarket.shortName} market data!`, 'success');
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
+                            <p style="color: #ef4444;">⚠️ Error loading scanner results</p>
+                            <button onclick="loadBuyOpportunitiesByMarket('${market}')" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                                🔄 Retry
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error loading opportunities: ${error.message}</p>
+                        <button onclick="loadBuyOpportunitiesByMarket('${market}')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
         // Simple notification system
         function showNotification(message, type = 'info') {
             const notification = document.createElement('div');
@@ -1312,32 +1372,60 @@
             }, 3000);
         }
 
-        function displayBuyOpportunities(data) {
+        function displayBuyOpportunities(data, selectedMarket = null) {
             const container = document.getElementById('buyOpportunities');
-            const opportunities = data.data || [];
-            const nearMisses = data.near_misses || [];
+            let opportunities = data.data || [];
+            let nearMisses = data.near_misses || [];
             const scanned = data.scanned || 0;
-            const opportunitiesFound = data.opportunities_found || 0;
-            const nearMissesFound = data.near_misses_found || 0;
             const cachedAt = data.cached_at || null;
             const instanceId = 'nearMiss_' + Date.now();
+
+            // Filter by market if specified
+            if (selectedMarket) {
+                opportunities = opportunities.filter(opp => {
+                    const market = opp.market === 'auto' ? 'us' : opp.market;
+                    return market === selectedMarket;
+                });
+                nearMisses = nearMisses.filter(nm => {
+                    const market = nm.market === 'auto' ? 'us' : nm.market;
+                    return market === selectedMarket;
+                });
+            }
+
+            const opportunitiesFound = opportunities.length;
+            const nearMissesFound = nearMisses.length;
+
+            // Market info for display
+            const marketInfo = {
+                idx: { name: '🇮🇩 Indonesia', shortName: 'IDX', color: '#ef4444', flag: '🇮🇩' },
+                sgx: { name: '🇸🇬 Singapore', shortName: 'SGX', color: '#8b5cf6', flag: '🇸🇬' },
+                us: { name: '🇺🇸 United States', shortName: 'US', color: '#3b82f6', flag: '🇺🇸' }
+            };
+            const currentMarketInfo = selectedMarket ? marketInfo[selectedMarket] : null;
 
             let html = `
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
                     <!-- Header -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                         <div>
-                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities Scanner</h2>
+                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities Scanner ${currentMarketInfo ? `- ${currentMarketInfo.name}` : ''}</h2>
                             <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
-                                Expanded Scanner (150 stocks: 50 IDX + 50 SGX + 50 US)
+                                ${selectedMarket ? `Showing stocks from ${currentMarketInfo.shortName} market` : 'Expanded Scanner (150 stocks: 50 IDX + 50 SGX + 50 US)'}
                             </p>
                             ${cachedAt ? `<p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : ''}
                         </div>
-                        <button onclick="loadBuyOpportunities(true)" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                                onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-                                onmouseout="this.style.background='rgba(255,255,255,0.2)'">
-                            🔄 Refresh
-                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            ${selectedMarket ? `<button onclick="showBuyOpportunitiesPlaceholder()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                ✖️ Close
+                            </button>` : ''}
+                            <button onclick="loadBuyOpportunitiesByMarket('${selectedMarket || 'all'}')" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
+                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                                🔄 Refresh
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Scan Info Cards -->
@@ -1398,87 +1486,21 @@
                 `;
             }
 
-            // Display Near-Misses (Grouped by Country with Tabs)
+            // Display Near-Misses (Simplified - no tabs needed since already filtered)
             if (nearMisses.length > 0) {
-                // Group stocks by market
-                const groupedByMarket = {
-                    idx: nearMisses.filter(s => s.market === 'idx'),
-                    sgx: nearMisses.filter(s => s.market === 'sgx'),
-                    us: nearMisses.filter(s => s.market === 'us' || s.market === 'auto')
-                };
-
-                const marketInfo = {
-                    idx: { name: '🇮🇩 Indonesia', shortName: 'IDX', color: '#ef4444', flag: '🇮🇩' },
-                    sgx: { name: '🇸🇬 Singapore', shortName: 'SGX', color: '#8b5cf6', flag: '🇸🇬' },
-                    us: { name: '🇺🇸 United States', shortName: 'US', color: '#3b82f6', flag: '🇺🇸' }
-                };
-
                 html += `
-                    <div id="${instanceId}" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="color: #f59e0b; margin: 0;">⚠️ Near-Miss Stocks by Country</h3>
+                            <h3 style="color: #f59e0b; margin: 0;">⚠️ Near-Miss Stocks</h3>
                             <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Score 15-74/100</span>
                         </div>
                         <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: 0 0 15px 0;">
-                            Stocks that almost made the BUY list. Click a country to view its near-miss stocks.
+                            Stocks that almost made the BUY list. These require further monitoring.
                         </p>
-
-                        <!-- Market Selection Tabs -->
-                        <div class="near-miss-tabs">
+                        <div style="display: grid; gap: 10px;">
                 `;
 
-                // Render tab buttons
-                ['idx', 'sgx', 'us'].forEach((marketKey, index) => {
-                    const marketStocks = groupedByMarket[marketKey];
-                    if (marketStocks.length === 0) return;
-
-                    const info = marketInfo[marketKey];
-                    const isFirst = index === 0;
-
-                    html += `
-                        <button
-                            onclick="window.switchNearMissMarket_${instanceId}('${marketKey}')"
-                            id="${instanceId}_tab_${marketKey}"
-                            class="near-miss-tab-button"
-                            style="
-                                background: ${isFirst ? info.color : 'rgba(100, 116, 139, 0.2)'};
-                                border: 2px solid ${isFirst ? info.color : 'rgba(100, 116, 139, 0.3)'};
-                                color: ${isFirst ? '#fff' : '#94a3b8'};
-                                font-weight: ${isFirst ? 'bold' : 'normal'};
-                            "
-                            onmouseover="if(this.style.background === 'rgba(100, 116, 139, 0.2)') { this.style.background = 'rgba(100, 116, 139, 0.3)'; }"
-                            onmouseout="if(this.id !== '${instanceId}_tab_' + window.activeNearMissMarket_${instanceId}) { this.style.background = 'rgba(100, 116, 139, 0.2)'; }"
-                        >
-                            <span style="font-size: 1.2rem;">${info.flag}</span>
-                            <span>${info.name}</span>
-                            <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">
-                                ${marketStocks.length}
-                            </span>
-                        </button>
-                    `;
-                });
-
-                html += `
-                        </div>
-
-                        <!-- Market Content Containers -->
-                        <div id="${instanceId}_content" style="min-height: 200px;">
-                `;
-
-                // Render each market's content (hidden by default except first)
-                ['idx', 'sgx', 'us'].forEach((marketKey, index) => {
-                    const marketStocks = groupedByMarket[marketKey];
-                    if (marketStocks.length === 0) return;
-
-                    const info = marketInfo[marketKey];
-                    const isFirst = index === 0;
-
-                    html += `
-                        <div id="${instanceId}_market_${marketKey}" style="display: ${isFirst ? 'block' : 'none'};">
-                            <div style="display: grid; gap: 10px;">
-                    `;
-
-                    marketStocks.slice(0, 10).forEach((stock, stockIndex) => {
+                nearMisses.slice(0, 10).forEach((stock, stockIndex) => {
                     const actionColor = stock.action === 'BUY' ? '#10b981' : stock.action === 'SELL' ? '#ef4444' : '#f59e0b';
                     const severityIcon = (severity) => {
                         return severity === 'major' ? '❌' : severity === 'moderate' ? '⚠️' : 'ℹ️';
@@ -1604,46 +1626,6 @@
             `;
 
             container.innerHTML = html;
-
-            // Initialize tab switching functionality
-            if (nearMisses.length > 0) {
-                window['activeNearMissMarket_' + instanceId] = 'idx';
-
-                window['switchNearMissMarket_' + instanceId] = function(marketKey) {
-                    // Hide all markets
-                    ['idx', 'sgx', 'us'].forEach(key => {
-                        const content = document.getElementById(instanceId + '_market_' + key);
-                        const tab = document.getElementById(instanceId + '_tab_' + key);
-                        if (content) content.style.display = 'none';
-                        if (tab) {
-                            tab.style.background = 'rgba(100, 116, 139, 0.2)';
-                            tab.style.borderColor = 'rgba(100, 116, 139, 0.3)';
-                            tab.style.color = '#94a3b8';
-                            tab.style.fontWeight = 'normal';
-                        }
-                    });
-
-                    // Show selected market
-                    const selectedContent = document.getElementById(instanceId + '_market_' + marketKey);
-                    const selectedTab = document.getElementById(instanceId + '_tab_' + marketKey);
-
-                    if (selectedContent) selectedContent.style.display = 'block';
-                    if (selectedTab) {
-                        const marketColors = {
-                            idx: '#ef4444',
-                            sgx: '#8b5cf6',
-                            us: '#3b82f6'
-                        };
-                        const color = marketColors[marketKey];
-                        selectedTab.style.background = color;
-                        selectedTab.style.borderColor = color;
-                        selectedTab.style.color = '#fff';
-                        selectedTab.style.fontWeight = 'bold';
-                    }
-
-                    window['activeNearMissMarket_' + instanceId] = marketKey;
-                };
-            }
         }
 
         // Scan ALL stocks comprehensively (~200 Indonesian stocks)
@@ -1889,10 +1871,57 @@
             container.innerHTML = html;
         }
 
+        function showBuyOpportunitiesPlaceholder() {
+            const container = document.getElementById('buyOpportunities');
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                        <div style="text-align: left;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                <span style="font-size: 2rem;">🎯</span>
+                                <h2 style="margin: 0; color: #fff; font-size: 1.3rem;">Buy Opportunities Scanner</h2>
+                            </div>
+                            <p style="color: rgba(255,255,255,0.85); font-size: 0.85rem; margin: 0;">
+                                Select a country to view BUY opportunities and near-miss stocks
+                            </p>
+                        </div>
+
+                        <!-- Country Selection Buttons -->
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button onclick="loadBuyOpportunitiesByMarket('idx')"
+                                    style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: 2px solid #ef4444; color: #fff; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: all 0.2s; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(239, 68, 68, 0.4)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(239, 68, 68, 0.3)';">
+                                <span style="font-size: 1.3rem;">🇮🇩</span>
+                                <span>Indonesia</span>
+                            </button>
+
+                            <button onclick="loadBuyOpportunitiesByMarket('sgx')"
+                                    style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border: 2px solid #8b5cf6; color: #fff; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: all 0.2s; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3); min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.4)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(139, 92, 246, 0.3)';">
+                                <span style="font-size: 1.3rem;">🇸🇬</span>
+                                <span>Singapore</span>
+                            </button>
+
+                            <button onclick="loadBuyOpportunitiesByMarket('us')"
+                                    style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: 2px solid #3b82f6; color: #fff; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: all 0.2s; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.4)';"
+                                    onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(59, 130, 246, 0.3)';">
+                                <span style="font-size: 1.3rem;">🇺🇸</span>
+                                <span>United States</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // Initialize on page load - always show history first
         window.addEventListener('DOMContentLoaded', () => {
             updateHistoryDisplay();
-            loadBuyOpportunities();
+            // Show placeholder for Buy Opportunities (will load when country selected)
+            showBuyOpportunitiesPlaceholder();
             loadInstitutionalStocks();  // Auto-load institutional stocks
         });
 
