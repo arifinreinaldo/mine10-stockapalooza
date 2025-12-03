@@ -1301,12 +1301,12 @@
 
             // Show loading indicator
             container.innerHTML = `
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 24px; height: 24px; border-width: 3px;"></div>
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-4 shadow-lg">
+                    <div class="flex items-center gap-3">
+                        <div class="spinner !border-white !border-t-transparent !w-6 !h-6 !border-[3px]"></div>
                         <div>
-                            <div style="color: #fff; font-weight: bold;">🔍 Loading ${currentMarket.name} opportunities...</div>
-                            <div style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-top: 3px;">
+                            <div class="text-white font-bold">🔍 Loading ${currentMarket.name} opportunities...</div>
+                            <div class="text-white/70 text-xs mt-1">
                                 ${forceRefresh ? 'Refreshing data...' : 'Loading from cache...'}
                             </div>
                         </div>
@@ -1328,9 +1328,9 @@
                     }
                 } else {
                     container.innerHTML = `
-                        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #334155;">
-                            <p style="color: #ef4444;">⚠️ Error loading scanner results</p>
-                            <button onclick="loadBuyOpportunitiesByMarket('${market}')" style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; color: #60a5fa; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                        <div class="text-center p-5 bg-slate-800 rounded-xl border-2 border-slate-600">
+                            <p class="text-red-500">⚠️ Error loading scanner results</p>
+                            <button onclick="loadBuyOpportunitiesByMarket('${market}')" class="bg-blue-500/20 border border-blue-500 text-blue-400 px-4 py-2 rounded-md cursor-pointer mt-2.5 hover:bg-blue-500/30 transition">
                                 🔄 Retry
                             </button>
                         </div>
@@ -1338,9 +1338,9 @@
                 }
             } catch (error) {
                 container.innerHTML = `
-                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
-                        <p style="color: #ef4444;">⚠️ Error loading opportunities: ${error.message}</p>
-                        <button onclick="loadBuyOpportunitiesByMarket('${market}')" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                    <div class="text-center p-5 bg-slate-800 rounded-xl border-2 border-red-500">
+                        <p class="text-red-500">⚠️ Error loading opportunities: ${error.message}</p>
+                        <button onclick="loadBuyOpportunitiesByMarket('${market}')" class="bg-red-500/20 border border-red-500 text-red-500 px-4 py-2 rounded-md cursor-pointer mt-2.5 hover:bg-red-500/30 transition">
                             🔄 Retry
                         </button>
                     </div>
@@ -1404,43 +1404,39 @@
             const currentMarketInfo = selectedMarket ? marketInfo[selectedMarket] : null;
 
             let html = `
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 shadow-lg">
                     <!-- Header -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2.5">
                         <div>
-                            <h2 style="margin: 0; color: #fff;">🎯 Buy Opportunities Scanner ${currentMarketInfo ? `- ${currentMarketInfo.name}` : ''}</h2>
-                            <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">
+                            <h2 class="m-0 text-white text-xl font-bold">🎯 Buy Opportunities Scanner ${currentMarketInfo ? `- ${currentMarketInfo.name}` : ''}</h2>
+                            <p class="mt-1 mb-0 text-white/90 text-sm">
                                 ${selectedMarket ? `Showing stocks from ${currentMarketInfo.shortName} market` : 'Expanded Scanner (150 stocks: 50 IDX + 50 SGX + 50 US)'}
                             </p>
-                            ${cachedAt ? `<p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : ''}
+                            ${cachedAt ? `<p class="mt-1 mb-0 text-white/70 text-xs">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : ''}
                         </div>
-                        <div style="display: flex; gap: 8px;">
-                            ${selectedMarket ? `<button onclick="showBuyOpportunitiesPlaceholder()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                        <div class="flex gap-2">
+                            ${selectedMarket ? `<button onclick="showBuyOpportunitiesPlaceholder()" class="bg-white/20 border border-white/30 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-white/30">
                                 ✖️ Close
                             </button>` : ''}
-                            <button onclick="loadBuyOpportunitiesByMarket('${selectedMarket || 'all'}')" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                                    onmouseover="this.style.background='rgba(255,255,255,0.3)'"
-                                    onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                            <button onclick="loadBuyOpportunitiesByMarket('${selectedMarket || 'all'}')" class="bg-white/20 border border-white/30 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-white/30">
                                 🔄 Refresh
                             </button>
                         </div>
                     </div>
 
                     <!-- Scan Info Cards -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
-                        <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="font-size: 1.8rem; font-weight: bold; color: #10b981;">${opportunitiesFound}</div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">BUY Opportunities</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-5">
+                        <div class="bg-emerald-500/20 border border-emerald-500 rounded-lg p-3 text-center">
+                            <div class="text-3xl font-bold text-emerald-500">${opportunitiesFound}</div>
+                            <div class="text-xs text-white/80">BUY Opportunities</div>
                         </div>
-                        <div style="background: rgba(251, 191, 36, 0.2); border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="font-size: 1.8rem; font-weight: bold; color: #f59e0b;">${nearMissesFound}</div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">Near-Misses</div>
+                        <div class="bg-amber-500/20 border border-amber-500 rounded-lg p-3 text-center">
+                            <div class="text-3xl font-bold text-amber-500">${nearMissesFound}</div>
+                            <div class="text-xs text-white/80">Near-Misses</div>
                         </div>
-                        <div style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; text-align: center;">
-                            <div style="font-size: 1.8rem; font-weight: bold; color: #60a5fa;">${scanned}</div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">Stocks Scanned</div>
+                        <div class="bg-blue-400/20 border border-blue-500 rounded-lg p-3 text-center">
+                            <div class="text-3xl font-bold text-blue-400">${scanned}</div>
+                            <div class="text-xs text-white/80">Stocks Scanned</div>
                         </div>
                     </div>
             `;
@@ -1448,29 +1444,27 @@
             // Display BUY Opportunities
             if (opportunities.length > 0) {
                 html += `
-                    <h3 style="color: #fff; margin: 20px 0 10px 0;">✅ BUY Opportunities</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 30px;">
+                    <h3 class="text-white my-5">✅ BUY Opportunities</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
                 `;
 
                 opportunities.forEach(opp => {
-                    const bgColor = opp.action === 'STRONG BUY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(34, 197, 94, 0.1)';
-                    const borderColor = opp.action === 'STRONG BUY' ? '#10b981' : '#22c55e';
-                    const priceClass = opp.change_percent >= 0 ? '#10b981' : '#ef4444';
+                    const bgClass = opp.action === 'STRONG BUY' ? 'bg-emerald-500/15' : 'bg-green-500/10';
+                    const borderClass = opp.action === 'STRONG BUY' ? 'border-emerald-500' : 'border-green-500';
+                    const actionBgClass = opp.action === 'STRONG BUY' ? 'bg-emerald-500' : 'bg-green-500';
 
                     html += `
-                        <div onclick="quickAnalyze('${opp.symbol}', '${opp.market}')" style="background: ${bgColor}; border: 2px solid ${borderColor}; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.2s;"
-                             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.3)';"
-                             onmouseout="this.style.transform=''; this.style.boxShadow='';">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <div onclick="quickAnalyze('${opp.symbol}', '${opp.market}')" class="${bgClass} border-2 ${borderClass} rounded-lg p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                            <div class="flex justify-between items-start mb-2.5">
                                 <div>
-                                    <div style="font-size: 1.2rem; font-weight: bold; color: #fff;">${opp.symbol}</div>
-                                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
+                                    <div class="text-xl font-bold text-white">${opp.symbol}</div>
+                                    <div class="text-xs text-white/70">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
                                 </div>
-                                <div style="background: ${borderColor}; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+                                <div class="${actionBgClass} text-black px-2 py-1 rounded text-xs font-bold">
                                     ${opp.action}
                                 </div>
                             </div>
-                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 5px;">
+                            <div class="text-xs text-white/80 mb-1">
                                 📊 Score: <strong>${opp.score.toFixed(0)}/100</strong> • ${opp.confidence}
                             </div>
                         </div>
@@ -1480,8 +1474,8 @@
                 html += `</div>`;
             } else {
                 html += `
-                    <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid #64748b; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 30px;">
-                        <p style="color: #94a3b8; margin: 0;">😔 No BUY opportunities found in current market conditions</p>
+                    <div class="bg-slate-500/10 border border-slate-600 rounded-lg p-4 text-center mb-8">
+                        <p class="text-slate-400 m-0">😔 No BUY opportunities found in current market conditions</p>
                     </div>
                 `;
             }
@@ -1489,118 +1483,118 @@
             // Display Near-Misses (Simplified - no tabs needed since already filtered)
             if (nearMisses.length > 0) {
                 html += `
-                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h3 style="color: #f59e0b; margin: 0;">⚠️ Near-Miss Stocks</h3>
-                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Score 15-74/100</span>
+                    <div class="border-t border-white/10 pt-5 mt-5">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-amber-500 m-0 text-lg font-bold">⚠️ Near-Miss Stocks</h3>
+                            <span class="text-xs text-white/60">Score 15-74/100</span>
                         </div>
-                        <p style="font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: 0 0 15px 0;">
+                        <p class="text-sm text-white/70 mt-0 mb-4">
                             Stocks that almost made the BUY list. These require further monitoring.
                         </p>
-                        <div style="display: grid; gap: 10px;">
+                        <div class="grid gap-2.5">
                 `;
 
                 nearMisses.slice(0, 10).forEach((stock, stockIndex) => {
-                    const actionColor = stock.action === 'BUY' ? '#10b981' : stock.action === 'SELL' ? '#ef4444' : '#f59e0b';
+                    const actionBg = stock.action === 'BUY' ? 'bg-emerald-500/20' : stock.action === 'SELL' ? 'bg-red-500/20' : 'bg-amber-500/20';
+                    const actionColor = stock.action === 'BUY' ? 'text-emerald-500' : stock.action === 'SELL' ? 'text-red-500' : 'text-amber-500';
+                    const rsiColor = stock.rsi > 70 ? 'text-red-500' : stock.rsi < 30 ? 'text-emerald-500' : 'text-white';
+                    const macdColor = stock.macd_signal === 'BULLISH' ? 'text-emerald-500' : 'text-red-500';
                     const severityIcon = (severity) => {
                         return severity === 'major' ? '❌' : severity === 'moderate' ? '⚠️' : 'ℹ️';
                     };
 
                     html += `
                         <div onclick="quickAnalyze('${stock.symbol}', '${stock.market}')"
-                             style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s;"
-                             onmouseover="this.style.borderColor='#f59e0b'; this.style.transform='translateX(4px)';"
-                             onmouseout="this.style.borderColor='rgba(100, 116, 139, 0.3)'; this.style.transform='';">
+                             class="bg-slate-800/80 border border-slate-600/30 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:border-amber-500 hover:translate-x-1">
 
                             <!-- Header -->
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                                <div style="flex: 1;">
-                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                        <span style="color: #64748b; font-size: 0.75rem; font-family: monospace;">#${stockIndex + 1}</span>
-                                        <span style="color: #fff; font-weight: bold; font-size: 1rem;">${stock.symbol}</span>
-                                        <span style="background: rgba(100, 116, 139, 0.3); color: #94a3b8; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem;">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-slate-600 text-xs font-mono">#${stockIndex + 1}</span>
+                                        <span class="text-white font-bold text-base">${stock.symbol}</span>
+                                        <span class="bg-slate-600/30 text-slate-400 px-1.5 py-0.5 rounded text-[0.65rem]">
                                             ${(stock.market || 'auto').toUpperCase()}
                                         </span>
                                     </div>
-                                    <div style="color: #64748b; font-size: 0.75rem;">${stock.name ? stock.name.substring(0, 35) : ''}${stock.name && stock.name.length > 35 ? '...' : ''}</div>
+                                    <div class="text-slate-600 text-xs">${stock.name ? stock.name.substring(0, 35) : ''}${stock.name && stock.name.length > 35 ? '...' : ''}</div>
                                 </div>
-                                <div style="text-align: right;">
-                                    <div style="color: #f59e0b; font-weight: bold; font-size: 1.1rem;">${stock.score}/100</div>
-                                    <div style="background: ${actionColor === '#10b981' ? 'rgba(16, 185, 129, 0.2)' : actionColor === '#ef4444' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(251, 191, 36, 0.2)'};
-                                               color: ${actionColor}; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-top: 2px;">
+                                <div class="text-right">
+                                    <div class="text-amber-500 font-bold text-lg">${stock.score}/100</div>
+                                    <div class="${actionBg} ${actionColor} px-2 py-0.5 rounded text-[0.7rem] mt-0.5">
                                         ${stock.action}
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Stats Grid -->
-                            <div class="near-miss-card-grid" style="margin-bottom: 8px; padding: 8px; background: rgba(15, 23, 42, 0.5); border-radius: 6px;">
+                            <div class="near-miss-card-grid mb-2 p-2 bg-slate-900/50 rounded-md">
                                 <div>
-                                    <div style="color: #64748b; font-size: 0.65rem;">Price</div>
-                                    <div style="color: #fff; font-size: 0.85rem; font-weight: 600;">${stock.price ? stock.price.toLocaleString() : 'N/A'}</div>
+                                    <div class="text-slate-600 text-[0.65rem]">Price</div>
+                                    <div class="text-white text-sm font-semibold">${stock.price ? stock.price.toLocaleString() : 'N/A'}</div>
                                 </div>
                                 ${stock.rsi ? `
                                 <div>
-                                    <div style="color: #64748b; font-size: 0.65rem;">RSI</div>
-                                    <div style="color: ${stock.rsi > 70 ? '#ef4444' : stock.rsi < 30 ? '#10b981' : '#fff'}; font-size: 0.85rem; font-weight: 600;">
+                                    <div class="text-slate-600 text-[0.65rem]">RSI</div>
+                                    <div class="${rsiColor} text-sm font-semibold">
                                         ${stock.rsi.toFixed(1)}
                                     </div>
                                 </div>
                                 ` : ''}
                                 ${stock.institutional_percent ? `
                                 <div>
-                                    <div style="color: #64748b; font-size: 0.65rem;">Inst. %</div>
-                                    <div style="color: #60a5fa; font-size: 0.85rem; font-weight: 600;">${stock.institutional_percent}%</div>
+                                    <div class="text-slate-600 text-[0.65rem]">Inst. %</div>
+                                    <div class="text-blue-400 text-sm font-semibold">${stock.institutional_percent}%</div>
                                 </div>
                                 ` : ''}
                             </div>
 
                             <!-- Summary -->
                             ${stock.summary ? `
-                            <div style="background: rgba(100, 116, 139, 0.2); padding: 8px; border-radius: 6px; margin-bottom: 8px;">
-                                <div style="color: rgba(255,255,255,0.9); font-size: 0.75rem;">${stock.summary}</div>
+                            <div class="bg-slate-600/20 p-2 rounded-md mb-2">
+                                <div class="text-white/90 text-xs">${stock.summary}</div>
                             </div>
                             ` : ''}
 
                             <!-- Detailed Reasons -->
                             ${stock.near_miss_reasons && stock.near_miss_reasons.length > 0 ? `
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div class="flex flex-col gap-1">
                                 ${stock.near_miss_reasons.slice(0, 3).map(reason => `
-                                    <div style="display: flex; align-items: start; gap: 6px; font-size: 0.7rem;">
-                                        <span style="flex-shrink: 0;">${severityIcon(reason.severity)}</span>
-                                        <span style="color: #94a3b8; line-height: 1.3;">${reason.issue}</span>
+                                    <div class="flex items-start gap-1.5 text-[0.7rem]">
+                                        <span class="flex-shrink-0">${severityIcon(reason.severity)}</span>
+                                        <span class="text-slate-400 leading-tight">${reason.issue}</span>
                                     </div>
                                 `).join('')}
                             </div>
                             ` : ''}
 
                             <!-- Additional Info -->
-                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(100, 116, 139, 0.2); font-size: 0.7rem;">
+                            <div class="grid grid-cols-3 gap-1.5 mt-2 pt-2 border-t border-slate-600/20 text-[0.7rem]">
                                 ${stock.macd_signal ? `
                                 <div>
-                                    <span style="color: #64748b;">MACD:</span>
-                                    <span style="color: ${stock.macd_signal === 'BULLISH' ? '#10b981' : '#ef4444'}; font-weight: 600; margin-left: 3px;">
+                                    <span class="text-slate-600">MACD:</span>
+                                    <span class="${macdColor} font-semibold ml-0.5">
                                         ${stock.macd_signal}
                                     </span>
                                 </div>
                                 ` : ''}
                                 ${stock.divergence && stock.divergence !== 'NONE' ? `
                                 <div>
-                                    <span style="color: #64748b;">Div:</span>
-                                    <span style="color: #f59e0b; font-weight: 600; margin-left: 3px;">${stock.divergence}</span>
+                                    <span class="text-slate-600">Div:</span>
+                                    <span class="text-amber-500 font-semibold ml-0.5">${stock.divergence}</span>
                                 </div>
                                 ` : ''}
                                 ${stock.accumulation_phase ? `
                                 <div>
-                                    <span style="color: #64748b;">Phase:</span>
-                                    <span style="color: #60a5fa; font-weight: 600; margin-left: 3px; font-size: 0.65rem;">${stock.accumulation_phase.substring(0, 10)}</span>
+                                    <span class="text-slate-600">Phase:</span>
+                                    <span class="text-blue-400 font-semibold ml-0.5 text-[0.65rem]">${stock.accumulation_phase.substring(0, 10)}</span>
                                 </div>
                                 ` : ''}
                             </div>
 
                             <!-- Click Hint -->
-                            <div style="text-align: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(100, 116, 139, 0.2);">
-                                <span style="color: #64748b; font-size: 0.7rem;">👆 Click to view full analysis</span>
+                            <div class="text-center mt-2 pt-2 border-t border-slate-600/20">
+                                <span class="text-slate-600 text-[0.7rem]">👆 Click to view full analysis</span>
                             </div>
                         </div>
                     `;
@@ -1613,7 +1607,7 @@
             }
 
             html += `
-                    <p style="text-align: center; color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-top: 20px; margin-bottom: 0;">
+                    <p class="text-center text-white/60 text-xs mt-5 mb-0">
                         💡 Click any stock to see full technical analysis
                     </p>
                 </div>
@@ -1868,41 +1862,35 @@
         function showBuyOpportunitiesPlaceholder() {
             const container = document.getElementById('buyOpportunities');
             container.innerHTML = `
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-                        <div style="text-align: left;">
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                                <span style="font-size: 2rem;">🎯</span>
-                                <h2 style="margin: 0; color: #fff; font-size: 1.3rem;">Buy Opportunities Scanner</h2>
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 shadow-lg">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
+                        <div class="text-left">
+                            <div class="flex items-center gap-2.5 mb-1">
+                                <span class="text-3xl">🎯</span>
+                                <h2 class="m-0 text-white text-xl font-semibold">Buy Opportunities Scanner</h2>
                             </div>
-                            <p style="color: rgba(255,255,255,0.85); font-size: 0.85rem; margin: 0;">
+                            <p class="text-white/85 text-sm m-0">
                                 Select a country to view BUY opportunities and near-miss stocks
                             </p>
                         </div>
 
                         <!-- Country Selection Buttons -->
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div class="flex gap-2.5 flex-wrap">
                             <button onclick="loadBuyOpportunitiesByMarket('idx')"
-                                    style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: 2px solid #ef4444; color: #fff; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: all 0.2s; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3); min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px;"
-                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(239, 68, 68, 0.4)';"
-                                    onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(239, 68, 68, 0.3)';">
-                                <span style="font-size: 1.3rem;">🇮🇩</span>
+                                    class="bg-gradient-to-br from-red-500 to-red-600 border-2 border-red-500 text-white px-4 py-2.5 rounded-lg cursor-pointer text-sm font-bold transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 min-w-[140px] flex items-center justify-center gap-1.5">
+                                <span class="text-xl">🇮🇩</span>
                                 <span>Indonesia</span>
                             </button>
 
                             <button onclick="loadBuyOpportunitiesByMarket('sgx')"
-                                    style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border: 2px solid #8b5cf6; color: #fff; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: all 0.2s; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3); min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px;"
-                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.4)';"
-                                    onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(139, 92, 246, 0.3)';">
-                                <span style="font-size: 1.3rem;">🇸🇬</span>
+                                    class="bg-gradient-to-br from-purple-500 to-purple-600 border-2 border-purple-500 text-white px-4 py-2.5 rounded-lg cursor-pointer text-sm font-bold transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 min-w-[140px] flex items-center justify-center gap-1.5">
+                                <span class="text-xl">🇸🇬</span>
                                 <span>Singapore</span>
                             </button>
 
                             <button onclick="loadBuyOpportunitiesByMarket('us')"
-                                    style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: 2px solid #3b82f6; color: #fff; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold; transition: all 0.2s; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 6px;"
-                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.4)';"
-                                    onmouseout="this.style.transform=''; this.style.boxShadow='0 2px 8px rgba(59, 130, 246, 0.3)';">
-                                <span style="font-size: 1.3rem;">🇺🇸</span>
+                                    class="bg-gradient-to-br from-blue-500 to-blue-600 border-2 border-blue-500 text-white px-4 py-2.5 rounded-lg cursor-pointer text-sm font-bold transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 min-w-[140px] flex items-center justify-center gap-1.5">
+                                <span class="text-xl">🇺🇸</span>
                                 <span>United States</span>
                             </button>
                         </div>
