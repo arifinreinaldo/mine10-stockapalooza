@@ -1435,42 +1435,42 @@
 
             const marketTitle = currentMarketInfo ? `- ${currentMarketInfo.name}` : '';
             const subtitle = selectedMarket ? `Showing stocks from ${currentMarketInfo.shortName} market` : 'Expanded Scanner (150 stocks: 50 IDX + 50 SGX + 50 US)';
-            const cachedInfo = cachedAt ? `<p class="mt-1 mb-0 text-white opacity-70 text-xs">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : '';
-            const closeButton = selectedMarket ? '<button onclick="showBuyOpportunitiesPlaceholder()" class="bg-white bg-opacity-20 border border-white border-opacity-30 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-opacity-30">✖️ Close</button>' : '';
+            const cachedInfo = cachedAt ? `<p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.75rem;">📅 Cached: ${cachedAt} • Auto-refreshes every 3 hours</p>` : '';
+            const closeButton = selectedMarket ? '<button onclick="showBuyOpportunitiesPlaceholder()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.2)\'">✖️ Close</button>' : '';
             const refreshMarket = selectedMarket || 'all';
 
             let html = `
-                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-5 shadow-lg">
+                <div style="background: linear-gradient(135deg, #6366f1 0%, #9333ea 100%); border-radius: 12px; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);">
                     <!-- Header -->
-                    <div class="flex justify-between items-center mb-4 flex-wrap gap-2.5">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                         <div>
-                            <h2 class="m-0 text-white text-xl font-bold">🎯 Buy Opportunities Scanner ${marketTitle}</h2>
-                            <p class="mt-1 mb-0 text-white opacity-90 text-sm">
+                            <h2 style="margin: 0; color: #fff; font-size: 1.25rem; font-weight: bold;">🎯 Buy Opportunities Scanner ${marketTitle}</h2>
+                            <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.875rem;">
                                 ${subtitle}
                             </p>
                             ${cachedInfo}
                         </div>
-                        <div class="flex gap-2">
+                        <div style="display: flex; gap: 8px;">
                             ${closeButton}
-                            <button onclick="loadBuyOpportunitiesByMarket('${refreshMarket}')" class="bg-white bg-opacity-20 border border-white border-opacity-30 text-white px-4 py-2 rounded-md cursor-pointer transition-all duration-200 hover:bg-opacity-30">
+                            <button onclick="loadBuyOpportunitiesByMarket('${refreshMarket}')" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
                                 🔄 Refresh
                             </button>
                         </div>
                     </div>
 
                     <!-- Scan Info Cards -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-5">
-                        <div class="bg-emerald-500 bg-opacity-20 border border-emerald-500 rounded-lg p-3 text-center">
-                            <div class="text-3xl font-bold text-emerald-500">${opportunitiesFound}</div>
-                            <div class="text-xs text-white opacity-80">BUY Opportunities</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                        <div style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10b981; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 1.875rem; font-weight: bold; color: #10b981;">${opportunitiesFound}</div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">BUY Opportunities</div>
                         </div>
-                        <div class="bg-amber-500 bg-opacity-20 border border-amber-500 rounded-lg p-3 text-center">
-                            <div class="text-3xl font-bold text-amber-500">${nearMissesFound}</div>
-                            <div class="text-xs text-white opacity-80">Near-Misses</div>
+                        <div style="background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 1.875rem; font-weight: bold; color: #f59e0b;">${nearMissesFound}</div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">Near-Misses</div>
                         </div>
-                        <div class="bg-blue-400 bg-opacity-20 border border-blue-500 rounded-lg p-3 text-center">
-                            <div class="text-3xl font-bold text-blue-400">${scanned}</div>
-                            <div class="text-xs text-white opacity-80">Stocks Scanned</div>
+                        <div style="background: rgba(96, 165, 250, 0.2); border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; text-align: center;">
+                            <div style="font-size: 1.875rem; font-weight: bold; color: #60a5fa;">${scanned}</div>
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8);">Stocks Scanned</div>
                         </div>
                     </div>
             `;
@@ -1478,27 +1478,27 @@
             // Display BUY Opportunities
             if (opportunities.length > 0) {
                 html += `
-                    <h3 class="text-white my-5">✅ BUY Opportunities</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+                    <h3 style="color: #fff; margin: 20px 0;">✅ BUY Opportunities</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-bottom: 30px;">
                 `;
 
                 opportunities.forEach(opp => {
-                    const bgClass = opp.action === 'STRONG BUY' ? 'bg-emerald-500 bg-opacity-15' : 'bg-green-500 bg-opacity-10';
-                    const borderClass = opp.action === 'STRONG BUY' ? 'border-emerald-500' : 'border-green-500';
-                    const actionBgClass = opp.action === 'STRONG BUY' ? 'bg-emerald-500' : 'bg-green-500';
+                    const bgColor = opp.action === 'STRONG BUY' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(34, 197, 94, 0.1)';
+                    const borderColor = opp.action === 'STRONG BUY' ? '#10b981' : '#22c55e';
+                    const actionBgColor = opp.action === 'STRONG BUY' ? '#10b981' : '#22c55e';
 
                     html += `
-                        <div onclick="quickAnalyze('${opp.symbol}', '${opp.market}')" class="${bgClass} border-2 ${borderClass} rounded-lg p-4 cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-                            <div class="flex justify-between items-start mb-2.5">
+                        <div onclick="quickAnalyze('${opp.symbol}', '${opp.market}')" style="background: ${bgColor}; border: 2px solid ${borderColor}; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.3)';" onmouseout="this.style.transform=''; this.style.boxShadow='';">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                                 <div>
-                                    <div class="text-xl font-bold text-white">${opp.symbol}</div>
-                                    <div class="text-xs text-white opacity-70">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
+                                    <div style="font-size: 1.2rem; font-weight: bold; color: #fff;">${opp.symbol}</div>
+                                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">${opp.name.substring(0, 25)}${opp.name.length > 25 ? '...' : ''}</div>
                                 </div>
-                                <div class="${actionBgClass} text-black px-2 py-1 rounded text-xs font-bold">
+                                <div style="background: ${actionBgColor}; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
                                     ${opp.action}
                                 </div>
                             </div>
-                            <div class="text-xs text-white opacity-80 mb-1">
+                            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-bottom: 5px;">
                                 📊 Score: <strong>${opp.score.toFixed(0)}/100</strong> • ${opp.confidence}
                             </div>
                         </div>
@@ -1508,8 +1508,8 @@
                 html += `</div>`;
             } else {
                 html += `
-                    <div class="bg-slate-500 bg-opacity-10 border border-slate-600 rounded-lg p-4 text-center mb-8">
-                        <p class="text-slate-400 m-0">😔 No BUY opportunities found in current market conditions</p>
+                    <div style="background: rgba(100, 116, 139, 0.1); border: 1px solid #64748b; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 30px;">
+                        <p style="color: #94a3b8; margin: 0;">😔 No BUY opportunities found in current market conditions</p>
                     </div>
                 `;
             }
@@ -1517,29 +1517,31 @@
             // Display Near-Misses (Simplified - no tabs needed since already filtered)
             if (nearMisses.length > 0) {
                 html += `
-                    <div class="border-t border-white border-opacity-10 pt-5 mt-5">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-amber-500 m-0 text-lg font-bold">⚠️ Near-Miss Stocks</h3>
-                            <span class="text-xs text-white opacity-60">Score 15-74/100</span>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="color: #f59e0b; margin: 0; font-size: 1.125rem; font-weight: bold;">⚠️ Near-Miss Stocks</h3>
+                            <span style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">Score 15-74/100</span>
                         </div>
-                        <p class="text-sm text-white opacity-70 mt-0 mb-4">
+                        <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7); margin: 0 0 15px 0;">
                             Stocks that almost made the BUY list. These require further monitoring.
                         </p>
-                        <div class="grid gap-2.5">
+                        <div style="display: grid; gap: 10px;">
                 `;
 
                 nearMisses.slice(0, 10).forEach((stock, stockIndex) => {
-                    const actionBg = stock.action === 'BUY' ? 'bg-emerald-500 bg-opacity-20' : stock.action === 'SELL' ? 'bg-red-500 bg-opacity-20' : 'bg-amber-500 bg-opacity-20';
-                    const actionColor = stock.action === 'BUY' ? 'text-emerald-500' : stock.action === 'SELL' ? 'text-red-500' : 'text-amber-500';
-                    const rsiColor = stock.rsi > 70 ? 'text-red-500' : stock.rsi < 30 ? 'text-emerald-500' : 'text-white';
-                    const macdColor = stock.macd_signal === 'BULLISH' ? 'text-emerald-500' : 'text-red-500';
+                    const actionBg = stock.action === 'BUY' ? 'rgba(16, 185, 129, 0.2)' : stock.action === 'SELL' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)';
+                    const actionColor = stock.action === 'BUY' ? '#10b981' : stock.action === 'SELL' ? '#ef4444' : '#f59e0b';
+                    const rsiColor = stock.rsi > 70 ? '#ef4444' : stock.rsi < 30 ? '#10b981' : '#fff';
+                    const macdColor = stock.macd_signal === 'BULLISH' ? '#10b981' : '#ef4444';
                     const severityIcon = (severity) => {
                         return severity === 'major' ? '❌' : severity === 'moderate' ? '⚠️' : 'ℹ️';
                     };
 
                     html += `
                         <div onclick="quickAnalyze('${stock.symbol}', '${stock.market}')"
-                             class="bg-slate-800 bg-opacity-80 border border-slate-600 border-opacity-30 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:border-amber-500 hover:translate-x-1">
+                             style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(100, 116, 139, 0.3); border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s;"
+                             onmouseover="this.style.borderColor='#f59e0b'; this.style.transform='translateX(4px)';"
+                             onmouseout="this.style.borderColor='rgba(100, 116, 139, 0.3)'; this.style.transform=''">
 
                             <!-- Header -->
                             <div class="flex justify-between items-start mb-2">
