@@ -47,6 +47,10 @@ class StockAnalyzer
         $this->analyzeMomentum($stockData);
         $this->analyzeDividend($stockData);
 
+        // Phase 1 Enhancements
+        $this->analyzeRiskMetrics($stockData);
+        $this->analyzeForeignFlow($stockData);
+
         // Determine recommendation
         $recommendation = $this->getRecommendation($this->score);
 
@@ -91,29 +95,35 @@ class StockAnalyzer
 
     /**
      * Calculate adaptive scoring weights based on data availability
+     * Updated for Phase 1 with Risk Assessment and Market Participation
      */
     private function calculateAdaptiveWeights(): array
     {
         if ($this->hasFundamentals) {
             // Standard weights when fundamentals are available
+            // Total: 100% across 8 categories
             return [
-                'fundamentals' => 20,
-                'technicals' => 25,
-                'valuation' => 15,
-                'financial_health' => 20,
-                'momentum' => 10,
-                'dividend' => 10,
+                'fundamentals' => 15,      // Reduced from 20
+                'technicals' => 25,        // Keep same (ADX added internally)
+                'valuation' => 12,         // Reduced from 15
+                'financial_health' => 15,  // Reduced from 20
+                'momentum' => 8,           // Reduced from 10
+                'dividend' => 5,           // Reduced from 10
+                'risk_metrics' => 12,      // NEW - Phase 1
+                'foreign_flow' => 8,       // NEW - Phase 1
             ];
         } else {
             // Adaptive weights when fundamentals are missing
             // Emphasize technical analysis and momentum
             return [
-                'fundamentals' => 0,     // Skip fundamentals
-                'technicals' => 50,      // Boost from 25% to 50%
-                'valuation' => 0,        // Skip valuation
-                'financial_health' => 0, // Skip financial health
-                'momentum' => 35,        // Boost from 10% to 35%
-                'dividend' => 15,        // Boost from 10% to 15%
+                'fundamentals' => 0,
+                'technicals' => 40,        // Boost for technical-only mode
+                'valuation' => 0,
+                'financial_health' => 0,
+                'momentum' => 25,          // Boost
+                'dividend' => 10,
+                'risk_metrics' => 15,      // NEW - Phase 1 (important even without fundamentals)
+                'foreign_flow' => 10,      // NEW - Phase 1
             ];
         }
     }
@@ -180,14 +190,17 @@ class StockAnalyzer
 
     /**
      * Analyze technical indicators
+     * Updated for Phase 1 with ADX
      */
     private function analyzeTechnicals(array $data): void
     {
         $category = 'Technical Analysis';
         $points = 0;
-        $maxPoints = 20;
+        $maxPoints = 25; // Increased from 20 to add ADX (5 points)
 
         $closes = $data['historical_closes'] ?? [];
+        $highs = $data['historical_highs'] ?? [];
+        $lows = $data['historical_lows'] ?? [];
 
         if (count($closes) >= 20) {
             // Calculate RSI (0-8 points)
@@ -241,6 +254,33 @@ class StockAnalyzer
             } elseif ($priceChange < -5) {
                 $points += 1;
                 $this->addReason('warning', "Sharp decline: {$priceChange}% today - consider waiting for stabilization.");
+            }
+
+            // ADX - Trend Strength (0-5 points) - Phase 1 Enhancement
+            if (count($highs) >= 20 && count($lows) >= 20) {
+                $adx = $this->calculateADX($highs, $lows, $closes);
+
+                if ($adx !== null) {
+                    $adxValue = $adx['adx'];
+                    $signal = $adx['signal'];
+
+                    if ($signal === 'STRONG_UPTREND') {
+                        $points += 5;
+                        $this->addReason('positive', "ADX ({$adxValue}) shows strong uptrend - high confidence trend confirmed.");
+                    } elseif ($signal === 'WEAK_UPTREND') {
+                        $points += 3;
+                        $this->addReason('neutral', "ADX ({$adxValue}) shows weak uptrend - trend not fully confirmed.");
+                    } elseif ($signal === 'NO_TREND') {
+                        $points += 1;
+                        $this->addReason('warning', "ADX ({$adxValue}) shows no clear trend - avoid trading until trend develops.");
+                    } elseif ($signal === 'STRONG_DOWNTREND') {
+                        $points += 0;
+                        $this->addReason('negative', "ADX ({$adxValue}) confirms strong downtrend - bearish signal.");
+                    } elseif ($signal === 'WEAK_DOWNTREND') {
+                        $points += 1;
+                        $this->addReason('warning', "ADX ({$adxValue}) shows weak downtrend - caution advised.");
+                    }
+                }
             }
         }
 
@@ -623,6 +663,14 @@ class StockAnalyzer
             }
         }
 
+        // Phase 1 indicators
+        $adx = null;
+        $atr = null;
+        if (count($closes) >= 20 && count($highs) >= 20 && count($lows) >= 20) {
+            $adx = $this->calculateADX($highs, $lows, $closes);
+            $atr = $this->calculateATR($highs, $lows, $closes);
+        }
+
         return [
             'price' => [
                 'current' => $data['current_price'],
@@ -653,6 +701,12 @@ class StockAnalyzer
                 'mfi' => $mfi,
                 'divergence' => $divergence,
                 '52_week' => $week52,
+                'adx' => $adx,  // Phase 1
+                'atr' => $atr,  // Phase 1
+            ],
+            'ownership' => [
+                'institutional_percent' => ($data['held_percent_institutions'] ?? 0) * 100,
+                'insider_percent' => ($data['held_percent_insiders'] ?? 0) * 100,
             ],
         ];
     }
@@ -1052,5 +1106,268 @@ class StockAnalyzer
             'IDR' => ['divisor' => 1_000_000_000_000, 'unit' => 'T'],
             default => ['divisor' => 1_000_000_000, 'unit' => 'B']
         };
+    }
+
+    // ========================================================================
+    // PHASE 1 INDICATORS: ADX, ATR, Foreign Flow
+    // ========================================================================
+
+    /**
+     * Calculate ADX (Average Directional Index)
+     * Measures trend strength (0-100)
+     * Phase 1 Enhancement
+     */
+    private function calculateADX(array $highs, array $lows, array $closes, int $period = 14): ?array
+    {
+        if (count($highs) < $period + 1 || count($lows) < $period + 1 || count($closes) < $period + 1) {
+            return null;
+        }
+
+        $trueRanges = [];
+        $plusDM = [];
+        $minusDM = [];
+
+        // Calculate True Range, +DM, -DM
+        for ($i = 1; $i < count($closes); $i++) {
+            // True Range
+            $tr1 = $highs[$i] - $lows[$i];
+            $tr2 = abs($highs[$i] - $closes[$i - 1]);
+            $tr3 = abs($lows[$i] - $closes[$i - 1]);
+            $trueRanges[] = max($tr1, $tr2, $tr3);
+
+            // +DM and -DM
+            $highDiff = $highs[$i] - $highs[$i - 1];
+            $lowDiff = $lows[$i - 1] - $lows[$i];
+
+            if ($highDiff > $lowDiff && $highDiff > 0) {
+                $plusDM[] = $highDiff;
+                $minusDM[] = 0;
+            } elseif ($lowDiff > $highDiff && $lowDiff > 0) {
+                $plusDM[] = 0;
+                $minusDM[] = $lowDiff;
+            } else {
+                $plusDM[] = 0;
+                $minusDM[] = 0;
+            }
+        }
+
+        // Smooth with period average
+        $smoothTR = array_sum(array_slice($trueRanges, -$period)) / $period;
+        $smoothPlusDM = array_sum(array_slice($plusDM, -$period)) / $period;
+        $smoothMinusDM = array_sum(array_slice($minusDM, -$period)) / $period;
+
+        // Calculate +DI and -DI
+        $plusDI = $smoothTR > 0 ? ($smoothPlusDM / $smoothTR) * 100 : 0;
+        $minusDI = $smoothTR > 0 ? ($smoothMinusDM / $smoothTR) * 100 : 0;
+
+        // Calculate DX
+        $diSum = $plusDI + $minusDI;
+        $dx = $diSum > 0 ? (abs($plusDI - $minusDI) / $diSum) * 100 : 0;
+
+        // ADX is smoothed DX (simplified - using direct DX for now)
+        $adx = $dx;
+
+        return [
+            'adx' => round($adx, 2),
+            'plus_di' => round($plusDI, 2),
+            'minus_di' => round($minusDI, 2),
+            'trend_strength' => $this->getADXStrength($adx),
+            'signal' => $this->getADXSignal($adx, $plusDI, $minusDI),
+        ];
+    }
+
+    /**
+     * Get ADX trend strength category
+     */
+    private function getADXStrength(float $adx): string
+    {
+        if ($adx > 50) return 'Very Strong';
+        if ($adx > 25) return 'Strong';
+        if ($adx > 20) return 'Moderate';
+        return 'Weak/No Trend';
+    }
+
+    /**
+     * Get ADX trading signal
+     */
+    private function getADXSignal(float $adx, float $plusDI, float $minusDI): string
+    {
+        if ($adx < 20) {
+            return 'NO_TREND'; // Avoid trading
+        }
+
+        if ($plusDI > $minusDI) {
+            return $adx > 25 ? 'STRONG_UPTREND' : 'WEAK_UPTREND';
+        } else {
+            return $adx > 25 ? 'STRONG_DOWNTREND' : 'WEAK_DOWNTREND';
+        }
+    }
+
+    /**
+     * Calculate ATR (Average True Range)
+     * Measures volatility
+     * Phase 1 Enhancement
+     */
+    private function calculateATR(array $highs, array $lows, array $closes, int $period = 14): ?array
+    {
+        if (count($highs) < $period + 1 || count($lows) < $period + 1 || count($closes) < $period + 1) {
+            return null;
+        }
+
+        $trueRanges = [];
+
+        for ($i = 1; $i < count($closes); $i++) {
+            $tr1 = $highs[$i] - $lows[$i];
+            $tr2 = abs($highs[$i] - $closes[$i - 1]);
+            $tr3 = abs($lows[$i] - $closes[$i - 1]);
+            $trueRanges[] = max($tr1, $tr2, $tr3);
+        }
+
+        $atr = array_sum(array_slice($trueRanges, -$period)) / $period;
+        $currentPrice = end($closes);
+
+        // ATR as percentage of price
+        $atrPercent = $currentPrice > 0 ? ($atr / $currentPrice) * 100 : 0;
+
+        return [
+            'atr' => round($atr, 2),
+            'atr_percent' => round($atrPercent, 2),
+            'volatility_category' => $this->categorizeVolatility($atrPercent),
+            'suggested_stop_loss' => round($currentPrice - (2 * $atr), 2),
+            'suggested_position_size' => $this->suggestPositionSize($atrPercent),
+        ];
+    }
+
+    /**
+     * Categorize volatility based on ATR%
+     */
+    private function categorizeVolatility(float $atrPercent): string
+    {
+        if ($atrPercent > 10) return 'Extreme';
+        if ($atrPercent > 5) return 'High';
+        if ($atrPercent > 2) return 'Moderate';
+        return 'Low';
+    }
+
+    /**
+     * Suggest position size based on volatility
+     */
+    private function suggestPositionSize(float $atrPercent): string
+    {
+        if ($atrPercent > 10) return 'Very Small (1-2% of portfolio)';
+        if ($atrPercent > 5) return 'Small (3-5% of portfolio)';
+        if ($atrPercent > 2) return 'Medium (5-8% of portfolio)';
+        return 'Normal (8-10% of portfolio)';
+    }
+
+    /**
+     * Analyze risk metrics (NEW CATEGORY - Phase 1)
+     * Includes ATR volatility analysis and liquidity checks
+     */
+    private function analyzeRiskMetrics(array $data): void
+    {
+        $category = 'Risk Assessment';
+        $points = 0;
+        $maxPoints = 15;
+
+        $highs = $data['historical_highs'] ?? [];
+        $lows = $data['historical_lows'] ?? [];
+        $closes = $data['historical_closes'] ?? [];
+
+        if (count($highs) >= 20 && count($lows) >= 20 && count($closes) >= 20) {
+            // ATR Analysis (0-10 points)
+            $atr = $this->calculateATR($highs, $lows, $closes);
+
+            if ($atr !== null) {
+                $volatility = $atr['volatility_category'];
+                $atrPercent = $atr['atr_percent'];
+
+                if ($volatility === 'Low') {
+                    $points += 10;
+                    $this->addReason('positive', "Low volatility (ATR: {$atrPercent}%) - stable stock, lower risk. {$atr['suggested_position_size']}");
+                } elseif ($volatility === 'Moderate') {
+                    $points += 7;
+                    $this->addReason('neutral', "Moderate volatility (ATR: {$atrPercent}%) - normal price swings. {$atr['suggested_position_size']}");
+                } elseif ($volatility === 'High') {
+                    $points += 4;
+                    $this->addReason('warning', "High volatility (ATR: {$atrPercent}%) - larger price swings. {$atr['suggested_position_size']}");
+                } else {
+                    $points += 2;
+                    $this->addReason('negative', "Extreme volatility (ATR: {$atrPercent}%) - very risky. {$atr['suggested_position_size']}");
+                }
+            }
+
+            // Liquidity check (0-5 points)
+            if ($data['volume'] > 0 && $data['avg_volume'] > 0) {
+                $volumeRatio = $data['volume'] / $data['avg_volume'];
+                if ($volumeRatio > 0.8) {
+                    $points += 5;
+                } elseif ($volumeRatio > 0.5) {
+                    $points += 3;
+                    $this->addReason('warning', "Below average liquidity - monitor for exit opportunities.");
+                } else {
+                    $points += 1;
+                    $this->addReason('warning', "Very low liquidity - may be difficult to exit position.");
+                }
+            }
+        }
+
+        $this->analysis[$category] = [
+            'score' => round(($points / $maxPoints) * 100, 2),
+            'points' => $points,
+            'max_points' => $maxPoints,
+        ];
+
+        $this->score += ($points / $maxPoints) * 15; // 15% weight
+    }
+
+    /**
+     * Analyze foreign/institutional ownership (NEW CATEGORY - Phase 1)
+     * Critical for emerging markets like IDX
+     */
+    private function analyzeForeignFlow(array $data): void
+    {
+        $category = 'Market Participation';
+        $points = 0;
+        $maxPoints = 10;
+
+        $institutionalOwnership = $data['held_percent_institutions'] ?? 0;
+
+        if ($institutionalOwnership > 0) {
+            // Convert to percentage (data is in decimal format 0-1)
+            $foreignPercent = $institutionalOwnership * 100;
+
+            if ($foreignPercent > 50) {
+                $points += 10;
+                $this->addReason('positive', "Very high institutional ownership ({$foreignPercent}%) - strong international confidence, smart money accumulating.");
+            } elseif ($foreignPercent > 30) {
+                $points += 7;
+                $this->addReason('positive', "High institutional ownership ({$foreignPercent}%) - good foreign interest and liquidity.");
+            } elseif ($foreignPercent > 20) {
+                $points += 5;
+                $this->addReason('neutral', "Moderate institutional ownership ({$foreignPercent}%) - balanced investor base.");
+            } elseif ($foreignPercent > 10) {
+                $points += 3;
+                $this->addReason('neutral', "Low institutional ownership ({$foreignPercent}%) - mostly domestic investors.");
+            } else {
+                $points += 2;
+                $this->addReason('warning', "Very low institutional ownership ({$foreignPercent}%) - limited foreign interest, potential liquidity concerns.");
+            }
+        } else {
+            $points += 2;
+            $this->addReason('warning', "No institutional ownership data available - unable to assess foreign interest.");
+        }
+
+        // Cap at maxPoints
+        $points = min($points, $maxPoints);
+        $points = max($points, 0);
+
+        $this->analysis[$category] = [
+            'score' => round(($points / $maxPoints) * 100, 2),
+            'points' => $points,
+            'max_points' => $maxPoints,
+        ];
+
+        $this->score += ($points / $maxPoints) * 10; // 10% weight
     }
 }

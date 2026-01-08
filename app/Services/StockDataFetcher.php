@@ -61,7 +61,7 @@ class StockDataFetcher
                 $summaryDetail = [];
 
                 try {
-                    $statsUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/{$symbol}?modules=defaultKeyStatistics,financialData,summaryDetail";
+                    $statsUrl = "https://query2.finance.yahoo.com/v10/finance/quoteSummary/{$symbol}?modules=defaultKeyStatistics,financialData,summaryDetail,institutionOwnership";
                     $statsResponse = $this->client->get($statsUrl);
                     $statsData = json_decode($statsResponse->getBody()->getContents(), true);
 
@@ -124,6 +124,10 @@ class StockDataFetcher
                     // Recommendations
                     'recommendation' => $financialData['recommendationKey'] ?? 'none',
                     'target_price' => $financialData['targetMeanPrice']['raw'] ?? null,
+
+                    // Institutional/Foreign ownership (Phase 1 enhancement)
+                    'held_percent_institutions' => $keyStats['heldPercentInstitutions']['raw'] ?? 0,
+                    'held_percent_insiders' => $keyStats['heldPercentInsiders']['raw'] ?? 0,
 
                     // Historical data for technical analysis
                     'historical_closes' => array_slice($closes, -60), // Last 60 days for better indicators
