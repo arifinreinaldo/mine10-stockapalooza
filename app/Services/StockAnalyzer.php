@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Data\IndonesianMarketData;
+
 class StockAnalyzer
 {
     private array $analysis = [];
@@ -671,6 +673,12 @@ class StockAnalyzer
             $atr = $this->calculateATR($highs, $lows, $closes);
         }
 
+        // Phase 2 indicators (contextual)
+        $liquidityScore = $this->calculateLiquidityScore($data);
+        $shariaCompliance = $this->analyzeShariaCompliance($data['symbol'], $data);
+        $bumnStatus = $this->analyzeBUMNStatus($data['symbol']);
+        $sectorRotation = $this->analyzeSectorRotation($data['symbol'], $data);
+
         return [
             'price' => [
                 'current' => $data['current_price'],
@@ -707,6 +715,13 @@ class StockAnalyzer
             'ownership' => [
                 'institutional_percent' => ($data['held_percent_institutions'] ?? 0) * 100,
                 'insider_percent' => ($data['held_percent_insiders'] ?? 0) * 100,
+            ],
+            // Phase 2: Indonesian Market Context
+            'market_context' => [
+                'liquidity' => $liquidityScore,
+                'sharia_compliance' => $shariaCompliance,
+                'bumn_status' => $bumnStatus,
+                'sector_rotation' => $sectorRotation,
             ],
         ];
     }
@@ -1369,5 +1384,249 @@ class StockAnalyzer
         ];
 
         $this->score += ($points / $maxPoints) * 10; // 10% weight
+    }
+
+    // ========================================================================
+    // PHASE 2 INDICATORS: Sector Rotation, Liquidity, Sharia, BUMN
+    // ========================================================================
+
+    /**
+     * Calculate Liquidity Score (IDX-specific)
+     * Phase 2 Enhancement - measures ease of buying/selling
+     */
+    private function calculateLiquidityScore(array $data): array
+    {
+        $score = 0;
+        $maxScore = 100;
+
+        // 1. Average Daily Value (40 points)
+        $avgDailyValue = $data['avg_volume'] * $data['current_price'];
+
+        if ($this->currency === 'IDR') {
+            // Indonesian stocks - in Rupiah
+            if ($avgDailyValue > 100_000_000_000) { // > 100 billion IDR
+                $score += 40;
+            } elseif ($avgDailyValue > 10_000_000_000) { // > 10 billion IDR
+                $score += 30;
+            } elseif ($avgDailyValue > 1_000_000_000) { // > 1 billion IDR
+                $score += 20;
+            } else {
+                $score += 10;
+            }
+        } else {
+            // Other markets
+            if ($avgDailyValue > 10_000_000) { // > 10M
+                $score += 40;
+            } elseif ($avgDailyValue > 1_000_000) { // > 1M
+                $score += 30;
+            } else {
+                $score += 20;
+            }
+        }
+
+        // 2. Volume Consistency (30 points)
+        $volumes = $data['historical_volumes'] ?? [];
+        if (count($volumes) >= 20) {
+            $recentVolumes = array_slice($volumes, -20);
+            $avgVolume = array_sum($recentVolumes) / count($recentVolumes);
+            $variance = 0;
+            foreach ($recentVolumes as $vol) {
+                $variance += pow($vol - $avgVolume, 2);
+            }
+            $stdDev = sqrt($variance / count($recentVolumes));
+            $coefficientOfVariation = $avgVolume > 0 ? ($stdDev / $avgVolume) : 1;
+
+            if ($coefficientOfVariation < 0.3) { // Very consistent
+                $score += 30;
+            } elseif ($coefficientOfVariation < 0.5) { // Moderate consistency
+                $score += 20;
+            } else {
+                $score += 10;
+            }
+        }
+
+        // 3. Market Cap (30 points) - larger = more liquid
+        $marketCap = $data['market_cap'];
+        $capInfo = $this->getMarketCapDivisor($this->currency);
+        $marketCapValue = $marketCap / $capInfo['divisor'];
+
+        if ($marketCapValue > 50) { // Large cap
+            $score += 30;
+        } elseif ($marketCapValue > 10) { // Mid-large cap
+            $score += 25;
+        } elseif ($marketCapValue > 1) { // Mid cap
+            $score += 15;
+        } else { // Small cap
+            $score += 5;
+        }
+
+        $category = 'Illiquid';
+        if ($score >= 80) $category = 'Very Liquid';
+        elseif ($score >= 60) $category = 'Moderately Liquid';
+        elseif ($score >= 40) $category = 'Low Liquidity';
+
+        return [
+            'score' => $score,
+            'max_score' => $maxScore,
+            'category' => $category,
+            'avg_daily_value' => $avgDailyValue,
+            'market_cap_value' => round($marketCapValue, 2),
+        ];
+    }
+
+    /**
+     * Analyze Sharia Compliance
+     * Phase 2 Enhancement - Islamic investment criteria
+     */
+    private function analyzeShariaCompliance(string $symbol, array $data): array
+    {
+        $cleanSymbol = str_replace('.JK', '', strtoupper($symbol));
+
+        // Check if in DES list
+        $isCompliant = IndonesianMarketData::isShariaCompliant($cleanSymbol);
+
+        // Additional criteria check
+        $debtRatio = $data['debt_to_equity'] ?? 0;
+        $sector = IndonesianMarketData::getSector($cleanSymbol);
+
+        // Non-compliant sectors
+        $nonCompliantSectors = ['Banking (Conventional)', 'Alcohol', 'Gambling', 'Pork'];
+        $sectorCompliant = !in_array($sector, $nonCompliantSectors);
+
+        // Debt ratio check (should be < 45%)
+        $debtCompliant = $debtRatio < 45;
+
+        $notes = [];
+        if (!$isCompliant) {
+            $notes[] = 'Not in OJK DES (Daftar Efek Syariah) list';
+        }
+        if (!$sectorCompliant) {
+            $notes[] = "Sector ({$sector}) not Sharia-compliant";
+        }
+        if (!$debtCompliant && $debtRatio > 0) {
+            $notes[] = "Debt-to-Equity ratio ({$debtRatio}%) exceeds 45% threshold";
+        }
+
+        return [
+            'is_compliant' => $isCompliant && $sectorCompliant && $debtCompliant,
+            'in_des_list' => $isCompliant,
+            'sector' => $sector,
+            'sector_compliant' => $sectorCompliant,
+            'debt_compliant' => $debtCompliant,
+            'notes' => empty($notes) ? ['Stock meets Sharia compliance criteria'] : $notes,
+        ];
+    }
+
+    /**
+     * Analyze BUMN (State-Owned Enterprise) Status
+     * Phase 2 Enhancement - government ownership characteristics
+     */
+    private function analyzeBUMNStatus(string $symbol): array
+    {
+        $cleanSymbol = str_replace('.JK', '', strtoupper($symbol));
+
+        $isBUMN = IndonesianMarketData::isBUMN($cleanSymbol);
+        $bumnInfo = IndonesianMarketData::getBUMNInfo($cleanSymbol);
+
+        $characteristics = [];
+        if ($isBUMN && $bumnInfo) {
+            $characteristics = [
+                'advantages' => [
+                    'Government backing reduces bankruptcy risk',
+                    'Stable business model (often monopoly/oligopoly)',
+                    'Regular dividend payouts (government mandate)',
+                    'Better access to government projects',
+                ],
+                'disadvantages' => [
+                    'Bureaucratic management structure',
+                    'Political interference in decision-making',
+                    'Limited growth due to dividend mandates',
+                    'Non-merit based executive appointments possible',
+                ],
+                'tier' => $bumnInfo['tier'] ?? 'unknown',
+                'sector' => $bumnInfo['sector'] ?? 'unknown',
+                'gov_ownership' => $bumnInfo['ownership'] ?? 0,
+            ];
+        }
+
+        return [
+            'is_bumn' => $isBUMN,
+            'bumn_info' => $bumnInfo,
+            'characteristics' => $characteristics,
+            'assessment' => $isBUMN ?
+                'Government-backed stock: Higher stability, potentially lower growth vs private peers' :
+                'Private sector stock: Higher growth potential, higher risk',
+        ];
+    }
+
+    /**
+     * Analyze Sector Performance and Rotation
+     * Phase 2 Enhancement - sector momentum analysis
+     */
+    private function analyzeSectorRotation(string $symbol, array $data): array
+    {
+        $cleanSymbol = str_replace('.JK', '', strtoupper($symbol));
+        $sector = IndonesianMarketData::getSector($cleanSymbol) ?? 'Unknown';
+
+        // Get stock's momentum
+        $priceChange = $data['change_percent'];
+        $closes = $data['historical_closes'] ?? [];
+
+        $momentum1Week = 0;
+        $momentum1Month = 0;
+
+        if (count($closes) >= 5) {
+            $momentum1Week = (end($closes) / $closes[count($closes) - 5] - 1) * 100;
+        }
+        if (count($closes) >= 20) {
+            $momentum1Month = (end($closes) / $closes[count($closes) - 20] - 1) * 100;
+        }
+
+        // Sector status based on momentum
+        $sectorStatus = 'NEUTRAL';
+        if ($momentum1Month > 10) {
+            $sectorStatus = 'HOT';
+        } elseif ($momentum1Month > 5) {
+            $sectorStatus = 'WARMING';
+        } elseif ($momentum1Month < -10) {
+            $sectorStatus = 'COLD';
+        } elseif ($momentum1Month < -5) {
+            $sectorStatus = 'COOLING';
+        }
+
+        $interpretation = match($sectorStatus) {
+            'HOT' => "{$sector} sector is outperforming - strong uptrend",
+            'WARMING' => "{$sector} sector showing positive momentum",
+            'COOLING' => "{$sector} sector showing weakness",
+            'COLD' => "{$sector} sector underperforming - downtrend",
+            default => "{$sector} sector in neutral zone",
+        };
+
+        return [
+            'sector' => $sector,
+            'sector_status' => $sectorStatus,
+            'momentum_1week_percent' => round($momentum1Week, 2),
+            'momentum_1month_percent' => round($momentum1Month, 2),
+            'interpretation' => $interpretation,
+            'recommendation' => $this->getSectorRotationRecommendation($sectorStatus, $data['score'] ?? 0),
+        ];
+    }
+
+    /**
+     * Get sector rotation trading recommendation
+     */
+    private function getSectorRotationRecommendation(string $sectorStatus, float $stockScore): string
+    {
+        if ($sectorStatus === 'HOT' && $stockScore > 65) {
+            return 'Strong buy - both sector and stock are strong';
+        } elseif ($sectorStatus === 'HOT') {
+            return 'Consider - sector is hot but stock fundamentals weak';
+        } elseif ($sectorStatus === 'COLD' && $stockScore > 75) {
+            return 'Wait for sector rotation - good stock in weak sector';
+        } elseif ($sectorStatus === 'COLD') {
+            return 'Avoid - both sector and stock are weak';
+        } else {
+            return 'Normal analysis applies - sector neutral';
+        }
     }
 }
