@@ -2114,7 +2114,7 @@
 
             const analysisSummary = generateAnalysisSummary();
 
-            // Generate Stock Snapshot Bullet Points
+            // Generate Stock Snapshot Bullet Points (Newbie-Friendly)
             const generateStockSnapshot = () => {
                 const bullets = [];
                 const marketContext = metrics.market_context || {};
@@ -2123,90 +2123,156 @@
                 const financial = metrics.financial || {};
                 const dividend = metrics.dividend || {};
 
-                // 1. Trend & Momentum (ADX + MACD)
+                // 1. Price Direction - Is it going UP or DOWN?
                 if (technical.adx) {
                     const adx = technical.adx;
-                    const trendIcon = adx.signal.includes('UPTREND') ? '📈' : adx.signal.includes('DOWNTREND') ? '📉' : '↔️';
+                    let explanation = '';
+                    if (adx.signal.includes('UPTREND')) {
+                        explanation = adx.trend_strength === 'Strong' || adx.trend_strength === 'Very Strong'
+                            ? 'Price is strongly going UP 📈 Good time to consider buying!'
+                            : 'Price is slowly going UP 📈 Trend is weak';
+                    } else if (adx.signal.includes('DOWNTREND')) {
+                        explanation = adx.trend_strength === 'Strong' || adx.trend_strength === 'Very Strong'
+                            ? 'Price is strongly going DOWN 📉 Be careful!'
+                            : 'Price is slowly going DOWN 📉 Weak downtrend';
+                    } else {
+                        explanation = 'Price is moving sideways ↔️ No clear direction yet';
+                    }
                     const trendColor = adx.signal.includes('UPTREND') ? '#10b981' : adx.signal.includes('DOWNTREND') ? '#ef4444' : '#94a3b8';
-                    bullets.push(`${trendIcon} <strong style="color: ${trendColor};">Trend:</strong> ${adx.trend_strength} (ADX ${adx.adx}) - ${adx.signal.replace('_', ' ')}`);
+                    bullets.push(`<strong style="color: ${trendColor};">📊 Price Direction:</strong> ${explanation}`);
                 }
 
-                // 2. Volatility & Risk (ATR)
+                // 2. Price Stability - Does price jump around a lot?
                 if (technical.atr) {
                     const atr = technical.atr;
-                    const volIcon = atr.volatility_category === 'Extreme' || atr.volatility_category === 'High' ? '⚡' : atr.volatility_category === 'Low' ? '😌' : '📊';
-                    const volColor = atr.volatility_category === 'Extreme' ? '#ef4444' : atr.volatility_category === 'High' ? '#f59e0b' : atr.volatility_category === 'Low' ? '#10b981' : '#94a3b8';
-                    bullets.push(`${volIcon} <strong style="color: ${volColor};">Volatility:</strong> ${atr.volatility_category} (${atr.atr_percent}% daily swings) - ${atr.suggested_position_size}`);
+                    let explanation = '';
+                    if (atr.volatility_category === 'Extreme') {
+                        explanation = '⚡ <span style="color: #ef4444;">Very jumpy!</span> Price can move ±' + atr.atr_percent.toFixed(0) + '% daily. High risk - only for experienced traders';
+                    } else if (atr.volatility_category === 'High') {
+                        explanation = '⚡ <span style="color: #f59e0b;">Quite jumpy.</span> Price moves ±' + atr.atr_percent.toFixed(0) + '% daily. Moderate risk - be cautious';
+                    } else if (atr.volatility_category === 'Low') {
+                        explanation = '😌 <span style="color: #10b981;">Stable & calm.</span> Price moves ±' + atr.atr_percent.toFixed(0) + '% daily. Good for beginners';
+                    } else {
+                        explanation = '📊 Normal movement. Price moves ±' + atr.atr_percent.toFixed(0) + '% daily';
+                    }
+                    bullets.push(`<strong>🎢 Price Stability:</strong> ${explanation}`);
                 }
 
-                // 3. Liquidity
+                // 3. Easy to Buy/Sell? - Can you trade it easily?
                 if (marketContext.liquidity) {
                     const liq = marketContext.liquidity;
-                    const liqIcon = liq.category.includes('Very Liquid') ? '💧' : liq.category.includes('Liquid') ? '💦' : liq.category.includes('Illiquid') ? '🏜️' : '📊';
-                    const liqColor = liq.category.includes('Very Liquid') ? '#10b981' : liq.category.includes('Liquid') ? '#22c55e' : liq.category.includes('Illiquid') ? '#ef4444' : '#f59e0b';
-                    bullets.push(`${liqIcon} <strong style="color: ${liqColor};">Liquidity:</strong> ${liq.category} (${liq.score}/${liq.max_score}) - ${liq.recommendation || 'Easy to trade'}`);
+                    let explanation = '';
+                    if (liq.category.includes('Very Liquid')) {
+                        explanation = '💧 <span style="color: #10b981;">Super easy!</span> Lots of buyers & sellers. You can buy/sell anytime without issues';
+                    } else if (liq.category.includes('Liquid')) {
+                        explanation = '💦 <span style="color: #22c55e;">Easy enough.</span> Good trading volume. Usually no problem buying or selling';
+                    } else if (liq.category.includes('Illiquid')) {
+                        explanation = '🏜️ <span style="color: #ef4444;">Hard to trade!</span> Not many buyers/sellers. May be difficult to exit when you want';
+                    } else {
+                        explanation = '📊 <span style="color: #f59e0b;">Moderate.</span> Average trading volume. Sometimes need to wait for buyers/sellers';
+                    }
+                    bullets.push(`<strong>💱 Easy to Trade?</strong> ${explanation}`);
                 }
 
-                // 4. Sharia Compliance
+                // 4. Halal Status - For Muslim investors
                 if (marketContext.sharia_compliance) {
                     const sharia = marketContext.sharia_compliance;
                     if (sharia.is_compliant) {
-                        bullets.push(`🕌 <strong style="color: #10b981;">Sharia Compliant:</strong> In OJK DES list - halal investment`);
+                        bullets.push(`<strong style="color: #10b981;">🕌 Halal Investment:</strong> Yes! This stock is approved by OJK (safe for Muslim investors)`);
                     } else {
-                        bullets.push(`🏦 <strong style="color: #94a3b8;">Non-Sharia:</strong> Not in OJK DES list`);
+                        bullets.push(`<strong style="color: #94a3b8;">🏦 Halal Status:</strong> Not in halal list (not approved for Islamic investment)`);
                     }
                 }
 
-                // 5. BUMN Status
+                // 5. Government-Owned? - Does the government own this company?
                 if (marketContext.bumn_status && marketContext.bumn_status.is_bumn) {
                     const bumn = marketContext.bumn_status;
-                    const tier = bumn.bumn_info?.tier || 'unknown';
                     const ownership = bumn.bumn_info?.ownership || 0;
-                    bullets.push(`🏛️ <strong style="color: #3b82f6;">BUMN:</strong> State-owned (${ownership}% govt) - ${tier} tier, government backing`);
+                    const tier = bumn.bumn_info?.tier || 'unknown';
+                    let explanation = '';
+                    if (tier === 'strategic') {
+                        explanation = '🏛️ <span style="color: #3b82f6;">Government owns ' + ownership.toFixed(0) + '%</span> - Very important company! Lower risk of bankruptcy';
+                    } else {
+                        explanation = '🏛️ <span style="color: #3b82f6;">Government owns ' + ownership.toFixed(0) + '%</span> - State-owned company with government support';
+                    }
+                    bullets.push(`<strong>🏢 Ownership:</strong> ${explanation}`);
                 }
 
-                // 6. Sector Rotation
+                // 6. Sector Timing - Is this industry popular right now?
                 if (marketContext.sector_rotation) {
                     const sector = marketContext.sector_rotation;
-                    const sectorIcon = sector.sector_status === 'HOT' ? '🔥' : sector.sector_status === 'WARMING' ? '🌡️' : sector.sector_status === 'COOLING' ? '❄️' : sector.sector_status === 'COLD' ? '🧊' : '📊';
-                    const sectorColor = sector.sector_status === 'HOT' ? '#ef4444' : sector.sector_status === 'WARMING' ? '#f59e0b' : sector.sector_status === 'COOLING' ? '#3b82f6' : sector.sector_status === 'COLD' ? '#6366f1' : '#94a3b8';
-                    bullets.push(`${sectorIcon} <strong style="color: ${sectorColor};">Sector:</strong> ${sector.sector} is ${sector.sector_status} (${sector.momentum_1month_percent > 0 ? '+' : ''}${sector.momentum_1month_percent}% 1M)`);
+                    let explanation = '';
+                    if (sector.sector_status === 'HOT') {
+                        explanation = '🔥 <span style="color: #ef4444;">' + sector.sector + ' sector is HOT!</span> Everyone wants to buy stocks in this industry right now (+' + sector.momentum_1month_percent.toFixed(0) + '%)';
+                    } else if (sector.sector_status === 'WARMING') {
+                        explanation = '🌡️ <span style="color: #f59e0b;">' + sector.sector + ' sector is warming up.</span> Industry is getting popular (+' + sector.momentum_1month_percent.toFixed(0) + '%)';
+                    } else if (sector.sector_status === 'COOLING') {
+                        explanation = '❄️ <span style="color: #3b82f6;">' + sector.sector + ' sector is cooling down.</span> Industry interest is fading (' + sector.momentum_1month_percent.toFixed(0) + '%)';
+                    } else if (sector.sector_status === 'COLD') {
+                        explanation = '🧊 <span style="color: #6366f1;">' + sector.sector + ' sector is cold.</span> People are avoiding this industry (' + sector.momentum_1month_percent.toFixed(0) + '%)';
+                    } else {
+                        explanation = '📊 ' + sector.sector + ' sector is stable. No major interest or decline';
+                    }
+                    bullets.push(`<strong>🏭 Industry Trend:</strong> ${explanation}`);
                 }
 
-                // 7. Valuation (P/E)
+                // 7. Stock Price - Is it cheap or expensive?
                 if (valuation.pe_ratio !== undefined && valuation.pe_ratio !== null) {
                     const pe = valuation.pe_ratio;
-                    const peIcon = pe < 15 ? '💎' : pe < 25 ? '💰' : '💸';
-                    const peColor = pe < 15 ? '#10b981' : pe < 25 ? '#f59e0b' : '#ef4444';
-                    const peLabel = pe < 15 ? 'Cheap' : pe < 25 ? 'Fair' : 'Expensive';
-                    bullets.push(`${peIcon} <strong style="color: ${peColor};">Valuation:</strong> P/E ${pe.toFixed(1)} (${peLabel}) - ${pe < 15 ? 'potentially undervalued' : pe < 25 ? 'fairly priced' : 'premium pricing'}`);
+                    let explanation = '';
+                    if (pe < 15) {
+                        explanation = '💎 <span style="color: #10b981;">CHEAP!</span> Stock price is low compared to company profits. Could be a bargain';
+                    } else if (pe < 25) {
+                        explanation = '💰 <span style="color: #f59e0b;">Fair price.</span> Stock is reasonably priced - not too cheap, not too expensive';
+                    } else {
+                        explanation = '💸 <span style="color: #ef4444;">EXPENSIVE!</span> Stock price is high compared to profits. You\'re paying a premium';
+                    }
+                    bullets.push(`<strong>🏷️ Price Tag:</strong> ${explanation}`);
                 }
 
-                // 8. Financial Health (Debt)
+                // 8. Company Debt - Does the company owe a lot of money?
                 if (financial.debt_to_equity !== undefined && financial.debt_to_equity !== null) {
                     const debt = financial.debt_to_equity;
-                    const debtIcon = debt < 0.5 ? '💪' : debt < 1.0 ? '⚖️' : '⚠️';
-                    const debtColor = debt < 0.5 ? '#10b981' : debt < 1.0 ? '#f59e0b' : '#ef4444';
-                    const debtLabel = debt < 0.5 ? 'Strong' : debt < 1.0 ? 'Moderate' : 'High';
-                    bullets.push(`${debtIcon} <strong style="color: ${debtColor};">Debt:</strong> ${debt.toFixed(2)} D/E ratio (${debtLabel}) - ${debt < 0.5 ? 'low financial risk' : debt < 1.0 ? 'manageable debt' : 'watch debt levels'}`);
+                    let explanation = '';
+                    if (debt < 0.5) {
+                        explanation = '💪 <span style="color: #10b981;">Very healthy!</span> Company has low debt. Less risk of financial trouble';
+                    } else if (debt < 1.0) {
+                        explanation = '⚖️ <span style="color: #f59e0b;">Moderate debt.</span> Company has some loans but manageable. Normal for most businesses';
+                    } else {
+                        explanation = '⚠️ <span style="color: #ef4444;">High debt!</span> Company owes a lot of money. Higher risk - watch carefully';
+                    }
+                    bullets.push(`<strong>💳 Company Debt:</strong> ${explanation}`);
                 }
 
-                // 9. Dividend
+                // 9. Passive Income - Does it pay you dividends?
                 if (dividend.yield !== undefined && dividend.yield > 0) {
                     const divYield = dividend.yield;
-                    const divIcon = divYield > 5 ? '💰' : divYield > 3 ? '💵' : '💸';
-                    const divColor = divYield > 5 ? '#10b981' : divYield > 3 ? '#22c55e' : '#94a3b8';
-                    bullets.push(`${divIcon} <strong style="color: ${divColor};">Dividend:</strong> ${divYield.toFixed(2)}% yield - ${divYield > 5 ? 'excellent' : divYield > 3 ? 'good' : 'modest'} passive income`);
+                    let explanation = '';
+                    if (divYield > 5) {
+                        explanation = '💰 <span style="color: #10b981;">Excellent!</span> Pays ' + divYield.toFixed(1) + '% per year. Great for passive income!';
+                    } else if (divYield > 3) {
+                        explanation = '💵 <span style="color: #22c55e;">Good.</span> Pays ' + divYield.toFixed(1) + '% per year. Nice extra income while holding';
+                    } else {
+                        explanation = '💸 Pays ' + divYield.toFixed(1) + '% per year. Small dividend but better than nothing';
+                    }
+                    bullets.push(`<strong>💵 Dividend (Free Money?):</strong> ${explanation}`);
                 }
 
-                // 10. Foreign/Institutional Flow
+                // 10. Big Player Interest - Do professionals invest in this?
                 if (metrics.ownership) {
                     const instPercent = (metrics.ownership.institutional_percent * 100);
                     if (instPercent > 0) {
-                        const flowIcon = instPercent > 50 ? '🏦' : instPercent > 30 ? '📊' : '👥';
-                        const flowColor = instPercent > 50 ? '#10b981' : instPercent > 30 ? '#22c55e' : '#94a3b8';
-                        const flowLabel = instPercent > 50 ? 'Very High' : instPercent > 30 ? 'High' : instPercent > 20 ? 'Moderate' : instPercent > 10 ? 'Low' : 'Very Low';
-                        bullets.push(`${flowIcon} <strong style="color: ${flowColor};">Smart Money:</strong> ${instPercent.toFixed(0)}% institutional (${flowLabel}) - ${instPercent > 50 ? 'heavily backed' : instPercent > 30 ? 'well supported' : 'retail dominated'}`);
+                        let explanation = '';
+                        if (instPercent > 50) {
+                            explanation = '🏦 <span style="color: #10b981;">YES!</span> ' + instPercent.toFixed(0) + '% owned by big institutions (banks, funds). Smart money trusts this stock';
+                        } else if (instPercent > 30) {
+                            explanation = '📊 <span style="color: #22c55e;">Good support.</span> ' + instPercent.toFixed(0) + '% owned by institutions. Professional investors are interested';
+                        } else if (instPercent > 10) {
+                            explanation = '👥 Mostly retail investors (' + instPercent.toFixed(0) + '% institutions). Regular people like you own this';
+                        } else {
+                            explanation = '👥 Very few institutions (' + instPercent.toFixed(0) + '%). Mostly owned by small retail traders';
+                        }
+                        bullets.push(`<strong>🎯 Professional Interest:</strong> ${explanation}`);
                     }
                 }
 
