@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Data\IndonesianMarketData;
+
 class StockAnalyzer
 {
     private array $analysis = [];
@@ -47,6 +49,10 @@ class StockAnalyzer
         $this->analyzeMomentum($stockData);
         $this->analyzeDividend($stockData);
 
+        // Phase 1 Enhancements
+        $this->analyzeRiskMetrics($stockData);
+        $this->analyzeForeignFlow($stockData);
+
         // Determine recommendation
         $recommendation = $this->getRecommendation($this->score);
 
@@ -91,29 +97,35 @@ class StockAnalyzer
 
     /**
      * Calculate adaptive scoring weights based on data availability
+     * Updated for Phase 1 with Risk Assessment and Market Participation
      */
     private function calculateAdaptiveWeights(): array
     {
         if ($this->hasFundamentals) {
             // Standard weights when fundamentals are available
+            // Total: 100% across 8 categories
             return [
-                'fundamentals' => 20,
-                'technicals' => 25,
-                'valuation' => 15,
-                'financial_health' => 20,
-                'momentum' => 10,
-                'dividend' => 10,
+                'fundamentals' => 15,      // Reduced from 20
+                'technicals' => 25,        // Keep same (ADX added internally)
+                'valuation' => 12,         // Reduced from 15
+                'financial_health' => 15,  // Reduced from 20
+                'momentum' => 8,           // Reduced from 10
+                'dividend' => 5,           // Reduced from 10
+                'risk_metrics' => 12,      // NEW - Phase 1
+                'foreign_flow' => 8,       // NEW - Phase 1
             ];
         } else {
             // Adaptive weights when fundamentals are missing
             // Emphasize technical analysis and momentum
             return [
-                'fundamentals' => 0,     // Skip fundamentals
-                'technicals' => 50,      // Boost from 25% to 50%
-                'valuation' => 0,        // Skip valuation
-                'financial_health' => 0, // Skip financial health
-                'momentum' => 35,        // Boost from 10% to 35%
-                'dividend' => 15,        // Boost from 10% to 15%
+                'fundamentals' => 0,
+                'technicals' => 40,        // Boost for technical-only mode
+                'valuation' => 0,
+                'financial_health' => 0,
+                'momentum' => 25,          // Boost
+                'dividend' => 10,
+                'risk_metrics' => 15,      // NEW - Phase 1 (important even without fundamentals)
+                'foreign_flow' => 10,      // NEW - Phase 1
             ];
         }
     }
@@ -180,14 +192,17 @@ class StockAnalyzer
 
     /**
      * Analyze technical indicators
+     * Updated for Phase 1 with ADX
      */
     private function analyzeTechnicals(array $data): void
     {
         $category = 'Technical Analysis';
         $points = 0;
-        $maxPoints = 20;
+        $maxPoints = 25; // Increased from 20 to add ADX (5 points)
 
         $closes = $data['historical_closes'] ?? [];
+        $highs = $data['historical_highs'] ?? [];
+        $lows = $data['historical_lows'] ?? [];
 
         if (count($closes) >= 20) {
             // Calculate RSI (0-8 points)
@@ -241,6 +256,33 @@ class StockAnalyzer
             } elseif ($priceChange < -5) {
                 $points += 1;
                 $this->addReason('warning', "Sharp decline: {$priceChange}% today - consider waiting for stabilization.");
+            }
+
+            // ADX - Trend Strength (0-5 points) - Phase 1 Enhancement
+            if (count($highs) >= 20 && count($lows) >= 20) {
+                $adx = $this->calculateADX($highs, $lows, $closes);
+
+                if ($adx !== null) {
+                    $adxValue = $adx['adx'];
+                    $signal = $adx['signal'];
+
+                    if ($signal === 'STRONG_UPTREND') {
+                        $points += 5;
+                        $this->addReason('positive', "ADX ({$adxValue}) shows strong uptrend - high confidence trend confirmed.");
+                    } elseif ($signal === 'WEAK_UPTREND') {
+                        $points += 3;
+                        $this->addReason('neutral', "ADX ({$adxValue}) shows weak uptrend - trend not fully confirmed.");
+                    } elseif ($signal === 'NO_TREND') {
+                        $points += 1;
+                        $this->addReason('warning', "ADX ({$adxValue}) shows no clear trend - avoid trading until trend develops.");
+                    } elseif ($signal === 'STRONG_DOWNTREND') {
+                        $points += 0;
+                        $this->addReason('negative', "ADX ({$adxValue}) confirms strong downtrend - bearish signal.");
+                    } elseif ($signal === 'WEAK_DOWNTREND') {
+                        $points += 1;
+                        $this->addReason('warning', "ADX ({$adxValue}) shows weak downtrend - caution advised.");
+                    }
+                }
             }
         }
 
@@ -623,6 +665,20 @@ class StockAnalyzer
             }
         }
 
+        // Phase 1 indicators
+        $adx = null;
+        $atr = null;
+        if (count($closes) >= 20 && count($highs) >= 20 && count($lows) >= 20) {
+            $adx = $this->calculateADX($highs, $lows, $closes);
+            $atr = $this->calculateATR($highs, $lows, $closes);
+        }
+
+        // Phase 2 indicators (contextual)
+        $liquidityScore = $this->calculateLiquidityScore($data);
+        $shariaCompliance = $this->analyzeShariaCompliance($data['symbol'], $data);
+        $bumnStatus = $this->analyzeBUMNStatus($data['symbol']);
+        $sectorRotation = $this->analyzeSectorRotation($data['symbol'], $data);
+
         return [
             'price' => [
                 'current' => $data['current_price'],
@@ -653,6 +709,19 @@ class StockAnalyzer
                 'mfi' => $mfi,
                 'divergence' => $divergence,
                 '52_week' => $week52,
+                'adx' => $adx,  // Phase 1
+                'atr' => $atr,  // Phase 1
+            ],
+            'ownership' => [
+                'institutional_percent' => ($data['held_percent_institutions'] ?? 0) * 100,
+                'insider_percent' => ($data['held_percent_insiders'] ?? 0) * 100,
+            ],
+            // Phase 2: Indonesian Market Context
+            'market_context' => [
+                'liquidity' => $liquidityScore,
+                'sharia_compliance' => $shariaCompliance,
+                'bumn_status' => $bumnStatus,
+                'sector_rotation' => $sectorRotation,
             ],
         ];
     }
@@ -1052,5 +1121,512 @@ class StockAnalyzer
             'IDR' => ['divisor' => 1_000_000_000_000, 'unit' => 'T'],
             default => ['divisor' => 1_000_000_000, 'unit' => 'B']
         };
+    }
+
+    // ========================================================================
+    // PHASE 1 INDICATORS: ADX, ATR, Foreign Flow
+    // ========================================================================
+
+    /**
+     * Calculate ADX (Average Directional Index)
+     * Measures trend strength (0-100)
+     * Phase 1 Enhancement
+     */
+    private function calculateADX(array $highs, array $lows, array $closes, int $period = 14): ?array
+    {
+        if (count($highs) < $period + 1 || count($lows) < $period + 1 || count($closes) < $period + 1) {
+            return null;
+        }
+
+        $trueRanges = [];
+        $plusDM = [];
+        $minusDM = [];
+
+        // Calculate True Range, +DM, -DM
+        for ($i = 1; $i < count($closes); $i++) {
+            // True Range
+            $tr1 = $highs[$i] - $lows[$i];
+            $tr2 = abs($highs[$i] - $closes[$i - 1]);
+            $tr3 = abs($lows[$i] - $closes[$i - 1]);
+            $trueRanges[] = max($tr1, $tr2, $tr3);
+
+            // +DM and -DM
+            $highDiff = $highs[$i] - $highs[$i - 1];
+            $lowDiff = $lows[$i - 1] - $lows[$i];
+
+            if ($highDiff > $lowDiff && $highDiff > 0) {
+                $plusDM[] = $highDiff;
+                $minusDM[] = 0;
+            } elseif ($lowDiff > $highDiff && $lowDiff > 0) {
+                $plusDM[] = 0;
+                $minusDM[] = $lowDiff;
+            } else {
+                $plusDM[] = 0;
+                $minusDM[] = 0;
+            }
+        }
+
+        // Smooth with period average
+        $smoothTR = array_sum(array_slice($trueRanges, -$period)) / $period;
+        $smoothPlusDM = array_sum(array_slice($plusDM, -$period)) / $period;
+        $smoothMinusDM = array_sum(array_slice($minusDM, -$period)) / $period;
+
+        // Calculate +DI and -DI
+        $plusDI = $smoothTR > 0 ? ($smoothPlusDM / $smoothTR) * 100 : 0;
+        $minusDI = $smoothTR > 0 ? ($smoothMinusDM / $smoothTR) * 100 : 0;
+
+        // Calculate DX
+        $diSum = $plusDI + $minusDI;
+        $dx = $diSum > 0 ? (abs($plusDI - $minusDI) / $diSum) * 100 : 0;
+
+        // ADX is smoothed DX (simplified - using direct DX for now)
+        $adx = $dx;
+
+        return [
+            'adx' => round($adx, 2),
+            'plus_di' => round($plusDI, 2),
+            'minus_di' => round($minusDI, 2),
+            'trend_strength' => $this->getADXStrength($adx),
+            'signal' => $this->getADXSignal($adx, $plusDI, $minusDI),
+        ];
+    }
+
+    /**
+     * Get ADX trend strength category
+     */
+    private function getADXStrength(float $adx): string
+    {
+        if ($adx > 50) return 'Very Strong';
+        if ($adx > 25) return 'Strong';
+        if ($adx > 20) return 'Moderate';
+        return 'Weak/No Trend';
+    }
+
+    /**
+     * Get ADX trading signal
+     */
+    private function getADXSignal(float $adx, float $plusDI, float $minusDI): string
+    {
+        if ($adx < 20) {
+            return 'NO_TREND'; // Avoid trading
+        }
+
+        if ($plusDI > $minusDI) {
+            return $adx > 25 ? 'STRONG_UPTREND' : 'WEAK_UPTREND';
+        } else {
+            return $adx > 25 ? 'STRONG_DOWNTREND' : 'WEAK_DOWNTREND';
+        }
+    }
+
+    /**
+     * Calculate ATR (Average True Range)
+     * Measures volatility
+     * Phase 1 Enhancement
+     */
+    private function calculateATR(array $highs, array $lows, array $closes, int $period = 14): ?array
+    {
+        if (count($highs) < $period + 1 || count($lows) < $period + 1 || count($closes) < $period + 1) {
+            return null;
+        }
+
+        $trueRanges = [];
+
+        for ($i = 1; $i < count($closes); $i++) {
+            $tr1 = $highs[$i] - $lows[$i];
+            $tr2 = abs($highs[$i] - $closes[$i - 1]);
+            $tr3 = abs($lows[$i] - $closes[$i - 1]);
+            $trueRanges[] = max($tr1, $tr2, $tr3);
+        }
+
+        $atr = array_sum(array_slice($trueRanges, -$period)) / $period;
+        $currentPrice = end($closes);
+
+        // ATR as percentage of price
+        $atrPercent = $currentPrice > 0 ? ($atr / $currentPrice) * 100 : 0;
+
+        return [
+            'atr' => round($atr, 2),
+            'atr_percent' => round($atrPercent, 2),
+            'volatility_category' => $this->categorizeVolatility($atrPercent),
+            'suggested_stop_loss' => round($currentPrice - (2 * $atr), 2),
+            'suggested_position_size' => $this->suggestPositionSize($atrPercent),
+        ];
+    }
+
+    /**
+     * Categorize volatility based on ATR%
+     */
+    private function categorizeVolatility(float $atrPercent): string
+    {
+        if ($atrPercent > 10) return 'Extreme';
+        if ($atrPercent > 5) return 'High';
+        if ($atrPercent > 2) return 'Moderate';
+        return 'Low';
+    }
+
+    /**
+     * Suggest position size based on volatility
+     */
+    private function suggestPositionSize(float $atrPercent): string
+    {
+        if ($atrPercent > 10) return 'Very Small (1-2% of portfolio)';
+        if ($atrPercent > 5) return 'Small (3-5% of portfolio)';
+        if ($atrPercent > 2) return 'Medium (5-8% of portfolio)';
+        return 'Normal (8-10% of portfolio)';
+    }
+
+    /**
+     * Analyze risk metrics (NEW CATEGORY - Phase 1)
+     * Includes ATR volatility analysis and liquidity checks
+     */
+    private function analyzeRiskMetrics(array $data): void
+    {
+        $category = 'Risk Assessment';
+        $points = 0;
+        $maxPoints = 15;
+
+        $highs = $data['historical_highs'] ?? [];
+        $lows = $data['historical_lows'] ?? [];
+        $closes = $data['historical_closes'] ?? [];
+
+        if (count($highs) >= 20 && count($lows) >= 20 && count($closes) >= 20) {
+            // ATR Analysis (0-10 points)
+            $atr = $this->calculateATR($highs, $lows, $closes);
+
+            if ($atr !== null) {
+                $volatility = $atr['volatility_category'];
+                $atrPercent = $atr['atr_percent'];
+
+                if ($volatility === 'Low') {
+                    $points += 10;
+                    $this->addReason('positive', "Low volatility (ATR: {$atrPercent}%) - stable stock, lower risk. {$atr['suggested_position_size']}");
+                } elseif ($volatility === 'Moderate') {
+                    $points += 7;
+                    $this->addReason('neutral', "Moderate volatility (ATR: {$atrPercent}%) - normal price swings. {$atr['suggested_position_size']}");
+                } elseif ($volatility === 'High') {
+                    $points += 4;
+                    $this->addReason('warning', "High volatility (ATR: {$atrPercent}%) - larger price swings. {$atr['suggested_position_size']}");
+                } else {
+                    $points += 2;
+                    $this->addReason('negative', "Extreme volatility (ATR: {$atrPercent}%) - very risky. {$atr['suggested_position_size']}");
+                }
+            }
+
+            // Liquidity check (0-5 points)
+            if ($data['volume'] > 0 && $data['avg_volume'] > 0) {
+                $volumeRatio = $data['volume'] / $data['avg_volume'];
+                if ($volumeRatio > 0.8) {
+                    $points += 5;
+                } elseif ($volumeRatio > 0.5) {
+                    $points += 3;
+                    $this->addReason('warning', "Below average liquidity - monitor for exit opportunities.");
+                } else {
+                    $points += 1;
+                    $this->addReason('warning', "Very low liquidity - may be difficult to exit position.");
+                }
+            }
+        }
+
+        $this->analysis[$category] = [
+            'score' => round(($points / $maxPoints) * 100, 2),
+            'points' => $points,
+            'max_points' => $maxPoints,
+        ];
+
+        $this->score += ($points / $maxPoints) * 15; // 15% weight
+    }
+
+    /**
+     * Analyze foreign/institutional ownership (NEW CATEGORY - Phase 1)
+     * Critical for emerging markets like IDX
+     */
+    private function analyzeForeignFlow(array $data): void
+    {
+        $category = 'Market Participation';
+        $points = 0;
+        $maxPoints = 10;
+
+        $institutionalOwnership = $data['held_percent_institutions'] ?? 0;
+
+        if ($institutionalOwnership > 0) {
+            // Convert to percentage (data is in decimal format 0-1)
+            $foreignPercent = $institutionalOwnership * 100;
+
+            if ($foreignPercent > 50) {
+                $points += 10;
+                $this->addReason('positive', "Very high institutional ownership ({$foreignPercent}%) - strong international confidence, smart money accumulating.");
+            } elseif ($foreignPercent > 30) {
+                $points += 7;
+                $this->addReason('positive', "High institutional ownership ({$foreignPercent}%) - good foreign interest and liquidity.");
+            } elseif ($foreignPercent > 20) {
+                $points += 5;
+                $this->addReason('neutral', "Moderate institutional ownership ({$foreignPercent}%) - balanced investor base.");
+            } elseif ($foreignPercent > 10) {
+                $points += 3;
+                $this->addReason('neutral', "Low institutional ownership ({$foreignPercent}%) - mostly domestic investors.");
+            } else {
+                $points += 2;
+                $this->addReason('warning', "Very low institutional ownership ({$foreignPercent}%) - limited foreign interest, potential liquidity concerns.");
+            }
+        } else {
+            $points += 2;
+            $this->addReason('warning', "No institutional ownership data available - unable to assess foreign interest.");
+        }
+
+        // Cap at maxPoints
+        $points = min($points, $maxPoints);
+        $points = max($points, 0);
+
+        $this->analysis[$category] = [
+            'score' => round(($points / $maxPoints) * 100, 2),
+            'points' => $points,
+            'max_points' => $maxPoints,
+        ];
+
+        $this->score += ($points / $maxPoints) * 10; // 10% weight
+    }
+
+    // ========================================================================
+    // PHASE 2 INDICATORS: Sector Rotation, Liquidity, Sharia, BUMN
+    // ========================================================================
+
+    /**
+     * Calculate Liquidity Score (IDX-specific)
+     * Phase 2 Enhancement - measures ease of buying/selling
+     */
+    private function calculateLiquidityScore(array $data): array
+    {
+        $score = 0;
+        $maxScore = 100;
+
+        // 1. Average Daily Value (40 points)
+        $avgDailyValue = $data['avg_volume'] * $data['current_price'];
+
+        if ($this->currency === 'IDR') {
+            // Indonesian stocks - in Rupiah
+            if ($avgDailyValue > 100_000_000_000) { // > 100 billion IDR
+                $score += 40;
+            } elseif ($avgDailyValue > 10_000_000_000) { // > 10 billion IDR
+                $score += 30;
+            } elseif ($avgDailyValue > 1_000_000_000) { // > 1 billion IDR
+                $score += 20;
+            } else {
+                $score += 10;
+            }
+        } else {
+            // Other markets
+            if ($avgDailyValue > 10_000_000) { // > 10M
+                $score += 40;
+            } elseif ($avgDailyValue > 1_000_000) { // > 1M
+                $score += 30;
+            } else {
+                $score += 20;
+            }
+        }
+
+        // 2. Volume Consistency (30 points)
+        $volumes = $data['historical_volumes'] ?? [];
+        if (count($volumes) >= 20) {
+            $recentVolumes = array_slice($volumes, -20);
+            $avgVolume = array_sum($recentVolumes) / count($recentVolumes);
+            $variance = 0;
+            foreach ($recentVolumes as $vol) {
+                $variance += pow($vol - $avgVolume, 2);
+            }
+            $stdDev = sqrt($variance / count($recentVolumes));
+            $coefficientOfVariation = $avgVolume > 0 ? ($stdDev / $avgVolume) : 1;
+
+            if ($coefficientOfVariation < 0.3) { // Very consistent
+                $score += 30;
+            } elseif ($coefficientOfVariation < 0.5) { // Moderate consistency
+                $score += 20;
+            } else {
+                $score += 10;
+            }
+        }
+
+        // 3. Market Cap (30 points) - larger = more liquid
+        $marketCap = $data['market_cap'];
+        $capInfo = $this->getMarketCapDivisor($this->currency);
+        $marketCapValue = $marketCap / $capInfo['divisor'];
+
+        if ($marketCapValue > 50) { // Large cap
+            $score += 30;
+        } elseif ($marketCapValue > 10) { // Mid-large cap
+            $score += 25;
+        } elseif ($marketCapValue > 1) { // Mid cap
+            $score += 15;
+        } else { // Small cap
+            $score += 5;
+        }
+
+        $category = 'Illiquid';
+        if ($score >= 80) $category = 'Very Liquid';
+        elseif ($score >= 60) $category = 'Moderately Liquid';
+        elseif ($score >= 40) $category = 'Low Liquidity';
+
+        return [
+            'score' => $score,
+            'max_score' => $maxScore,
+            'category' => $category,
+            'avg_daily_value' => $avgDailyValue,
+            'market_cap_value' => round($marketCapValue, 2),
+        ];
+    }
+
+    /**
+     * Analyze Sharia Compliance
+     * Phase 2 Enhancement - Islamic investment criteria
+     */
+    private function analyzeShariaCompliance(string $symbol, array $data): array
+    {
+        $cleanSymbol = str_replace('.JK', '', strtoupper($symbol));
+
+        // Check if in DES list
+        $isCompliant = IndonesianMarketData::isShariaCompliant($cleanSymbol);
+
+        // Additional criteria check
+        $debtRatio = $data['debt_to_equity'] ?? 0;
+        $sector = IndonesianMarketData::getSector($cleanSymbol);
+
+        // Non-compliant sectors
+        $nonCompliantSectors = ['Banking (Conventional)', 'Alcohol', 'Gambling', 'Pork'];
+        $sectorCompliant = !in_array($sector, $nonCompliantSectors);
+
+        // Debt ratio check (should be < 45%)
+        $debtCompliant = $debtRatio < 45;
+
+        $notes = [];
+        if (!$isCompliant) {
+            $notes[] = 'Not in OJK DES (Daftar Efek Syariah) list';
+        }
+        if (!$sectorCompliant) {
+            $notes[] = "Sector ({$sector}) not Sharia-compliant";
+        }
+        if (!$debtCompliant && $debtRatio > 0) {
+            $notes[] = "Debt-to-Equity ratio ({$debtRatio}%) exceeds 45% threshold";
+        }
+
+        return [
+            'is_compliant' => $isCompliant && $sectorCompliant && $debtCompliant,
+            'in_des_list' => $isCompliant,
+            'sector' => $sector,
+            'sector_compliant' => $sectorCompliant,
+            'debt_compliant' => $debtCompliant,
+            'notes' => empty($notes) ? ['Stock meets Sharia compliance criteria'] : $notes,
+        ];
+    }
+
+    /**
+     * Analyze BUMN (State-Owned Enterprise) Status
+     * Phase 2 Enhancement - government ownership characteristics
+     */
+    private function analyzeBUMNStatus(string $symbol): array
+    {
+        $cleanSymbol = str_replace('.JK', '', strtoupper($symbol));
+
+        $isBUMN = IndonesianMarketData::isBUMN($cleanSymbol);
+        $bumnInfo = IndonesianMarketData::getBUMNInfo($cleanSymbol);
+
+        $characteristics = [];
+        if ($isBUMN && $bumnInfo) {
+            $characteristics = [
+                'advantages' => [
+                    'Government backing reduces bankruptcy risk',
+                    'Stable business model (often monopoly/oligopoly)',
+                    'Regular dividend payouts (government mandate)',
+                    'Better access to government projects',
+                ],
+                'disadvantages' => [
+                    'Bureaucratic management structure',
+                    'Political interference in decision-making',
+                    'Limited growth due to dividend mandates',
+                    'Non-merit based executive appointments possible',
+                ],
+                'tier' => $bumnInfo['tier'] ?? 'unknown',
+                'sector' => $bumnInfo['sector'] ?? 'unknown',
+                'gov_ownership' => $bumnInfo['ownership'] ?? 0,
+            ];
+        }
+
+        return [
+            'is_bumn' => $isBUMN,
+            'bumn_info' => $bumnInfo,
+            'characteristics' => $characteristics,
+            'assessment' => $isBUMN ?
+                'Government-backed stock: Higher stability, potentially lower growth vs private peers' :
+                'Private sector stock: Higher growth potential, higher risk',
+        ];
+    }
+
+    /**
+     * Analyze Sector Performance and Rotation
+     * Phase 2 Enhancement - sector momentum analysis
+     */
+    private function analyzeSectorRotation(string $symbol, array $data): array
+    {
+        $cleanSymbol = str_replace('.JK', '', strtoupper($symbol));
+        $sector = IndonesianMarketData::getSector($cleanSymbol) ?? 'Unknown';
+
+        // Get stock's momentum
+        $priceChange = $data['change_percent'];
+        $closes = $data['historical_closes'] ?? [];
+
+        $momentum1Week = 0;
+        $momentum1Month = 0;
+
+        if (count($closes) >= 5) {
+            $momentum1Week = (end($closes) / $closes[count($closes) - 5] - 1) * 100;
+        }
+        if (count($closes) >= 20) {
+            $momentum1Month = (end($closes) / $closes[count($closes) - 20] - 1) * 100;
+        }
+
+        // Sector status based on momentum
+        $sectorStatus = 'NEUTRAL';
+        if ($momentum1Month > 10) {
+            $sectorStatus = 'HOT';
+        } elseif ($momentum1Month > 5) {
+            $sectorStatus = 'WARMING';
+        } elseif ($momentum1Month < -10) {
+            $sectorStatus = 'COLD';
+        } elseif ($momentum1Month < -5) {
+            $sectorStatus = 'COOLING';
+        }
+
+        $interpretation = match($sectorStatus) {
+            'HOT' => "{$sector} sector is outperforming - strong uptrend",
+            'WARMING' => "{$sector} sector showing positive momentum",
+            'COOLING' => "{$sector} sector showing weakness",
+            'COLD' => "{$sector} sector underperforming - downtrend",
+            default => "{$sector} sector in neutral zone",
+        };
+
+        return [
+            'sector' => $sector,
+            'sector_status' => $sectorStatus,
+            'momentum_1week_percent' => round($momentum1Week, 2),
+            'momentum_1month_percent' => round($momentum1Month, 2),
+            'interpretation' => $interpretation,
+            'recommendation' => $this->getSectorRotationRecommendation($sectorStatus, $data['score'] ?? 0),
+        ];
+    }
+
+    /**
+     * Get sector rotation trading recommendation
+     */
+    private function getSectorRotationRecommendation(string $sectorStatus, float $stockScore): string
+    {
+        if ($sectorStatus === 'HOT' && $stockScore > 65) {
+            return 'Strong buy - both sector and stock are strong';
+        } elseif ($sectorStatus === 'HOT') {
+            return 'Consider - sector is hot but stock fundamentals weak';
+        } elseif ($sectorStatus === 'COLD' && $stockScore > 75) {
+            return 'Wait for sector rotation - good stock in weak sector';
+        } elseif ($sectorStatus === 'COLD') {
+            return 'Avoid - both sector and stock are weak';
+        } else {
+            return 'Normal analysis applies - sector neutral';
+        }
     }
 }
