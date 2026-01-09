@@ -1144,6 +1144,18 @@ class StockAnalyzer
 
         // Calculate True Range, +DM, -DM
         for ($i = 1; $i < count($closes); $i++) {
+            // Skip days with missing or invalid data
+            if (empty($highs[$i]) || empty($lows[$i]) || empty($closes[$i]) ||
+                empty($highs[$i - 1]) || empty($lows[$i - 1]) || empty($closes[$i - 1])) {
+                continue;
+            }
+
+            // Skip if values are zero
+            if ($highs[$i] <= 0 || $lows[$i] <= 0 || $closes[$i] <= 0 ||
+                $highs[$i - 1] <= 0 || $lows[$i - 1] <= 0 || $closes[$i - 1] <= 0) {
+                continue;
+            }
+
             // True Range
             $tr1 = $highs[$i] - $lows[$i];
             $tr2 = abs($highs[$i] - $closes[$i - 1]);
@@ -1164,6 +1176,11 @@ class StockAnalyzer
                 $plusDM[] = 0;
                 $minusDM[] = 0;
             }
+        }
+
+        // Need enough valid data points
+        if (count($trueRanges) < $period) {
+            return null;
         }
 
         // Smooth with period average
@@ -1232,17 +1249,44 @@ class StockAnalyzer
         $trueRanges = [];
 
         for ($i = 1; $i < count($closes); $i++) {
+            // Skip days with missing or invalid data (e.g., weekends, holidays)
+            if (empty($highs[$i]) || empty($lows[$i]) || empty($closes[$i]) || empty($closes[$i - 1])) {
+                continue;
+            }
+
+            // Skip if values are zero (invalid data)
+            if ($highs[$i] <= 0 || $lows[$i] <= 0 || $closes[$i] <= 0 || $closes[$i - 1] <= 0) {
+                continue;
+            }
+
             $tr1 = $highs[$i] - $lows[$i];
             $tr2 = abs($highs[$i] - $closes[$i - 1]);
             $tr3 = abs($lows[$i] - $closes[$i - 1]);
             $trueRanges[] = max($tr1, $tr2, $tr3);
         }
 
+        // Need enough valid data points
+        if (count($trueRanges) < $period) {
+            return null;
+        }
+
         $atr = array_sum(array_slice($trueRanges, -$period)) / $period;
-        $currentPrice = end($closes);
+
+        // Get the most recent valid close price
+        $currentPrice = 0;
+        for ($i = count($closes) - 1; $i >= 0; $i--) {
+            if (!empty($closes[$i]) && $closes[$i] > 0) {
+                $currentPrice = $closes[$i];
+                break;
+            }
+        }
+
+        if ($currentPrice <= 0) {
+            return null;
+        }
 
         // ATR as percentage of price
-        $atrPercent = $currentPrice > 0 ? ($atr / $currentPrice) * 100 : 0;
+        $atrPercent = ($atr / $currentPrice) * 100;
 
         return [
             'atr' => round($atr, 2),
