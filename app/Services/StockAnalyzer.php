@@ -842,14 +842,35 @@ class StockAnalyzer
             return null;
         }
 
-        // Get recent data
-        $recentCloses = array_slice($closes, -$period);
-        $recentHighs = array_slice($highs, -$period);
-        $recentLows = array_slice($lows, -$period);
+        // Filter out invalid data points
+        $validData = [];
+        $minIndex = max(0, count($closes) - ($period * 2)); // Get more data to ensure we have enough valid points
 
-        $currentClose = end($recentCloses);
-        $highestHigh = max($recentHighs);
-        $lowestLow = min($recentLows);
+        for ($i = $minIndex; $i < count($closes); $i++) {
+            // Skip invalid data
+            if (empty($highs[$i]) || empty($lows[$i]) || empty($closes[$i]) ||
+                $highs[$i] <= 0 || $lows[$i] <= 0 || $closes[$i] <= 0) {
+                continue;
+            }
+
+            $validData[] = [
+                'high' => $highs[$i],
+                'low' => $lows[$i],
+                'close' => $closes[$i]
+            ];
+        }
+
+        // Need enough valid data
+        if (count($validData) < $period) {
+            return null;
+        }
+
+        // Get recent valid data
+        $recentData = array_slice($validData, -$period);
+
+        $currentClose = end($recentData)['close'];
+        $highestHigh = max(array_column($recentData, 'high'));
+        $lowestLow = min(array_column($recentData, 'low'));
 
         // Calculate %K (fast stochastic)
         if ($highestHigh == $lowestLow) {
@@ -911,9 +932,18 @@ class StockAnalyzer
 
         $positiveFlow = 0;
         $negativeFlow = 0;
+        $validPairs = 0;
 
         for ($i = count($closes) - $period; $i < count($closes); $i++) {
             if ($i == 0) continue;
+
+            // Skip invalid data points
+            if (empty($highs[$i]) || empty($lows[$i]) || empty($closes[$i]) || empty($volumes[$i]) ||
+                empty($highs[$i - 1]) || empty($lows[$i - 1]) || empty($closes[$i - 1]) ||
+                $highs[$i] <= 0 || $lows[$i] <= 0 || $closes[$i] <= 0 || $volumes[$i] <= 0 ||
+                $highs[$i - 1] <= 0 || $lows[$i - 1] <= 0 || $closes[$i - 1] <= 0) {
+                continue;
+            }
 
             $typicalPrice = ($highs[$i] + $lows[$i] + $closes[$i]) / 3;
             $prevTypicalPrice = ($highs[$i - 1] + $lows[$i - 1] + $closes[$i - 1]) / 3;
@@ -924,6 +954,13 @@ class StockAnalyzer
             } elseif ($typicalPrice < $prevTypicalPrice) {
                 $negativeFlow += $moneyFlow;
             }
+
+            $validPairs++;
+        }
+
+        // Need enough valid data
+        if ($validPairs < ($period / 2)) {
+            return null;
         }
 
         if ($negativeFlow == 0) {
@@ -1031,14 +1068,27 @@ class StockAnalyzer
      */
     private function calculate52WeekContext(float $currentPrice, array $historicalCloses): array
     {
-        if (count($historicalCloses) < 60) {
-            // Use available data
-            $high52w = max($historicalCloses);
-            $low52w = min($historicalCloses);
-        } else {
-            $high52w = max($historicalCloses);
-            $low52w = min($historicalCloses);
+        // Filter out invalid data points
+        $validCloses = array_filter($historicalCloses, function($close) {
+            return !empty($close) && $close > 0;
+        });
+
+        if (count($validCloses) < 10) {
+            // Not enough valid data
+            return [
+                'high_52w' => $currentPrice,
+                'low_52w' => $currentPrice,
+                'current_price' => $currentPrice,
+                'percent_in_range' => 50,
+                'distance_from_high_percent' => 0,
+                'distance_from_low_percent' => 0,
+                'position' => 'MIDDLE',
+                'interpretation' => 'Insufficient historical data for 52-week analysis',
+            ];
         }
+
+        $high52w = max($validCloses);
+        $low52w = min($validCloses);
 
         $range = $high52w - $low52w;
         if ($range == 0) {
