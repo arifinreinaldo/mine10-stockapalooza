@@ -1493,8 +1493,28 @@ class StockAnalyzer
         $score = 0;
         $maxScore = 100;
 
+        // Calculate average volume - use historical data if Yahoo doesn't provide it
+        $avgVolume = $data['avg_volume'] ?? 0;
+
+        if ($avgVolume <= 0) {
+            // Fallback: Calculate from historical volumes
+            $volumes = $data['historical_volumes'] ?? [];
+            $validVolumes = array_filter($volumes, function($vol) {
+                return !empty($vol) && $vol > 0;
+            });
+
+            if (count($validVolumes) >= 10) {
+                // Use recent 20 days average
+                $recentVolumes = array_slice($validVolumes, -20);
+                $avgVolume = array_sum($recentVolumes) / count($recentVolumes);
+            } elseif ($data['volume'] > 0) {
+                // Last resort: use current volume as estimate
+                $avgVolume = $data['volume'];
+            }
+        }
+
         // 1. Average Daily Value (40 points)
-        $avgDailyValue = $data['avg_volume'] * $data['current_price'];
+        $avgDailyValue = $avgVolume * $data['current_price'];
 
         if ($this->currency === 'IDR') {
             // Indonesian stocks - in Rupiah
@@ -1520,15 +1540,19 @@ class StockAnalyzer
 
         // 2. Volume Consistency (30 points)
         $volumes = $data['historical_volumes'] ?? [];
-        if (count($volumes) >= 20) {
-            $recentVolumes = array_slice($volumes, -20);
-            $avgVolume = array_sum($recentVolumes) / count($recentVolumes);
+        $validVolumes = array_filter($volumes, function($vol) {
+            return !empty($vol) && $vol > 0;
+        });
+
+        if (count($validVolumes) >= 20) {
+            $recentVolumes = array_slice($validVolumes, -20);
+            $avgVol = array_sum($recentVolumes) / count($recentVolumes);
             $variance = 0;
             foreach ($recentVolumes as $vol) {
-                $variance += pow($vol - $avgVolume, 2);
+                $variance += pow($vol - $avgVol, 2);
             }
             $stdDev = sqrt($variance / count($recentVolumes));
-            $coefficientOfVariation = $avgVolume > 0 ? ($stdDev / $avgVolume) : 1;
+            $coefficientOfVariation = $avgVol > 0 ? ($stdDev / $avgVol) : 1;
 
             if ($coefficientOfVariation < 0.3) { // Very consistent
                 $score += 30;
@@ -1540,7 +1564,13 @@ class StockAnalyzer
         }
 
         // 3. Market Cap (30 points) - larger = more liquid
-        $marketCap = $data['market_cap'];
+        $marketCap = $data['market_cap'] ?? 0;
+
+        // If market cap is missing, estimate from shares outstanding
+        if ($marketCap <= 0 && isset($data['shares_outstanding']) && $data['shares_outstanding'] > 0) {
+            $marketCap = $data['shares_outstanding'] * $data['current_price'];
+        }
+
         $capInfo = $this->getMarketCapDivisor($this->currency);
         $marketCapValue = $marketCap / $capInfo['divisor'];
 
@@ -1555,9 +1585,21 @@ class StockAnalyzer
         }
 
         $category = 'Illiquid';
-        if ($score >= 80) $category = 'Very Liquid';
-        elseif ($score >= 60) $category = 'Moderately Liquid';
-        elseif ($score >= 40) $category = 'Low Liquidity';
+        $recommendation = '';
+
+        if ($score >= 80) {
+            $category = 'Very Liquid';
+            $recommendation = 'Can enter/exit large positions easily without affecting price';
+        } elseif ($score >= 60) {
+            $category = 'Liquid';
+            $recommendation = 'Good trading volume, usually no problem buying or selling';
+        } elseif ($score >= 40) {
+            $category = 'Moderate';
+            $recommendation = 'Average trading volume, may need to wait for buyers/sellers';
+        } else {
+            $category = 'Illiquid';
+            $recommendation = 'Low trading volume, may be difficult to exit when needed';
+        }
 
         return [
             'score' => $score,
@@ -1565,6 +1607,7 @@ class StockAnalyzer
             'category' => $category,
             'avg_daily_value' => $avgDailyValue,
             'market_cap_value' => round($marketCapValue, 2),
+            'recommendation' => $recommendation,
         ];
     }
 
