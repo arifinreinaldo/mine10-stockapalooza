@@ -2114,6 +2114,107 @@
 
             const analysisSummary = generateAnalysisSummary();
 
+            // Generate Stock Snapshot Bullet Points
+            const generateStockSnapshot = () => {
+                const bullets = [];
+                const marketContext = metrics.market_context || {};
+                const technical = metrics.technical || {};
+                const valuation = metrics.valuation || {};
+                const financial = metrics.financial || {};
+                const dividend = metrics.dividend || {};
+
+                // 1. Trend & Momentum (ADX + MACD)
+                if (technical.adx) {
+                    const adx = technical.adx;
+                    const trendIcon = adx.signal.includes('UPTREND') ? '📈' : adx.signal.includes('DOWNTREND') ? '📉' : '↔️';
+                    const trendColor = adx.signal.includes('UPTREND') ? '#10b981' : adx.signal.includes('DOWNTREND') ? '#ef4444' : '#94a3b8';
+                    bullets.push(`${trendIcon} <strong style="color: ${trendColor};">Trend:</strong> ${adx.trend_strength} (ADX ${adx.adx}) - ${adx.signal.replace('_', ' ')}`);
+                }
+
+                // 2. Volatility & Risk (ATR)
+                if (technical.atr) {
+                    const atr = technical.atr;
+                    const volIcon = atr.volatility_category === 'Extreme' || atr.volatility_category === 'High' ? '⚡' : atr.volatility_category === 'Low' ? '😌' : '📊';
+                    const volColor = atr.volatility_category === 'Extreme' ? '#ef4444' : atr.volatility_category === 'High' ? '#f59e0b' : atr.volatility_category === 'Low' ? '#10b981' : '#94a3b8';
+                    bullets.push(`${volIcon} <strong style="color: ${volColor};">Volatility:</strong> ${atr.volatility_category} (${atr.atr_percent}% daily swings) - ${atr.suggested_position_size}`);
+                }
+
+                // 3. Liquidity
+                if (marketContext.liquidity) {
+                    const liq = marketContext.liquidity;
+                    const liqIcon = liq.category.includes('Very Liquid') ? '💧' : liq.category.includes('Liquid') ? '💦' : liq.category.includes('Illiquid') ? '🏜️' : '📊';
+                    const liqColor = liq.category.includes('Very Liquid') ? '#10b981' : liq.category.includes('Liquid') ? '#22c55e' : liq.category.includes('Illiquid') ? '#ef4444' : '#f59e0b';
+                    bullets.push(`${liqIcon} <strong style="color: ${liqColor};">Liquidity:</strong> ${liq.category} (${liq.score}/${liq.max_score}) - ${liq.recommendation || 'Easy to trade'}`);
+                }
+
+                // 4. Sharia Compliance
+                if (marketContext.sharia_compliance) {
+                    const sharia = marketContext.sharia_compliance;
+                    if (sharia.is_compliant) {
+                        bullets.push(`🕌 <strong style="color: #10b981;">Sharia Compliant:</strong> In OJK DES list - halal investment`);
+                    } else {
+                        bullets.push(`🏦 <strong style="color: #94a3b8;">Non-Sharia:</strong> Not in OJK DES list`);
+                    }
+                }
+
+                // 5. BUMN Status
+                if (marketContext.bumn_status && marketContext.bumn_status.is_bumn) {
+                    const bumn = marketContext.bumn_status;
+                    const tier = bumn.bumn_info?.tier || 'unknown';
+                    const ownership = bumn.bumn_info?.ownership || 0;
+                    bullets.push(`🏛️ <strong style="color: #3b82f6;">BUMN:</strong> State-owned (${ownership}% govt) - ${tier} tier, government backing`);
+                }
+
+                // 6. Sector Rotation
+                if (marketContext.sector_rotation) {
+                    const sector = marketContext.sector_rotation;
+                    const sectorIcon = sector.sector_status === 'HOT' ? '🔥' : sector.sector_status === 'WARMING' ? '🌡️' : sector.sector_status === 'COOLING' ? '❄️' : sector.sector_status === 'COLD' ? '🧊' : '📊';
+                    const sectorColor = sector.sector_status === 'HOT' ? '#ef4444' : sector.sector_status === 'WARMING' ? '#f59e0b' : sector.sector_status === 'COOLING' ? '#3b82f6' : sector.sector_status === 'COLD' ? '#6366f1' : '#94a3b8';
+                    bullets.push(`${sectorIcon} <strong style="color: ${sectorColor};">Sector:</strong> ${sector.sector} is ${sector.sector_status} (${sector.momentum_1month_percent > 0 ? '+' : ''}${sector.momentum_1month_percent}% 1M)`);
+                }
+
+                // 7. Valuation (P/E)
+                if (valuation.pe_ratio !== undefined && valuation.pe_ratio !== null) {
+                    const pe = valuation.pe_ratio;
+                    const peIcon = pe < 15 ? '💎' : pe < 25 ? '💰' : '💸';
+                    const peColor = pe < 15 ? '#10b981' : pe < 25 ? '#f59e0b' : '#ef4444';
+                    const peLabel = pe < 15 ? 'Cheap' : pe < 25 ? 'Fair' : 'Expensive';
+                    bullets.push(`${peIcon} <strong style="color: ${peColor};">Valuation:</strong> P/E ${pe.toFixed(1)} (${peLabel}) - ${pe < 15 ? 'potentially undervalued' : pe < 25 ? 'fairly priced' : 'premium pricing'}`);
+                }
+
+                // 8. Financial Health (Debt)
+                if (financial.debt_to_equity !== undefined && financial.debt_to_equity !== null) {
+                    const debt = financial.debt_to_equity;
+                    const debtIcon = debt < 0.5 ? '💪' : debt < 1.0 ? '⚖️' : '⚠️';
+                    const debtColor = debt < 0.5 ? '#10b981' : debt < 1.0 ? '#f59e0b' : '#ef4444';
+                    const debtLabel = debt < 0.5 ? 'Strong' : debt < 1.0 ? 'Moderate' : 'High';
+                    bullets.push(`${debtIcon} <strong style="color: ${debtColor};">Debt:</strong> ${debt.toFixed(2)} D/E ratio (${debtLabel}) - ${debt < 0.5 ? 'low financial risk' : debt < 1.0 ? 'manageable debt' : 'watch debt levels'}`);
+                }
+
+                // 9. Dividend
+                if (dividend.yield !== undefined && dividend.yield > 0) {
+                    const divYield = dividend.yield;
+                    const divIcon = divYield > 5 ? '💰' : divYield > 3 ? '💵' : '💸';
+                    const divColor = divYield > 5 ? '#10b981' : divYield > 3 ? '#22c55e' : '#94a3b8';
+                    bullets.push(`${divIcon} <strong style="color: ${divColor};">Dividend:</strong> ${divYield.toFixed(2)}% yield - ${divYield > 5 ? 'excellent' : divYield > 3 ? 'good' : 'modest'} passive income`);
+                }
+
+                // 10. Foreign/Institutional Flow
+                if (metrics.ownership) {
+                    const instPercent = (metrics.ownership.institutional_percent * 100);
+                    if (instPercent > 0) {
+                        const flowIcon = instPercent > 50 ? '🏦' : instPercent > 30 ? '📊' : '👥';
+                        const flowColor = instPercent > 50 ? '#10b981' : instPercent > 30 ? '#22c55e' : '#94a3b8';
+                        const flowLabel = instPercent > 50 ? 'Very High' : instPercent > 30 ? 'High' : instPercent > 20 ? 'Moderate' : instPercent > 10 ? 'Low' : 'Very Low';
+                        bullets.push(`${flowIcon} <strong style="color: ${flowColor};">Smart Money:</strong> ${instPercent.toFixed(0)}% institutional (${flowLabel}) - ${instPercent > 50 ? 'heavily backed' : instPercent > 30 ? 'well supported' : 'retail dominated'}`);
+                    }
+                }
+
+                return bullets;
+            };
+
+            const stockSnapshot = generateStockSnapshot();
+
             let html = `
                 <!-- EXECUTIVE SUMMARY -->
                 <div class="executive-summary">
@@ -2129,6 +2230,18 @@
                             ${analysisSummary}
                         </div>
                     </div>
+
+                    <!-- Stock Snapshot Bullets -->
+                    ${stockSnapshot.length > 0 ? `
+                    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                        <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+                            📋 Stock Snapshot
+                        </div>
+                        <div style="font-size: 0.9rem; line-height: 1.8; color: #e2e8f0;">
+                            ${stockSnapshot.map(bullet => `<div style="margin-bottom: 8px;">• ${bullet}</div>`).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
 
                     <div class="executive-grid">
                         <!-- Overall Recommendation -->
