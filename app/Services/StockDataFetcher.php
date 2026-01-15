@@ -80,6 +80,25 @@ class StockDataFetcher
                 $highs = $indicators['high'] ?? [];
                 $lows = $indicators['low'] ?? [];
 
+                // Get previous close - fallback to historical data if API returns 0
+                $currentPrice = $meta['regularMarketPrice'] ?? 0;
+                $previousClose = $meta['previousClose'] ?? 0;
+
+                // If previousClose is 0, calculate from historical data
+                if ($previousClose <= 0 && count($closes) >= 2) {
+                    $validCloses = array_filter($closes, fn($v) => $v !== null && $v > 0);
+                    $validCloses = array_values($validCloses);
+                    if (count($validCloses) >= 2) {
+                        $previousClose = $validCloses[count($validCloses) - 2];
+                    }
+                }
+
+                // Calculate change and change_percent
+                $change = $currentPrice - $previousClose;
+                $changePercent = $previousClose > 0
+                    ? (($currentPrice - $previousClose) / $previousClose) * 100
+                    : 0;
+
                 return [
                     'symbol' => $symbol,
                     'name' => $meta['longName'] ?? $meta['shortName'] ?? $symbol,
@@ -87,15 +106,13 @@ class StockDataFetcher
                     'exchange' => $meta['exchangeName'] ?? 'JKT',
 
                     // Price data
-                    'current_price' => $meta['regularMarketPrice'] ?? 0,
-                    'previous_close' => $meta['previousClose'] ?? 0,
+                    'current_price' => $currentPrice,
+                    'previous_close' => $previousClose,
                     'open' => $meta['regularMarketOpen'] ?? 0,
                     'day_high' => $meta['regularMarketDayHigh'] ?? 0,
                     'day_low' => $meta['regularMarketDayLow'] ?? 0,
-                    'change' => ($meta['regularMarketPrice'] ?? 0) - ($meta['previousClose'] ?? 0),
-                    'change_percent' => ($meta['previousClose'] ?? 0) > 0
-                        ? ((($meta['regularMarketPrice'] ?? 0) - ($meta['previousClose'] ?? 0)) / $meta['previousClose']) * 100
-                        : 0,
+                    'change' => $change,
+                    'change_percent' => $changePercent,
 
                     // Volume
                     'volume' => $meta['regularMarketVolume'] ?? 0,

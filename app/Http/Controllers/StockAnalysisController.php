@@ -1179,8 +1179,9 @@ class StockAnalysisController extends Controller
             Cache::forget($cacheKey);
         }
 
-        // Get recently analyzed symbols from history (for priority sorting)
-        $recentHistorySymbols = AnalysisHistory::recent(30)
+        // Get recently analyzed symbols from history (for priority sorting and scanning)
+        $recentHistorySymbols = AnalysisHistory::recent(90)
+            ->where('market', $market)
             ->orderBy('created_at', 'desc')
             ->pluck('symbol')
             ->unique()
@@ -1189,7 +1190,10 @@ class StockAnalysisController extends Controller
 
         // Cache for 5 minutes (300 seconds)
         $allPhasesData = Cache::remember($cacheKey, 300, function () use ($market, $recentHistorySymbols) {
-            $allStocks = $this->getStocksForPhaseScan($market);
+            $predefinedStocks = $this->getStocksForPhaseScan($market);
+
+            // Merge history stocks with predefined list (history stocks will be scanned too)
+            $allStocks = array_unique(array_merge($predefinedStocks, $recentHistorySymbols));
 
             $phases = [
                 'MARKUP' => [],
