@@ -1947,10 +1947,8 @@
         let marketPhaseHistory = null;
         let activePhaseFilter = 'all';
         let showingHistory = false;
-        let currentPage = 1;
-
         // Load Market Phase Scanner
-        async function loadMarketPhaseScanner(forceRefresh = false, page = 1) {
+        async function loadMarketPhaseScanner(forceRefresh = false) {
             const container = document.getElementById('marketPhaseScanner');
 
             // Only show loading spinner on first load or refresh
@@ -1965,18 +1963,16 @@
                 `;
             }
 
-            currentPage = page;
-
             try {
-                let url = `/api/scan-market-phases?market=idx&limit=10&page=${page}`;
+                let url = '/api/scan-market-phases?market=idx&limit=50';
                 if (forceRefresh) url += '&refresh=true';
                 const response = await fetch(url);
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.success !== false) {
                     marketPhaseData = data;
                     displayMarketPhaseScanner(data);
-                    if (forceRefresh || page === 1) {
+                    if (forceRefresh) {
                         showNotification(`✅ Found stocks in ${Object.values(data.phase_counts).reduce((a, b) => a + b, 0)} phases!`, 'success');
                     }
                 } else {
@@ -2175,56 +2171,19 @@
                     `;
                 });
 
-                const totalInPhase = phaseCounts[phase] || stocks.length;
-                const pagination = data.pagination || { current_page: 1, per_page: 10, total_pages: {} };
-                const startNum = ((pagination.current_page - 1) * pagination.per_page) + 1;
-                const endNum = startNum + stocks.length - 1;
-                const showingText = totalInPhase > pagination.per_page
-                    ? `${startNum}-${endNum} of ${totalInPhase}`
-                    : `${stocks.length} stocks`;
-
-                // Pagination info
-                const totalPagesForPhase = pagination.total_pages?.[phase] || 1;
-                const currentPageNum = pagination.current_page || 1;
-                const hasPrevPage = currentPageNum > 1;
-                const hasNextPage = currentPageNum < totalPagesForPhase;
-
-                // Pagination controls
-                let paginationControls = '';
-                if (totalPagesForPhase > 1) {
-                    paginationControls = `
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; padding: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
-                            <button onclick="event.preventDefault(); goToPage(${currentPageNum - 1})"
-                                    ${!hasPrevPage ? 'disabled' : ''}
-                                    style="padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: ${hasPrevPage ? 'pointer' : 'not-allowed'}; background: ${hasPrevPage ? '#334155' : '#1e293b'}; color: ${hasPrevPage ? '#fff' : '#6b7280'}; border: 1px solid #475569;">
-                                ← Prev
-                            </button>
-                            <span style="font-size: 0.8rem; color: #94a3b8;">
-                                Page ${currentPageNum} of ${totalPagesForPhase}
-                            </span>
-                            <button onclick="event.preventDefault(); goToPage(${currentPageNum + 1})"
-                                    ${!hasNextPage ? 'disabled' : ''}
-                                    style="padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: ${hasNextPage ? 'pointer' : 'not-allowed'}; background: ${hasNextPage ? '#334155' : '#1e293b'}; color: ${hasNextPage ? '#fff' : '#6b7280'}; border: 1px solid #475569;">
-                                Next →
-                            </button>
-                        </div>
-                    `;
-                }
-
                 phaseSections += `
                     <div style="border: 2px solid ${colors.border}; border-radius: 12px; overflow: hidden; margin-bottom: 16px; background: ${colors.bg};">
                         <div style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 1.25rem;">${getPhaseIcon(phase)}</span>
                                 <span style="font-weight: bold; color: ${colors.text};">${phase}</span>
-                                <span style="font-size: 0.75rem; color: #94a3b8;">(${showingText})</span>
+                                <span style="font-size: 0.75rem; color: #94a3b8;">(${stocks.length} stocks)</span>
                             </div>
                             <p style="font-size: 0.75rem; color: #94a3b8; margin: 4px 0 0 0;">${getPhaseDescription(phase)}</p>
                         </div>
                         <div>
                             ${stockRows}
                         </div>
-                        ${paginationControls}
                     </div>
                 `;
             });
@@ -2241,12 +2200,11 @@
 
             container.innerHTML = `
                 <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; padding: 20px; border: 1px solid #334155;">
-                    <!-- Header -->
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                         <div>
                             <h2 style="margin: 0; color: #fff; font-size: 1.25rem; font-weight: bold;">🔄 Market Phase Scanner (Wyckoff)</h2>
                             <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.875rem;">
-                                Top 10 stocks in each Wyckoff market cycle phase
+                                Top 50 stocks in each Wyckoff market cycle phase
                             </p>
                         </div>
                         <div style="display: flex; gap: 8px;">
@@ -2258,8 +2216,6 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Description -->
                     <p style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 16px;">
                         <span style="color: #22c55e; font-weight: 600;">MARKUP</span> = uptrend,
                         <span style="color: #ef4444; font-weight: 600;">MARKDOWN</span> = downtrend,
@@ -2267,23 +2223,13 @@
                         <span style="color: #3b82f6; font-weight: 600;">ACCUMULATION</span> = bottoming,
                         <span style="color: #9ca3af; font-weight: 600;">CONSOLIDATION</span> = sideways.
                     </p>
-
-                    <!-- Filter Tabs -->
                     <div style="margin-bottom: 16px;">
                         ${filterTabs}
                     </div>
-
-                    <!-- History Panel -->
                     ${historyPanel}
-
-                    <!-- Phase Sections -->
-                    <div id="phaseSectionsContainer">
-                        ${phaseSections}
-                    </div>
-
-                    <!-- Footer -->
+                    ${phaseSections}
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #6b7280; padding-top: 12px; border-top: 1px solid #334155;">
-                        <span id="phaseScannerFooter">Scanned: ${data.scanned || 0} stocks | Page ${data.pagination?.current_page || 1}</span>
+                        <span>Scanned: ${data.scanned || 0} stocks</span>
                         <span>${data.cached_at || ''}</span>
                     </div>
                 </div>
@@ -2309,182 +2255,11 @@
             }
         }
 
-        // Go to specific page (AJAX-like, no scroll)
-        window.goToPage = async function(page) {
-            console.log('goToPage called with page:', page);
-            if (page < 1) return;
-
-            currentPage = page;
-
-            // Show loading indicator on phase sections only
-            const container = document.getElementById('phaseSectionsContainer');
-            if (container) {
-                container.style.opacity = '0.5';
-                container.style.pointerEvents = 'none';
-            }
-
-            try {
-                const url = `/api/scan-market-phases?market=idx&limit=10&page=${page}`;
-                const response = await fetch(url);
-                const data = await response.json();
-
-                console.log('Page data received:', data);
-
-                if (data.success !== false) {
-                    marketPhaseData = data;
-                    // Only update the phase sections, not the entire widget
-                    updatePhaseSections(data);
-                } else {
-                    console.error('API returned error:', data);
-                }
-            } catch (error) {
-                console.error('Failed to load page:', error);
-            } finally {
-                // Re-get the container reference after update
-                const updatedContainer = document.getElementById('phaseSectionsContainer');
-                if (updatedContainer) {
-                    updatedContainer.style.opacity = '1';
-                    updatedContainer.style.pointerEvents = 'auto';
-                }
-            }
-        }
-
-        // Update only phase sections (for pagination)
-        function updatePhaseSections(data) {
-            console.log('updatePhaseSections called with:', data);
-
-            const phaseSectionsContainer = document.getElementById('phaseSectionsContainer');
-            console.log('Container found:', phaseSectionsContainer);
-
-            if (!phaseSectionsContainer) {
-                console.log('Container not found, falling back to full redraw');
-                // Fallback to full redraw if container not found
-                displayMarketPhaseScanner(data);
-                return;
-            }
-
-            const phases = data.phases || {};
-            const phaseCounts = data.phase_counts || {};
-            console.log('Phases:', phases, 'Counts:', phaseCounts);
-
-            let phaseSections = '';
-            ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN', 'CONSOLIDATION'].forEach(phase => {
-                const stocks = phases[phase] || [];
-                if (stocks.length === 0) return;
-                if (activePhaseFilter !== 'all' && activePhaseFilter !== phase) return;
-
-                const colors = getPhaseColors(phase);
-
-                let stockRows = '';
-                stocks.forEach((stock, idx) => {
-                    const changeColor = stock.change_percent >= 0 ? '#22c55e' : '#ef4444';
-                    const changeSign = stock.change_percent >= 0 ? '+' : '';
-                    const historyBadge = stock.from_history
-                        ? '<span style="background: #3b82f6; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; margin-left: 6px;">SEARCHED</span>'
-                        : '';
-                    stockRows += `
-                        <div onclick="quickAnalyze('${stock.symbol}')" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05); ${stock.from_history ? 'background: rgba(59, 130, 246, 0.1);' : ''}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='${stock.from_history ? 'rgba(59, 130, 246, 0.1)' : 'transparent'}'">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <span style="font-size: 0.75rem; color: #6b7280; font-family: monospace; width: 16px;">${((data.pagination?.current_page - 1) * 10) + idx + 1}</span>
-                                <div>
-                                    <div style="font-weight: 600;">${stock.symbol}${historyBadge}</div>
-                                    <div style="font-size: 0.75rem; color: #94a3b8; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${stock.name}</div>
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 16px; font-size: 0.875rem;">
-                                <div style="text-align: right;">
-                                    <div style="font-family: monospace;">${stock.price ? stock.price.toLocaleString() : 'N/A'}</div>
-                                    <div style="font-size: 0.75rem; color: ${changeColor};">${changeSign}${stock.change_percent}%</div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 0.75rem; color: #94a3b8;">Score</div>
-                                    <div style="font-weight: 600;">${stock.score}/100</div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                const totalInPhase = phaseCounts[phase] || stocks.length;
-                const pagination = data.pagination || { current_page: 1, per_page: 10, total_pages: {} };
-                const startNum = ((pagination.current_page - 1) * pagination.per_page) + 1;
-                const endNum = startNum + stocks.length - 1;
-                const showingText = totalInPhase > pagination.per_page
-                    ? `${startNum}-${endNum} of ${totalInPhase}`
-                    : `${stocks.length} stocks`;
-
-                const totalPagesForPhase = pagination.total_pages?.[phase] || 1;
-                const currentPageNum = pagination.current_page || 1;
-                const hasPrevPage = currentPageNum > 1;
-                const hasNextPage = currentPageNum < totalPagesForPhase;
-
-                let paginationControls = '';
-                if (totalPagesForPhase > 1) {
-                    paginationControls = `
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; padding: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
-                            <button onclick="event.preventDefault(); goToPage(${currentPageNum - 1})"
-                                    ${!hasPrevPage ? 'disabled' : ''}
-                                    style="padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: ${hasPrevPage ? 'pointer' : 'not-allowed'}; background: ${hasPrevPage ? '#334155' : '#1e293b'}; color: ${hasPrevPage ? '#fff' : '#6b7280'}; border: 1px solid #475569;">
-                                ← Prev
-                            </button>
-                            <span style="font-size: 0.8rem; color: #94a3b8;">
-                                Page ${currentPageNum} of ${totalPagesForPhase}
-                            </span>
-                            <button onclick="event.preventDefault(); goToPage(${currentPageNum + 1})"
-                                    ${!hasNextPage ? 'disabled' : ''}
-                                    style="padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: ${hasNextPage ? 'pointer' : 'not-allowed'}; background: ${hasNextPage ? '#334155' : '#1e293b'}; color: ${hasNextPage ? '#fff' : '#6b7280'}; border: 1px solid #475569;">
-                                Next →
-                            </button>
-                        </div>
-                    `;
-                }
-
-                phaseSections += `
-                    <div style="border: 2px solid ${colors.border}; border-radius: 12px; overflow: hidden; margin-bottom: 16px; background: ${colors.bg};">
-                        <div style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 1.25rem;">${getPhaseIcon(phase)}</span>
-                                <span style="font-weight: bold; color: ${colors.text};">${phase}</span>
-                                <span style="font-size: 0.75rem; color: #94a3b8;">(${showingText})</span>
-                            </div>
-                            <p style="font-size: 0.75rem; color: #94a3b8; margin: 4px 0 0 0;">${getPhaseDescription(phase)}</p>
-                        </div>
-                        <div>
-                            ${stockRows}
-                        </div>
-                        ${paginationControls}
-                    </div>
-                `;
-            });
-
-            if (!phaseSections) {
-                phaseSections = `
-                    <div style="text-align: center; padding: 32px; color: #6b7280;">
-                        <p style="font-size: 2rem; margin-bottom: 16px;">🔍</p>
-                        <p>No stocks in defined phases. Try refreshing the scan.</p>
-                    </div>
-                `;
-            }
-
-            console.log('Setting innerHTML, phaseSections length:', phaseSections.length);
-            phaseSectionsContainer.innerHTML = phaseSections;
-            console.log('innerHTML updated successfully');
-
-            // Update footer
-            const footerEl = document.getElementById('phaseScannerFooter');
-            if (footerEl) {
-                footerEl.innerHTML = `Scanned: ${data.scanned || 0} stocks | Page ${data.pagination?.current_page || 1}`;
-                console.log('Footer updated');
-            }
-        }
-
-        // Initialize on page load - always show history first
         window.addEventListener('DOMContentLoaded', () => {
             updateHistoryDisplay();
-            // Show placeholder for Buy Opportunities (will load when country selected)
             showBuyOpportunitiesPlaceholder();
-            loadInstitutionalStocks();  // Auto-load institutional stocks
-            loadMarketPhaseScanner();   // Auto-load market phase scanner
+            loadInstitutionalStocks();
+            loadMarketPhaseScanner();
         });
 
         function showLoading() {

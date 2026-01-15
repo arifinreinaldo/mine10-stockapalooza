@@ -1165,13 +1165,12 @@ class StockAnalysisController extends Controller
     /**
      * Scan stocks and group by market phase (Wyckoff cycles)
      *
-     * GET /api/scan-market-phases?market=idx&limit=10&refresh=true
+     * GET /api/scan-market-phases?market=idx&limit=50&refresh=true
      */
     public function scanMarketPhases(Request $request)
     {
         $market = $request->query('market', 'idx');
-        $limit = min($request->query('limit', 10), 50);
-        $page = max($request->query('page', 1), 1);
+        $limit = min($request->query('limit', 50), 100);
         $forceRefresh = $request->query('refresh', false);
 
         $cacheKey = "market_phases_{$market}_all";
@@ -1188,7 +1187,7 @@ class StockAnalysisController extends Controller
             ->values()
             ->toArray();
 
-        // Cache for 5 minutes (300 seconds) - cache ALL results, then paginate
+        // Cache for 5 minutes (300 seconds)
         $allPhasesData = Cache::remember($cacheKey, 300, function () use ($market, $recentHistorySymbols) {
             $allStocks = $this->getStocksForPhaseScan($market);
 
@@ -1268,7 +1267,7 @@ class StockAnalysisController extends Controller
                 'CONSOLIDATION' => count($phases['CONSOLIDATION']),
             ];
 
-            // Sort each phase: history stocks first, then by score descending (but don't limit yet)
+            // Sort each phase: history stocks first, then by score descending
             foreach ($phases as $phase => &$stocks) {
                 usort($stocks, function ($a, $b) {
                     // History stocks come first
@@ -1288,31 +1287,17 @@ class StockAnalysisController extends Controller
             ];
         });
 
-        // Paginate the cached results
-        $paginatedPhases = [];
-        $offset = ($page - 1) * $limit;
-
+        $limitedPhases = [];
         foreach ($allPhasesData['phases'] as $phase => $stocks) {
-            $paginatedPhases[$phase] = array_slice($stocks, $offset, $limit);
-        }
-
-        // Calculate total pages per phase
-        $totalPages = [];
-        foreach ($allPhasesData['phase_counts'] as $phase => $count) {
-            $totalPages[$phase] = ceil($count / $limit);
+            $limitedPhases[$phase] = array_slice($stocks, 0, $limit);
         }
 
         return response()->json([
             'success' => true,
             'scanned' => $allPhasesData['scanned'],
             'errors' => $allPhasesData['errors'],
-            'phases' => $paginatedPhases,
+            'phases' => $limitedPhases,
             'phase_counts' => $allPhasesData['phase_counts'],
-            'pagination' => [
-                'current_page' => $page,
-                'per_page' => $limit,
-                'total_pages' => $totalPages,
-            ],
             'cached_at' => $allPhasesData['cached_at'],
         ]);
     }
