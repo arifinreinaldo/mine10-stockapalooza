@@ -9,6 +9,7 @@ use App\Services\SwingAnalyzer;
 use App\Services\AccumulationDetector;
 use App\Services\FavoritesManager;
 use App\Models\StockAnalysis;
+use App\Models\AnalysisHistory;
 use App\Data\IndonesianStocks;
 use App\Data\SingaporeStocks;
 use Illuminate\Http\Request;
@@ -372,6 +373,11 @@ class StockAnalysisController extends Controller
             // Save analysis to database for ML training (async - non-blocking)
             dispatch(function () use ($symbol, $market, $stockData, $analysis, $swing, $accumulation) {
                 $this->saveAnalysisForML($symbol, $market, $stockData, $analysis, $swing, $accumulation);
+            })->afterResponse();
+
+            // Save to analysis history for phase tracking (async)
+            dispatch(function () use ($symbol, $market, $stockData, $analysis, $accumulation) {
+                $this->saveAnalysisHistory($symbol, $market, $stockData, $analysis, $accumulation);
             })->afterResponse();
 
             return response()->json([
@@ -1125,5 +1131,201 @@ class StockAnalysisController extends Controller
         } else {
             return "Score {$score}/100 - Close to BUY threshold, monitor for improvement";
         }
+    }
+
+    /**
+     * Save analysis to history table
+     */
+    private function saveAnalysisHistory(
+        string $symbol,
+        ?string $market,
+        array $stockData,
+        array $analysis,
+        array $accumulation
+    ): void {
+        try {
+            AnalysisHistory::create([
+                'symbol' => $symbol,
+                'market' => $market ?? 'idx',
+                'stock_name' => $stockData['name'] ?? null,
+                'price_at_analysis' => $stockData['current_price'],
+                'phase' => $accumulation['phase']['current_phase'] ?? 'UNKNOWN',
+                'phase_confidence' => $accumulation['phase']['confidence'] ?? null,
+                'accumulation_strength' => $accumulation['strength']['score'] ?? null,
+                'overall_score' => $analysis['score'],
+                'recommendation' => $analysis['recommendation']['action'],
+                'institutional_percent' => $accumulation['participants']['institutional_percent'] ?? null,
+                'rsi' => $analysis['metrics']['technical']['rsi'] ?? null,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to save analysis history: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Scan stocks and group by market phase (Wyckoff cycles)
+     *
+     * GET /api/scan-market-phases?market=idx&limit=5&refresh=true
+     */
+    public function scanMarketPhases(Request $request)
+    {
+        $market = $request->query('market', 'idx');
+        $limit = min($request->query('limit', 5), 10);
+        $forceRefresh = $request->query('refresh', false);
+
+        $cacheKey = "market_phases_{$market}_{$limit}";
+
+        if ($forceRefresh) {
+            Cache::forget($cacheKey);
+        }
+
+        // Cache for 1 hour
+        return Cache::remember($cacheKey, 3600, function () use ($market, $limit) {
+            $allStocks = $this->getStocksForPhaseScan($market);
+
+            $phases = [
+                'MARKUP' => [],
+                'MARKDOWN' => [],
+                'DISTRIBUTION' => [],
+                'ACCUMULATION' => [],
+            ];
+
+            $scanned = 0;
+            $errors = 0;
+
+            foreach ($allStocks as $symbol) {
+                try {
+                    $normalizedSymbol = $this->normalizeSymbol($symbol, $market);
+                    $stockData = $this->fetcher->fetchStockData($normalizedSymbol);
+
+                    if (!$stockData) {
+                        $errors++;
+                        continue;
+                    }
+
+                    $analysis = $this->analyzer->analyze($stockData);
+                    $accumulation = $this->accumulationDetector->analyze($stockData);
+                    $scanned++;
+
+                    $phase = $accumulation['phase']['current_phase'] ?? 'NEUTRAL';
+
+                    // Normalize phase name - only keep the 4 main phases
+                    if (!isset($phases[$phase])) {
+                        continue; // Skip NEUTRAL, CONSOLIDATION, etc.
+                    }
+
+                    $stockInfo = [
+                        'symbol' => $symbol,
+                        'name' => $stockData['name'],
+                        'price' => $stockData['current_price'],
+                        'change_percent' => round($stockData['change_percent'], 2),
+                        'phase' => $phase,
+                        'phase_description' => $accumulation['phase']['description'] ?? '',
+                        'phase_confidence' => $accumulation['phase']['confidence'] ?? 'Unknown',
+                        'phase_color' => $this->getPhaseColor($phase),
+                        'score' => $analysis['score'],
+                        'recommendation' => $analysis['recommendation']['action'],
+                        'obv_trend' => $accumulation['obv_analysis']['trend'] ?? 'Unknown',
+                        'institutional_percent' => $accumulation['participants']['institutional_percent'] ?? 0,
+                        'accumulation_strength' => $accumulation['strength']['score'] ?? 0,
+                        'volume_ratio' => $accumulation['current_volume_vs_average']['ratio'] ?? 1,
+                        'market' => $market,
+                    ];
+
+                    $phases[$phase][] = $stockInfo;
+                } catch (\Exception $e) {
+                    $errors++;
+                    \Log::warning("Phase scan failed for {$symbol}: " . $e->getMessage());
+                }
+            }
+
+            // Sort each phase by score descending, then limit
+            foreach ($phases as $phase => &$stocks) {
+                usort($stocks, fn($a, $b) => $b['score'] <=> $a['score']);
+                $stocks = array_slice($stocks, 0, $limit);
+            }
+
+            return response()->json([
+                'success' => true,
+                'scanned' => $scanned,
+                'errors' => $errors,
+                'phases' => $phases,
+                'phase_counts' => [
+                    'MARKUP' => count($phases['MARKUP']),
+                    'MARKDOWN' => count($phases['MARKDOWN']),
+                    'DISTRIBUTION' => count($phases['DISTRIBUTION']),
+                    'ACCUMULATION' => count($phases['ACCUMULATION']),
+                ],
+                'cached_at' => now()->toDateTimeString(),
+            ]);
+        });
+    }
+
+    /**
+     * Get CSS color class for phase
+     */
+    private function getPhaseColor(string $phase): string
+    {
+        return match ($phase) {
+            'MARKUP' => 'success',
+            'MARKDOWN' => 'danger',
+            'DISTRIBUTION' => 'warning',
+            'ACCUMULATION' => 'primary',
+            default => 'secondary',
+        };
+    }
+
+    /**
+     * Get stocks list for phase scanning (IDX only for now)
+     */
+    private function getStocksForPhaseScan(string $market): array
+    {
+        return match ($market) {
+            'idx' => IndonesianStocks::getExpandedScannerList(),
+            'sgx' => SingaporeStocks::getExpandedScannerList(),
+            'us' => ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'TSLA', 'AMD', 'META', 'NFLX', 'INTC',
+                     'JPM', 'BAC', 'WFC', 'GS', 'JNJ', 'UNH', 'PFE', 'WMT', 'HD', 'NKE'],
+            default => IndonesianStocks::getTopBigCap(),
+        };
+    }
+
+    /**
+     * Get global analysis history
+     *
+     * GET /api/analysis-history?limit=20&phase=MARKUP
+     */
+    public function getAnalysisHistory(Request $request)
+    {
+        $limit = min($request->query('limit', 20), 100);
+        $phase = $request->query('phase');
+
+        $query = AnalysisHistory::recent(90) // Last 3 months
+            ->orderBy('created_at', 'desc');
+
+        if ($phase) {
+            $query->byPhase(strtoupper($phase));
+        }
+
+        $history = $query->limit($limit)->get();
+
+        // Group by date for better display
+        $grouped = $history->groupBy(function ($item) {
+            return $item->created_at->format('Y-m-d');
+        });
+
+        // Get phase summary
+        $phaseSummary = AnalysisHistory::recent(90)
+            ->selectRaw('phase, COUNT(*) as count')
+            ->groupBy('phase')
+            ->pluck('count', 'phase')
+            ->toArray();
+
+        return response()->json([
+            'success' => true,
+            'total' => $history->count(),
+            'history' => $history,
+            'grouped_by_date' => $grouped,
+            'phase_summary' => $phaseSummary,
+        ]);
     }
 }

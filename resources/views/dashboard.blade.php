@@ -1038,6 +1038,9 @@
             <!-- Institutional Stocks Scanner -->
             <div id="institutionalStocks" style="margin-bottom: 30px;"></div>
 
+            <!-- Market Phase Scanner (Wyckoff Cycles) -->
+            <div id="marketPhaseScanner" style="margin-bottom: 30px;"></div>
+
             <!-- 1. Indonesia Suggestions -->
             <div class="quick-picks" style="margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -1939,12 +1942,327 @@
             `;
         }
 
+        // Market Phase Scanner State
+        let marketPhaseData = null;
+        let marketPhaseHistory = null;
+        let activePhaseFilter = 'all';
+        let showingHistory = false;
+
+        // Load Market Phase Scanner
+        async function loadMarketPhaseScanner(forceRefresh = false) {
+            const container = document.getElementById('marketPhaseScanner');
+
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                    <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                    <h3 style="color: #fff; margin: 20px 0 10px 0;">🔄 Scanning Market Phases</h3>
+                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Analyzing Wyckoff market cycles...</p>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Scanning top IDX stocks...</p>
+                </div>
+            `;
+
+            try {
+                const url = forceRefresh
+                    ? '/api/scan-market-phases?market=idx&limit=5&refresh=true'
+                    : '/api/scan-market-phases?market=idx&limit=5';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    marketPhaseData = data;
+                    displayMarketPhaseScanner(data);
+                    showNotification(`✅ Found stocks in ${Object.values(data.phase_counts).reduce((a, b) => a + b, 0)} phases!`, 'success');
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                            <p style="color: #ef4444;">⚠️ No phase data found</p>
+                            <button onclick="loadMarketPhaseScanner(true)" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                                🔄 Retry
+                            </button>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 20px; background: #1e293b; border-radius: 12px; border: 2px solid #ef4444;">
+                        <p style="color: #ef4444;">⚠️ Error loading phases: ${error.message}</p>
+                        <button onclick="loadMarketPhaseScanner(true)" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #ef4444; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                            🔄 Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Load analysis history
+        async function loadAnalysisHistory() {
+            try {
+                const response = await fetch('/api/analysis-history?limit=15');
+                const data = await response.json();
+                if (data.success) {
+                    marketPhaseHistory = data;
+                    if (showingHistory) {
+                        displayMarketPhaseScanner(marketPhaseData);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load history:', error);
+            }
+        }
+
+        // Get phase icon
+        function getPhaseIcon(phase) {
+            const icons = {
+                'MARKUP': '📈',
+                'MARKDOWN': '📉',
+                'DISTRIBUTION': '🔻',
+                'ACCUMULATION': '💰'
+            };
+            return icons[phase] || '❓';
+        }
+
+        // Get phase colors
+        function getPhaseColors(phase) {
+            const colors = {
+                'MARKUP': { bg: 'rgba(34, 197, 94, 0.2)', border: '#22c55e', text: '#22c55e' },
+                'MARKDOWN': { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444', text: '#ef4444' },
+                'DISTRIBUTION': { bg: 'rgba(245, 158, 11, 0.2)', border: '#f59e0b', text: '#f59e0b' },
+                'ACCUMULATION': { bg: 'rgba(59, 130, 246, 0.2)', border: '#3b82f6', text: '#3b82f6' }
+            };
+            return colors[phase] || { bg: 'rgba(107, 114, 128, 0.2)', border: '#6b7280', text: '#6b7280' };
+        }
+
+        // Get phase description
+        function getPhaseDescription(phase) {
+            const descriptions = {
+                'MARKUP': 'Price rising with volume support. Uptrend in progress.',
+                'MARKDOWN': 'Price falling with volume. Downtrend in progress.',
+                'DISTRIBUTION': 'Smart money distributing at higher prices.',
+                'ACCUMULATION': 'Smart money accumulating at lower prices.'
+            };
+            return descriptions[phase] || '';
+        }
+
+        // Display Market Phase Scanner
+        function displayMarketPhaseScanner(data) {
+            const container = document.getElementById('marketPhaseScanner');
+            const phases = data.phases || {};
+            const phaseCounts = data.phase_counts || {};
+
+            // Build phase filter tabs
+            let filterTabs = `
+                <button onclick="filterPhase('all')" style="padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-right: 8px; margin-bottom: 8px; ${activePhaseFilter === 'all' ? 'background: #3b82f6; color: white; border: none;' : 'background: #334155; color: #cbd5e1; border: 1px solid #475569;'}">
+                    All Phases
+                </button>
+            `;
+
+            ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN'].forEach(phase => {
+                const colors = getPhaseColors(phase);
+                const isActive = activePhaseFilter === phase;
+                filterTabs += `
+                    <button onclick="filterPhase('${phase}')" style="padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-right: 8px; margin-bottom: 8px; display: inline-flex; align-items: center; gap: 6px; ${isActive ? `background: ${colors.bg}; color: ${colors.text}; border: 2px solid ${colors.border};` : 'background: #334155; color: #cbd5e1; border: 1px solid #475569;'}">
+                        <span>${getPhaseIcon(phase)}</span>
+                        <span>${phase}</span>
+                        <span style="opacity: 0.7; font-size: 0.75rem;">(${phaseCounts[phase] || 0})</span>
+                    </button>
+                `;
+            });
+
+            // Build history panel if showing
+            let historyPanel = '';
+            if (showingHistory && marketPhaseHistory) {
+                const history = marketPhaseHistory.history || [];
+                const phaseSummary = marketPhaseHistory.phase_summary || {};
+
+                let summaryBoxes = '';
+                ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN'].forEach(phase => {
+                    const colors = getPhaseColors(phase);
+                    summaryBoxes += `
+                        <div style="text-align: center; padding: 10px; border-radius: 8px; background: ${colors.bg}; border: 1px solid ${colors.border};">
+                            <span>${getPhaseIcon(phase)}</span>
+                            <p style="font-size: 1.25rem; font-weight: bold; margin: 5px 0; color: ${colors.text};">${phaseSummary[phase] || 0}</p>
+                            <p style="font-size: 0.7rem; opacity: 0.7; margin: 0;">${phase}</p>
+                        </div>
+                    `;
+                });
+
+                let historyItems = '';
+                history.forEach(item => {
+                    const colors = getPhaseColors(item.phase);
+                    historyItems += `
+                        <div onclick="quickAnalyze('${item.symbol}')" style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #334155; border-radius: 8px; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;" onmouseover="this.style.background='#3f4c63'" onmouseout="this.style.background='#334155'">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span>${getPhaseIcon(item.phase)}</span>
+                                <div>
+                                    <span style="font-weight: 600;">${item.symbol}</span>
+                                    <span style="font-size: 0.75rem; color: #94a3b8; margin-left: 8px;">${item.stock_name ? item.stock_name.substring(0, 20) : ''}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right; font-size: 0.75rem;">
+                                <div style="color: ${colors.text};">${item.phase}</div>
+                                <div style="color: #6b7280;">${new Date(item.created_at).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                historyPanel = `
+                    <div style="margin-bottom: 16px; background: #1e293b; border-radius: 12px; padding: 16px; border: 1px solid #334155;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <h4 style="font-weight: 600; color: #3b82f6; margin: 0;">📋 Analysis History (Last 3 months)</h4>
+                            <button onclick="toggleHistory()" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer;">&times;</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
+                            ${summaryBoxes}
+                        </div>
+                        <div style="max-height: 240px; overflow-y: auto;">
+                            ${history.length > 0 ? historyItems : '<p style="text-align: center; color: #6b7280; padding: 20px;">No analysis history yet. Analyze some stocks to build your history!</p>'}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Build phase sections
+            let phaseSections = '';
+            ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN'].forEach(phase => {
+                const stocks = phases[phase] || [];
+                if (stocks.length === 0) return;
+                if (activePhaseFilter !== 'all' && activePhaseFilter !== phase) return;
+
+                const colors = getPhaseColors(phase);
+
+                let stockRows = '';
+                stocks.forEach((stock, idx) => {
+                    const changeColor = stock.change_percent >= 0 ? '#22c55e' : '#ef4444';
+                    const changeSign = stock.change_percent >= 0 ? '+' : '';
+                    stockRows += `
+                        <div onclick="quickAnalyze('${stock.symbol}')" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05);" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="font-size: 0.75rem; color: #6b7280; font-family: monospace; width: 16px;">${idx + 1}</span>
+                                <div>
+                                    <div style="font-weight: 600;">${stock.symbol}</div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${stock.name}</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 16px; font-size: 0.875rem;">
+                                <div style="text-align: right;">
+                                    <div style="font-family: monospace;">${stock.price ? stock.price.toLocaleString() : 'N/A'}</div>
+                                    <div style="font-size: 0.75rem; color: ${changeColor};">${changeSign}${stock.change_percent}%</div>
+                                </div>
+                                <div style="text-align: right; display: none;" class="hidden-mobile">
+                                    <div style="font-size: 0.75rem; color: #94a3b8;">Score</div>
+                                    <div style="font-weight: 600;">${stock.score}/100</div>
+                                </div>
+                                <div style="text-align: right; display: none;" class="hidden-mobile">
+                                    <div style="font-size: 0.75rem; color: #94a3b8;">Inst.</div>
+                                    <div style="font-weight: 600; color: #3b82f6;">${(stock.institutional_percent || 0).toFixed(0)}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                phaseSections += `
+                    <div style="border: 2px solid ${colors.border}; border-radius: 12px; overflow: hidden; margin-bottom: 16px; background: ${colors.bg};">
+                        <div style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 1.25rem;">${getPhaseIcon(phase)}</span>
+                                <span style="font-weight: bold; color: ${colors.text};">${phase}</span>
+                                <span style="font-size: 0.75rem; color: #94a3b8;">(${stocks.length} stocks)</span>
+                            </div>
+                            <p style="font-size: 0.75rem; color: #94a3b8; margin: 4px 0 0 0;">${getPhaseDescription(phase)}</p>
+                        </div>
+                        <div>
+                            ${stockRows}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Check if no stocks found
+            if (!phaseSections) {
+                phaseSections = `
+                    <div style="text-align: center; padding: 32px; color: #6b7280;">
+                        <p style="font-size: 2rem; margin-bottom: 16px;">🔍</p>
+                        <p>No stocks in defined phases. Try refreshing the scan.</p>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 12px; padding: 20px; border: 1px solid #334155;">
+                    <!-- Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h2 style="margin: 0; color: #fff; font-size: 1.25rem; font-weight: bold;">🔄 Market Phase Scanner (Wyckoff)</h2>
+                            <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.875rem;">
+                                Top 5 stocks in each Wyckoff market cycle phase
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="toggleHistory()" style="background: ${showingHistory ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.1)'}; border: 1px solid ${showingHistory ? '#3b82f6' : 'rgba(255,255,255,0.2)'}; color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 1rem;">
+                                📋
+                            </button>
+                            <button onclick="loadMarketPhaseScanner(true)" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 1rem;">
+                                🔄
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <p style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 16px;">
+                        <span style="color: #22c55e; font-weight: 600;">MARKUP</span> = uptrend,
+                        <span style="color: #ef4444; font-weight: 600;">MARKDOWN</span> = downtrend,
+                        <span style="color: #f59e0b; font-weight: 600;">DISTRIBUTION</span> = topping,
+                        <span style="color: #3b82f6; font-weight: 600;">ACCUMULATION</span> = bottoming.
+                    </p>
+
+                    <!-- Filter Tabs -->
+                    <div style="margin-bottom: 16px;">
+                        ${filterTabs}
+                    </div>
+
+                    <!-- History Panel -->
+                    ${historyPanel}
+
+                    <!-- Phase Sections -->
+                    ${phaseSections}
+
+                    <!-- Footer -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #6b7280; padding-top: 12px; border-top: 1px solid #334155;">
+                        <span>Scanned: ${data.scanned || 0} stocks</span>
+                        <span>${data.cached_at || ''}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Filter phase
+        function filterPhase(phase) {
+            activePhaseFilter = phase;
+            if (marketPhaseData) {
+                displayMarketPhaseScanner(marketPhaseData);
+            }
+        }
+
+        // Toggle history panel
+        function toggleHistory() {
+            showingHistory = !showingHistory;
+            if (showingHistory && !marketPhaseHistory) {
+                loadAnalysisHistory();
+            }
+            if (marketPhaseData) {
+                displayMarketPhaseScanner(marketPhaseData);
+            }
+        }
+
         // Initialize on page load - always show history first
         window.addEventListener('DOMContentLoaded', () => {
             updateHistoryDisplay();
             // Show placeholder for Buy Opportunities (will load when country selected)
             showBuyOpportunitiesPlaceholder();
             loadInstitutionalStocks();  // Auto-load institutional stocks
+            loadMarketPhaseScanner();   // Auto-load market phase scanner
         });
 
         function showLoading() {

@@ -47,3 +47,10 @@ Route::get('/scan-all-stocks', [StockAnalysisController::class, 'scanAllStocks']
 // Scan for institutional stocks (smart money) - Rate limited: 10 requests per minute
 Route::get('/scan-institutional-stocks', [StockAnalysisController::class, 'scanInstitutionalStocks'])
     ->middleware('throttle:10,1');
+
+// Market Phase Scanner (Wyckoff cycles) - Rate limited: 10 requests per minute
+Route::get('/scan-market-phases', [StockAnalysisController::class, 'scanMarketPhases'])
+    ->middleware('throttle:10,1');
+
+// Analysis History
+Route::get('/analysis-history', [StockAnalysisController::class, 'getAnalysisHistory']);
