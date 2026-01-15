@@ -2313,37 +2313,50 @@
         async function goToPage(page) {
             if (page < 1) return;
 
-            // Show loading indicator on phase sections only
-            const phaseSectionsContainer = document.getElementById('phaseSectionsContainer');
-            if (phaseSectionsContainer) {
-                phaseSectionsContainer.style.opacity = '0.5';
-            }
-
             currentPage = page;
+
+            // Show loading indicator on phase sections only
+            const container = document.getElementById('phaseSectionsContainer');
+            if (container) {
+                container.style.opacity = '0.5';
+                container.style.pointerEvents = 'none';
+            }
 
             try {
                 const url = `/api/scan-market-phases?market=idx&limit=10&page=${page}`;
                 const response = await fetch(url);
                 const data = await response.json();
 
-                if (data.success) {
+                console.log('Page data received:', data);
+
+                if (data.success !== false) {
                     marketPhaseData = data;
                     // Only update the phase sections, not the entire widget
                     updatePhaseSections(data);
+                } else {
+                    console.error('API returned error:', data);
                 }
             } catch (error) {
                 console.error('Failed to load page:', error);
-            }
-
-            if (phaseSectionsContainer) {
-                phaseSectionsContainer.style.opacity = '1';
+            } finally {
+                // Re-get the container reference after update
+                const updatedContainer = document.getElementById('phaseSectionsContainer');
+                if (updatedContainer) {
+                    updatedContainer.style.opacity = '1';
+                    updatedContainer.style.pointerEvents = 'auto';
+                }
             }
         }
 
         // Update only phase sections (for pagination)
         function updatePhaseSections(data) {
+            console.log('updatePhaseSections called with:', data);
+
             const phaseSectionsContainer = document.getElementById('phaseSectionsContainer');
+            console.log('Container found:', phaseSectionsContainer);
+
             if (!phaseSectionsContainer) {
+                console.log('Container not found, falling back to full redraw');
                 // Fallback to full redraw if container not found
                 displayMarketPhaseScanner(data);
                 return;
@@ -2351,6 +2364,7 @@
 
             const phases = data.phases || {};
             const phaseCounts = data.phase_counts || {};
+            console.log('Phases:', phases, 'Counts:', phaseCounts);
 
             let phaseSections = '';
             ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN', 'CONSOLIDATION'].forEach(phase => {
@@ -2451,12 +2465,15 @@
                 `;
             }
 
+            console.log('Setting innerHTML, phaseSections length:', phaseSections.length);
             phaseSectionsContainer.innerHTML = phaseSections;
+            console.log('innerHTML updated successfully');
 
             // Update footer
             const footerEl = document.getElementById('phaseScannerFooter');
             if (footerEl) {
                 footerEl.innerHTML = `Scanned: ${data.scanned || 0} stocks | Page ${data.pagination?.current_page || 1}`;
+                console.log('Footer updated');
             }
         }
 
