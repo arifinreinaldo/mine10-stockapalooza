@@ -1947,24 +1947,29 @@
         let marketPhaseHistory = null;
         let activePhaseFilter = 'all';
         let showingHistory = false;
+        let currentPage = 1;
 
         // Load Market Phase Scanner
-        async function loadMarketPhaseScanner(forceRefresh = false) {
+        async function loadMarketPhaseScanner(forceRefresh = false, page = 1) {
             const container = document.getElementById('marketPhaseScanner');
 
-            container.innerHTML = `
-                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; text-align: center;">
-                    <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
-                    <h3 style="color: #fff; margin: 20px 0 10px 0;">🔄 Scanning Market Phases</h3>
-                    <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Analyzing Wyckoff market cycles...</p>
-                    <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Scanning top IDX stocks...</p>
-                </div>
-            `;
+            // Only show loading spinner on first load or refresh
+            if (forceRefresh || !marketPhaseData) {
+                container.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 20px; text-align: center;">
+                        <div class="spinner" style="border-color: #fff transparent transparent transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                        <h3 style="color: #fff; margin: 20px 0 10px 0;">🔄 Scanning Market Phases</h3>
+                        <p style="color: rgba(255,255,255,0.9); margin: 5px 0;">Analyzing Wyckoff market cycles...</p>
+                        <p style="color: rgba(255,255,255,0.7); font-size: 0.85rem;">Scanning top IDX stocks...</p>
+                    </div>
+                `;
+            }
+
+            currentPage = page;
 
             try {
-                const url = forceRefresh
-                    ? '/api/scan-market-phases?market=idx&limit=10&refresh=true'
-                    : '/api/scan-market-phases?market=idx&limit=10';
+                let url = `/api/scan-market-phases?market=idx&limit=10&page=${page}`;
+                if (forceRefresh) url += '&refresh=true';
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -2169,9 +2174,40 @@
                 });
 
                 const totalInPhase = phaseCounts[phase] || stocks.length;
-                const showingText = totalInPhase > stocks.length
-                    ? `showing ${stocks.length} of ${totalInPhase}`
+                const pagination = data.pagination || { current_page: 1, per_page: 10, total_pages: {} };
+                const startNum = ((pagination.current_page - 1) * pagination.per_page) + 1;
+                const endNum = startNum + stocks.length - 1;
+                const showingText = totalInPhase > pagination.per_page
+                    ? `${startNum}-${endNum} of ${totalInPhase}`
                     : `${stocks.length} stocks`;
+
+                // Pagination info
+                const totalPagesForPhase = pagination.total_pages?.[phase] || 1;
+                const currentPageNum = pagination.current_page || 1;
+                const hasPrevPage = currentPageNum > 1;
+                const hasNextPage = currentPageNum < totalPagesForPhase;
+
+                // Pagination controls
+                let paginationControls = '';
+                if (totalPagesForPhase > 1) {
+                    paginationControls = `
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; padding: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <button onclick="loadMarketPhaseScanner(false, ${currentPageNum - 1})"
+                                    ${!hasPrevPage ? 'disabled' : ''}
+                                    style="padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: ${hasPrevPage ? 'pointer' : 'not-allowed'}; background: ${hasPrevPage ? '#334155' : '#1e293b'}; color: ${hasPrevPage ? '#fff' : '#6b7280'}; border: 1px solid #475569;">
+                                ← Prev
+                            </button>
+                            <span style="font-size: 0.8rem; color: #94a3b8;">
+                                Page ${currentPageNum} of ${totalPagesForPhase}
+                            </span>
+                            <button onclick="loadMarketPhaseScanner(false, ${currentPageNum + 1})"
+                                    ${!hasNextPage ? 'disabled' : ''}
+                                    style="padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: ${hasNextPage ? 'pointer' : 'not-allowed'}; background: ${hasNextPage ? '#334155' : '#1e293b'}; color: ${hasNextPage ? '#fff' : '#6b7280'}; border: 1px solid #475569;">
+                                Next →
+                            </button>
+                        </div>
+                    `;
+                }
 
                 phaseSections += `
                     <div style="border: 2px solid ${colors.border}; border-radius: 12px; overflow: hidden; margin-bottom: 16px; background: ${colors.bg};">
@@ -2186,6 +2222,7 @@
                         <div>
                             ${stockRows}
                         </div>
+                        ${paginationControls}
                     </div>
                 `;
             });
@@ -2242,7 +2279,7 @@
 
                     <!-- Footer -->
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #6b7280; padding-top: 12px; border-top: 1px solid #334155;">
-                        <span>Scanned: ${data.scanned || 0} stocks</span>
+                        <span>Scanned: ${data.scanned || 0} stocks | Page ${data.pagination?.current_page || 1}</span>
                         <span>${data.cached_at || ''}</span>
                     </div>
                 </div>

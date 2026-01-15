@@ -1170,10 +1170,11 @@ class StockAnalysisController extends Controller
     public function scanMarketPhases(Request $request)
     {
         $market = $request->query('market', 'idx');
-        $limit = min($request->query('limit', 10), 20);
+        $limit = min($request->query('limit', 10), 50);
+        $page = max($request->query('page', 1), 1);
         $forceRefresh = $request->query('refresh', false);
 
-        $cacheKey = "market_phases_{$market}_{$limit}";
+        $cacheKey = "market_phases_{$market}_all";
 
         if ($forceRefresh) {
             Cache::forget($cacheKey);
@@ -1187,8 +1188,8 @@ class StockAnalysisController extends Controller
             ->values()
             ->toArray();
 
-        // Cache for 5 minutes (300 seconds)
-        return Cache::remember($cacheKey, 300, function () use ($market, $limit, $recentHistorySymbols) {
+        // Cache for 5 minutes (300 seconds) - cache ALL results, then paginate
+        $allPhasesData = Cache::remember($cacheKey, 300, function () use ($market, $recentHistorySymbols) {
             $allStocks = $this->getStocksForPhaseScan($market);
 
             $phases = [
@@ -1258,7 +1259,7 @@ class StockAnalysisController extends Controller
                 }
             }
 
-            // Count totals BEFORE limiting
+            // Count totals
             $totalCounts = [
                 'MARKUP' => count($phases['MARKUP']),
                 'MARKDOWN' => count($phases['MARKDOWN']),
@@ -1267,7 +1268,7 @@ class StockAnalysisController extends Controller
                 'CONSOLIDATION' => count($phases['CONSOLIDATION']),
             ];
 
-            // Sort each phase: history stocks first, then by score descending
+            // Sort each phase: history stocks first, then by score descending (but don't limit yet)
             foreach ($phases as $phase => &$stocks) {
                 usort($stocks, function ($a, $b) {
                     // History stocks come first
@@ -1276,19 +1277,44 @@ class StockAnalysisController extends Controller
                     // Then sort by score
                     return $b['score'] <=> $a['score'];
                 });
-                $stocks = array_slice($stocks, 0, $limit);
             }
 
-            return response()->json([
-                'success' => true,
+            return [
                 'scanned' => $scanned,
                 'errors' => $errors,
                 'phases' => $phases,
-                'phase_counts' => $totalCounts,  // Total stocks in each phase (before limit)
-                'showing_top' => $limit,
+                'phase_counts' => $totalCounts,
                 'cached_at' => now()->toDateTimeString(),
-            ]);
+            ];
         });
+
+        // Paginate the cached results
+        $paginatedPhases = [];
+        $offset = ($page - 1) * $limit;
+
+        foreach ($allPhasesData['phases'] as $phase => $stocks) {
+            $paginatedPhases[$phase] = array_slice($stocks, $offset, $limit);
+        }
+
+        // Calculate total pages per phase
+        $totalPages = [];
+        foreach ($allPhasesData['phase_counts'] as $phase => $count) {
+            $totalPages[$phase] = ceil($count / $limit);
+        }
+
+        return response()->json([
+            'success' => true,
+            'scanned' => $allPhasesData['scanned'],
+            'errors' => $allPhasesData['errors'],
+            'phases' => $paginatedPhases,
+            'phase_counts' => $allPhasesData['phase_counts'],
+            'pagination' => [
+                'current_page' => $page,
+                'per_page' => $limit,
+                'total_pages' => $totalPages,
+            ],
+            'cached_at' => $allPhasesData['cached_at'],
+        ]);
     }
 
     /**
