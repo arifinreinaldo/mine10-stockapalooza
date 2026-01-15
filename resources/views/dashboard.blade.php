@@ -1963,8 +1963,8 @@
 
             try {
                 const url = forceRefresh
-                    ? '/api/scan-market-phases?market=idx&limit=5&refresh=true'
-                    : '/api/scan-market-phases?market=idx&limit=5';
+                    ? '/api/scan-market-phases?market=idx&limit=10&refresh=true'
+                    : '/api/scan-market-phases?market=idx&limit=10';
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -2196,7 +2196,7 @@
                         <div>
                             <h2 style="margin: 0; color: #fff; font-size: 1.25rem; font-weight: bold;">🔄 Market Phase Scanner (Wyckoff)</h2>
                             <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.7); font-size: 0.875rem;">
-                                Top 5 stocks in each Wyckoff market cycle phase
+                                Top 10 stocks in each Wyckoff market cycle phase
                             </p>
                         </div>
                         <div style="display: flex; gap: 8px;">

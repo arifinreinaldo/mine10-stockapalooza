@@ -1165,12 +1165,12 @@ class StockAnalysisController extends Controller
     /**
      * Scan stocks and group by market phase (Wyckoff cycles)
      *
-     * GET /api/scan-market-phases?market=idx&limit=5&refresh=true
+     * GET /api/scan-market-phases?market=idx&limit=10&refresh=true
      */
     public function scanMarketPhases(Request $request)
     {
         $market = $request->query('market', 'idx');
-        $limit = min($request->query('limit', 5), 10);
+        $limit = min($request->query('limit', 10), 20);
         $forceRefresh = $request->query('refresh', false);
 
         $cacheKey = "market_phases_{$market}_{$limit}";

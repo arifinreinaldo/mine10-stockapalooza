@@ -14,8 +14,8 @@
              this.error = null;
              try {
                  const url = forceRefresh
-                     ? '/api/scan-market-phases?market=idx&limit=5&refresh=true'
-                     : '/api/scan-market-phases?market=idx&limit=5';
+                     ? '/api/scan-market-phases?market=idx&limit=10&refresh=true'
+                     : '/api/scan-market-phases?market=idx&limit=10';
                  const response = await fetch(url, {
                      headers: {
                          'Accept': 'application/json',
@@ -123,7 +123,7 @@
     <div x-show="open" x-collapse>
         <!-- Description -->
         <p class="text-sm text-gray-400 mb-4">
-            Wyckoff market cycle analysis - Top 5 stocks in each phase.
+            Wyckoff market cycle analysis - Top 10 stocks in each phase.
             <span class="text-success font-semibold">MARKUP</span> = uptrend,
             <span class="text-danger font-semibold">MARKDOWN</span> = downtrend,
             <span class="text-warning font-semibold">DISTRIBUTION</span> = topping,
