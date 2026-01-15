@@ -2138,12 +2138,15 @@
                 stocks.forEach((stock, idx) => {
                     const changeColor = stock.change_percent >= 0 ? '#22c55e' : '#ef4444';
                     const changeSign = stock.change_percent >= 0 ? '+' : '';
+                    const historyBadge = stock.from_history
+                        ? '<span style="background: #3b82f6; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; margin-left: 6px;">SEARCHED</span>'
+                        : '';
                     stockRows += `
-                        <div onclick="quickAnalyze('${stock.symbol}')" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05);" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                        <div onclick="quickAnalyze('${stock.symbol}')" style="padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05); ${stock.from_history ? 'background: rgba(59, 130, 246, 0.1);' : ''}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='${stock.from_history ? 'rgba(59, 130, 246, 0.1)' : 'transparent'}'">
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <span style="font-size: 0.75rem; color: #6b7280; font-family: monospace; width: 16px;">${idx + 1}</span>
                                 <div>
-                                    <div style="font-weight: 600;">${stock.symbol}</div>
+                                    <div style="font-weight: 600;">${stock.symbol}${historyBadge}</div>
                                     <div style="font-size: 0.75rem; color: #94a3b8; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${stock.name}</div>
                                 </div>
                             </div>
@@ -2165,13 +2168,18 @@
                     `;
                 });
 
+                const totalInPhase = phaseCounts[phase] || stocks.length;
+                const showingText = totalInPhase > stocks.length
+                    ? `showing ${stocks.length} of ${totalInPhase}`
+                    : `${stocks.length} stocks`;
+
                 phaseSections += `
                     <div style="border: 2px solid ${colors.border}; border-radius: 12px; overflow: hidden; margin-bottom: 16px; background: ${colors.bg};">
                         <div style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 1.25rem;">${getPhaseIcon(phase)}</span>
                                 <span style="font-weight: bold; color: ${colors.text};">${phase}</span>
-                                <span style="font-size: 0.75rem; color: #94a3b8;">(${stocks.length} stocks)</span>
+                                <span style="font-size: 0.75rem; color: #94a3b8;">(${showingText})</span>
                             </div>
                             <p style="font-size: 0.75rem; color: #94a3b8; margin: 4px 0 0 0;">${getPhaseDescription(phase)}</p>
                         </div>

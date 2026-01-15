@@ -1179,8 +1179,16 @@ class StockAnalysisController extends Controller
             Cache::forget($cacheKey);
         }
 
-        // Cache for 1 hour
-        return Cache::remember($cacheKey, 3600, function () use ($market, $limit) {
+        // Get recently analyzed symbols from history (for priority sorting)
+        $recentHistorySymbols = AnalysisHistory::recent(30)
+            ->orderBy('created_at', 'desc')
+            ->pluck('symbol')
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Cache for 5 minutes (300 seconds)
+        return Cache::remember($cacheKey, 300, function () use ($market, $limit, $recentHistorySymbols) {
             $allStocks = $this->getStocksForPhaseScan($market);
 
             $phases = [
@@ -1220,6 +1228,10 @@ class StockAnalysisController extends Controller
                         continue;
                     }
 
+                    // Check if this stock is in user's history (prioritize it)
+                    $isFromHistory = in_array($symbol, $recentHistorySymbols) ||
+                                     in_array($normalizedSymbol, $recentHistorySymbols);
+
                     $stockInfo = [
                         'symbol' => $symbol,
                         'name' => $stockData['name'],
@@ -1236,6 +1248,7 @@ class StockAnalysisController extends Controller
                         'accumulation_strength' => $accumulation['strength']['score'] ?? 0,
                         'volume_ratio' => $accumulation['current_volume_vs_average']['ratio'] ?? 1,
                         'market' => $market,
+                        'from_history' => $isFromHistory,
                     ];
 
                     $phases[$phase][] = $stockInfo;
@@ -1245,9 +1258,24 @@ class StockAnalysisController extends Controller
                 }
             }
 
-            // Sort each phase by score descending, then limit
+            // Count totals BEFORE limiting
+            $totalCounts = [
+                'MARKUP' => count($phases['MARKUP']),
+                'MARKDOWN' => count($phases['MARKDOWN']),
+                'DISTRIBUTION' => count($phases['DISTRIBUTION']),
+                'ACCUMULATION' => count($phases['ACCUMULATION']),
+                'CONSOLIDATION' => count($phases['CONSOLIDATION']),
+            ];
+
+            // Sort each phase: history stocks first, then by score descending
             foreach ($phases as $phase => &$stocks) {
-                usort($stocks, fn($a, $b) => $b['score'] <=> $a['score']);
+                usort($stocks, function ($a, $b) {
+                    // History stocks come first
+                    if ($a['from_history'] && !$b['from_history']) return -1;
+                    if (!$a['from_history'] && $b['from_history']) return 1;
+                    // Then sort by score
+                    return $b['score'] <=> $a['score'];
+                });
                 $stocks = array_slice($stocks, 0, $limit);
             }
 
@@ -1256,13 +1284,8 @@ class StockAnalysisController extends Controller
                 'scanned' => $scanned,
                 'errors' => $errors,
                 'phases' => $phases,
-                'phase_counts' => [
-                    'MARKUP' => count($phases['MARKUP']),
-                    'MARKDOWN' => count($phases['MARKDOWN']),
-                    'DISTRIBUTION' => count($phases['DISTRIBUTION']),
-                    'ACCUMULATION' => count($phases['ACCUMULATION']),
-                    'CONSOLIDATION' => count($phases['CONSOLIDATION']),
-                ],
+                'phase_counts' => $totalCounts,  // Total stocks in each phase (before limit)
+                'showing_top' => $limit,
                 'cached_at' => now()->toDateTimeString(),
             ]);
         });
