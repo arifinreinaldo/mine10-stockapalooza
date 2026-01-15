@@ -2310,7 +2310,8 @@
         }
 
         // Go to specific page (AJAX-like, no scroll)
-        async function goToPage(page) {
+        window.goToPage = async function(page) {
+            console.log('goToPage called with page:', page);
             if (page < 1) return;
 
             currentPage = page;
