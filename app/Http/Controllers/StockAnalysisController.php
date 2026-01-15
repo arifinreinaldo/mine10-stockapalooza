@@ -1188,6 +1188,7 @@ class StockAnalysisController extends Controller
                 'MARKDOWN' => [],
                 'DISTRIBUTION' => [],
                 'ACCUMULATION' => [],
+                'CONSOLIDATION' => [],
             ];
 
             $scanned = 0;
@@ -1209,9 +1210,14 @@ class StockAnalysisController extends Controller
 
                     $phase = $accumulation['phase']['current_phase'] ?? 'NEUTRAL';
 
-                    // Normalize phase name - only keep the 4 main phases
+                    // Normalize phase names
+                    if (str_contains($phase, 'NEUTRAL') || str_contains($phase, 'CONSOLIDATION')) {
+                        $phase = 'CONSOLIDATION';
+                    }
+
+                    // Skip if not a recognized phase
                     if (!isset($phases[$phase])) {
-                        continue; // Skip NEUTRAL, CONSOLIDATION, etc.
+                        continue;
                     }
 
                     $stockInfo = [
@@ -1255,6 +1261,7 @@ class StockAnalysisController extends Controller
                     'MARKDOWN' => count($phases['MARKDOWN']),
                     'DISTRIBUTION' => count($phases['DISTRIBUTION']),
                     'ACCUMULATION' => count($phases['ACCUMULATION']),
+                    'CONSOLIDATION' => count($phases['CONSOLIDATION']),
                 ],
                 'cached_at' => now()->toDateTimeString(),
             ]);
@@ -1271,6 +1278,7 @@ class StockAnalysisController extends Controller
             'MARKDOWN' => 'danger',
             'DISTRIBUTION' => 'warning',
             'ACCUMULATION' => 'primary',
+            'CONSOLIDATION' => 'secondary',
             default => 'secondary',
         };
     }

@@ -2016,7 +2016,8 @@
                 'MARKUP': '📈',
                 'MARKDOWN': '📉',
                 'DISTRIBUTION': '🔻',
-                'ACCUMULATION': '💰'
+                'ACCUMULATION': '💰',
+                'CONSOLIDATION': '↔️'
             };
             return icons[phase] || '❓';
         }
@@ -2027,7 +2028,8 @@
                 'MARKUP': { bg: 'rgba(34, 197, 94, 0.2)', border: '#22c55e', text: '#22c55e' },
                 'MARKDOWN': { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444', text: '#ef4444' },
                 'DISTRIBUTION': { bg: 'rgba(245, 158, 11, 0.2)', border: '#f59e0b', text: '#f59e0b' },
-                'ACCUMULATION': { bg: 'rgba(59, 130, 246, 0.2)', border: '#3b82f6', text: '#3b82f6' }
+                'ACCUMULATION': { bg: 'rgba(59, 130, 246, 0.2)', border: '#3b82f6', text: '#3b82f6' },
+                'CONSOLIDATION': { bg: 'rgba(107, 114, 128, 0.2)', border: '#6b7280', text: '#9ca3af' }
             };
             return colors[phase] || { bg: 'rgba(107, 114, 128, 0.2)', border: '#6b7280', text: '#6b7280' };
         }
@@ -2038,7 +2040,8 @@
                 'MARKUP': 'Price rising with volume support. Uptrend in progress.',
                 'MARKDOWN': 'Price falling with volume. Downtrend in progress.',
                 'DISTRIBUTION': 'Smart money distributing at higher prices.',
-                'ACCUMULATION': 'Smart money accumulating at lower prices.'
+                'ACCUMULATION': 'Smart money accumulating at lower prices.',
+                'CONSOLIDATION': 'Stock is consolidating. Wait for clear direction.'
             };
             return descriptions[phase] || '';
         }
@@ -2056,7 +2059,7 @@
                 </button>
             `;
 
-            ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN'].forEach(phase => {
+            ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN', 'CONSOLIDATION'].forEach(phase => {
                 const colors = getPhaseColors(phase);
                 const isActive = activePhaseFilter === phase;
                 filterTabs += `
@@ -2075,7 +2078,7 @@
                 const phaseSummary = marketPhaseHistory.phase_summary || {};
 
                 let summaryBoxes = '';
-                ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN'].forEach(phase => {
+                ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN', 'CONSOLIDATION'].forEach(phase => {
                     const colors = getPhaseColors(phase);
                     summaryBoxes += `
                         <div style="text-align: center; padding: 10px; border-radius: 8px; background: ${colors.bg}; border: 1px solid ${colors.border};">
@@ -2124,7 +2127,7 @@
 
             // Build phase sections
             let phaseSections = '';
-            ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN'].forEach(phase => {
+            ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN', 'CONSOLIDATION'].forEach(phase => {
                 const stocks = phases[phase] || [];
                 if (stocks.length === 0) return;
                 if (activePhaseFilter !== 'all' && activePhaseFilter !== phase) return;
@@ -2214,7 +2217,8 @@
                         <span style="color: #22c55e; font-weight: 600;">MARKUP</span> = uptrend,
                         <span style="color: #ef4444; font-weight: 600;">MARKDOWN</span> = downtrend,
                         <span style="color: #f59e0b; font-weight: 600;">DISTRIBUTION</span> = topping,
-                        <span style="color: #3b82f6; font-weight: 600;">ACCUMULATION</span> = bottoming.
+                        <span style="color: #3b82f6; font-weight: 600;">ACCUMULATION</span> = bottoming,
+                        <span style="color: #9ca3af; font-weight: 600;">CONSOLIDATION</span> = sideways.
                     </p>
 
                     <!-- Filter Tabs -->

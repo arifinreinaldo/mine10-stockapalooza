@@ -55,7 +55,8 @@
                  'MARKUP': '📈',
                  'MARKDOWN': '📉',
                  'DISTRIBUTION': '🔻',
-                 'ACCUMULATION': '💰'
+                 'ACCUMULATION': '💰',
+                 'CONSOLIDATION': '↔️'
              };
              return icons[phase] || '❓';
          },
@@ -65,7 +66,8 @@
                  'MARKUP': 'text-success',
                  'MARKDOWN': 'text-danger',
                  'DISTRIBUTION': 'text-warning',
-                 'ACCUMULATION': 'text-primary-500'
+                 'ACCUMULATION': 'text-primary-500',
+                 'CONSOLIDATION': 'text-gray-400'
              };
              return colors[phase] || 'text-gray-400';
          },
@@ -75,7 +77,8 @@
                  'MARKUP': 'bg-success/20 border-success',
                  'MARKDOWN': 'bg-danger/20 border-danger',
                  'DISTRIBUTION': 'bg-warning/20 border-warning',
-                 'ACCUMULATION': 'bg-primary-500/20 border-primary-500'
+                 'ACCUMULATION': 'bg-primary-500/20 border-primary-500',
+                 'CONSOLIDATION': 'bg-gray-500/20 border-gray-500'
              };
              return colors[phase] || 'bg-gray-500/20 border-gray-500';
          },
@@ -85,7 +88,8 @@
                  'MARKUP': 'Price rising with volume support. Uptrend in progress.',
                  'MARKDOWN': 'Price falling with volume. Downtrend in progress.',
                  'DISTRIBUTION': 'Smart money distributing at higher prices.',
-                 'ACCUMULATION': 'Smart money accumulating at lower prices.'
+                 'ACCUMULATION': 'Smart money accumulating at lower prices.',
+                 'CONSOLIDATION': 'Stock is consolidating. Wait for clear direction.'
              };
              return descriptions[phase] || '';
          }
@@ -127,7 +131,8 @@
             <span class="text-success font-semibold">MARKUP</span> = uptrend,
             <span class="text-danger font-semibold">MARKDOWN</span> = downtrend,
             <span class="text-warning font-semibold">DISTRIBUTION</span> = topping,
-            <span class="text-primary-500 font-semibold">ACCUMULATION</span> = bottoming.
+            <span class="text-primary-500 font-semibold">ACCUMULATION</span> = bottoming,
+            <span class="text-gray-400 font-semibold">CONSOLIDATION</span> = sideways.
         </p>
 
         <!-- Phase Filter Tabs -->
@@ -137,7 +142,7 @@
                     :class="activePhase === 'all' ? 'bg-primary-500 text-white' : 'bg-dark-lighter text-gray-300 hover:bg-dark'">
                 All Phases
             </button>
-            <template x-for="phase in ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN']" :key="phase">
+            <template x-for="phase in ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN', 'CONSOLIDATION']" :key="phase">
                 <button @click="activePhase = phase"
                         class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1 border-2"
                         :class="activePhase === phase ? getPhaseBgColor(phase) : 'bg-dark-lighter text-gray-300 hover:bg-dark border-transparent'">
@@ -170,7 +175,7 @@
 
             <!-- Phase Summary -->
             <div x-show="history?.phase_summary" class="grid grid-cols-4 gap-2 mb-4">
-                <template x-for="phase in ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN']" :key="phase">
+                <template x-for="phase in ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN', 'CONSOLIDATION']" :key="phase">
                     <div class="text-center p-2 rounded-lg" :class="getPhaseBgColor(phase)">
                         <span x-text="getPhaseIcon(phase)"></span>
                         <p class="text-lg font-bold" x-text="history?.phase_summary?.[phase] || 0"></p>
@@ -211,7 +216,7 @@
         <!-- Phase Data Display -->
         <div x-show="!loading && !error && data" class="space-y-4">
 
-            <template x-for="phase in ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN']" :key="phase">
+            <template x-for="phase in ['MARKUP', 'ACCUMULATION', 'DISTRIBUTION', 'MARKDOWN', 'CONSOLIDATION']" :key="phase">
                 <div x-show="(activePhase === 'all' || activePhase === phase) && data?.phases?.[phase]?.length > 0"
                      class="border-2 rounded-lg overflow-hidden"
                      :class="getPhaseBgColor(phase)">
